@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Archon — Agentes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="agentes">
+<aside class="rail">
+  <div class="rail-brand" aria-hidden="true"></div>
+  <nav class="rail-nav">
+    <a class="rail-link" href="Workflows.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6h7M6 8.5v7M18 8.5v7M8.5 18h7"/></svg><span class="tip">Workflows</span></a>
+    <a class="rail-link" href="Agentes.html" data-active="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="6" cy="7" r="1.5"/><circle cx="18" cy="7" r="1.5"/><circle cx="6" cy="17" r="1.5"/><circle cx="18" cy="17" r="1.5"/><path d="M9.5 10.5L7 8M14.5 10.5L17 8M9.5 13.5L7 16M14.5 13.5L17 16"/></svg><span class="tip">Agentes</span></a>
+    <a class="rail-link" href="Execucoes.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5l12 7-12 7z"/></svg><span class="tip">Execuções</span></a>
+    <a class="rail-link" href="RAG.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6c0-1 4-2 8-2s8 1 8 2v12c0 1-4 2-8 2s-8-1-8-2z"/><path d="M4 6c0 1 4 2 8 2s8-1 8-2M4 12c0 1 4 2 8 2s8-1 8-2"/></svg><span class="tip">Bases RAG</span></a>
+    <a class="rail-link" href="Usuarios.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg><span class="tip">Usuários</span></a>
+  </nav>
+  <div class="rail-spacer"></div>
+  <div class="rail-avatar">DX</div>
+</aside>
+
+<div class="page">
+  <div class="page-topbar">
+    <span class="page-title">Agentes</span>
+    <span class="page-sub" style="color:var(--ink-4)">/</span>
+    <span class="page-sub">Catálogo e tipos disponíveis</span>
+    <div style="flex:1"></div>
+    <button class="btn primary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novo agente custom</button>
+  </div>
+
+  <div class="page-body">
+    <h1 class="page-h1">Catálogo de Agentes</h1>
+    <p class="page-lead">Tipos disponíveis para compor workflows. Cada agente declara portas <strong style="color:var(--ink)">principais</strong> (entrada) e <strong style="color:var(--ink)">auxiliares</strong> (saídas) e expõe um subject NATS quando precisa de execução externa.</p>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="label">Tipos built-in</div><div class="value">10</div></div>
+      <div class="stat"><div class="label">Custom registrados</div><div class="value">3</div></div>
+      <div class="stat"><div class="label">Em uso (workflows)</div><div class="value">28</div><div class="delta">+4 esta semana</div></div>
+      <div class="stat"><div class="label">Executores online</div><div class="value">7 / 7</div><div class="delta">100% saudáveis</div></div>
+    </div>
+
+    <div class="page-tabs">
+      <button class="page-tab" data-active="true">Built-in <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-4);margin-left:4px">10</span></button>
+      <button class="page-tab">Custom <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-4);margin-left:4px">3</span></button>
+      <button class="page-tab">Executores</button>
+    </div>
+
+    <div class="toolbar">
+      <input class="search-input" placeholder="Buscar agente…" />
+      <select class="field-select" style="width:auto">
+        <option>Todas as categorias</option><option>Decisão</option><option>I/O Externo</option><option>Dados</option><option>RAG</option><option>Canais</option>
+      </select>
+      <div class="grow"></div>
+      <span style="color:var(--ink-3);font-size:12px">10 resultados</span>
+    </div>
+
+    <div class="card-grid" id="catalog"></div>
+
+    <div class="section-head"><h2>Saúde dos Executores</h2><a href="#" style="font-size:12px;color:var(--ink-3);text-decoration:none">Ver detalhes →</a></div>
+    <table class="table">
+      <thead><tr><th>Executor</th><th>Tipo</th><th>Réplicas</th><th>Subjects</th><th>Lag</th><th>p95 latência</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">http-executor</td><td>http</td><td class="num mono">10/10</td><td class="mono muted">archon.need.http</td><td class="num mono">0</td><td class="num mono">82ms</td><td><span class="pill" data-tone="ok"><span class="dot"></span>online</span></td></tr>
+        <tr><td class="mono">planner-executor</td><td>planner</td><td class="num mono">5/5</td><td class="mono muted">archon.need.planner.*</td><td class="num mono">2</td><td class="num mono">640ms</td><td><span class="pill" data-tone="ok"><span class="dot"></span>online</span></td></tr>
+        <tr><td class="mono">rag-query-executor</td><td>rag-query</td><td class="num mono">5/5</td><td class="mono muted">archon.need.rag.query</td><td class="num mono">0</td><td class="num mono">120ms</td><td><span class="pill" data-tone="ok"><span class="dot"></span>online</span></td></tr>
+        <tr><td class="mono">rag-ingestion-executor</td><td>rag-ingestion</td><td class="num mono">3/3</td><td class="mono muted">archon.need.rag.ingest</td><td class="num mono">12</td><td class="num mono">2.4s</td><td><span class="pill" data-tone="warn"><span class="dot"></span>lag</span></td></tr>
+        <tr><td class="mono">conversation-turn-executor</td><td>conversation</td><td class="num mono">3/3</td><td class="mono muted">archon.need.conversation.turn</td><td class="num mono">0</td><td class="num mono">310ms</td><td><span class="pill" data-tone="ok"><span class="dot"></span>online</span></td></tr>
+        <tr><td class="mono">channel-delivery-executor</td><td>interaction</td><td class="num mono">5/5</td><td class="mono muted">archon.need.interaction</td><td class="num mono">0</td><td class="num mono">95ms</td><td><span class="pill" data-tone="ok"><span class="dot"></span>online</span></td></tr>
+        <tr><td class="mono">graph-memory-executor</td><td>graph</td><td class="num mono">2/2</td><td class="mono muted">archon.need.graph.*</td><td class="num mono">0</td><td class="num mono">180ms</td><td><span class="pill" data-tone="ok"><span class="dot"></span>online</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  var grid = document.getElementById("catalog");
+  var glyphs = {
+    planner:'<circle cx="12" cy="12" r="3"/><circle cx="6" cy="7" r="1.5"/><circle cx="18" cy="7" r="1.5"/><circle cx="6" cy="17" r="1.5"/><circle cx="18" cy="17" r="1.5"/><path d="M9.5 10.5L7 8M14.5 10.5L17 8M9.5 13.5L7 16M14.5 13.5L17 16"/>',
+    http:'<path d="M3 12h18"/><path d="M16 7l5 5-5 5"/>',
+    transform:'<path d="M9 4c-2 0-2 4-2 8s0 8-2 8"/><path d="M15 4c2 0 2 4 2 8s0 8 2 8"/><path d="M7 12h10"/>',
+    event:'<path d="M13 3L4 14h7l-1 7 9-11h-7l1-7z"/>',
+    interaction:'<path d="M4 5h16v11h-9l-4 4v-4H4z"/>',
+    router:'<path d="M5 5v6a3 3 0 0 0 3 3h8a3 3 0 0 1 3 3v2"/><circle cx="5" cy="5" r="1" fill="currentColor"/>',
+    calculator:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M9 12h.01M12 12h.01M15 12h.01"/>',
+    rag:'<path d="M4 6c0-1 4-2 8-2s8 1 8 2v12c0 1-4 2-8 2s-8-1-8-2z"/><path d="M4 6c0 1 4 2 8 2s8-1 8-2M4 12c0 1 4 2 8 2s8-1 8-2"/>',
+    conversation:'<path d="M3 6h12v8H8l-3 3v-3H3z"/>',
+  };
+  var inUse = { planner: 14, http: 22, transform: 18, event: 6, interaction: 7, router: 4, calculator: 2, "rag-query": 11, "rag-ingestion": 5, conversation: 9 };
+  Object.entries(window.AGENT_TYPES).forEach(function(e){
+    var t = e[0], m = e[1];
+    var card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = ''
+      + '<div class="card-header">'
+      +   '<div class="card-glyph"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + (glyphs[m.glyph] || glyphs.planner) + '</svg></div>'
+      +   '<div style="flex:1;min-width:0"><div class="card-title">' + m.label + '</div><div class="card-sub">' + t + '</div></div>'
+      +   '<span class="pill"><span class="dot"></span>' + m.category + '</span>'
+      + '</div>'
+      + '<div class="card-desc">' + m.description + '</div>'
+      + '<div class="card-foot">'
+      +   '<div class="card-ports" title="portas">'
+      +     m.ports.principal.map(function(){return '<span class="card-port-dot" data-kind="principal"></span>'}).join("")
+      +     m.ports.auxiliary.map(function(){return '<span class="card-port-dot"></span>'}).join("")
+      +   '</div>'
+      +   '<span>' + (inUse[t] || 0) + ' uso' + ((inUse[t]||0)===1?'':'s') + '</span>'
+      + '</div>';
+    grid.appendChild(card);
+  });
+  // tabs toggle
+  document.querySelectorAll(".page-tab").forEach(function(b){
+    b.addEventListener("click", function(){
+      document.querySelectorAll(".page-tab").forEach(function(x){x.removeAttribute("data-active")});
+      b.dataset.active = "true";
+    });
+  });
+})();
+</script>
+</body></html>

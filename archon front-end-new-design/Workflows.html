@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Archon — Workflows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .wf-row-name { font-weight: 500; }
+  .wf-row-desc { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+  .mini-canvas {
+    width: 96px; height: 56px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background-image: radial-gradient(circle, var(--line) 0.6px, transparent 0.6px);
+    background-size: 8px 8px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .mini-node {
+    position: absolute;
+    width: 14px; height: 8px;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 2px;
+  }
+  .mini-edge { position: absolute; height: 1px; background: var(--ink-4); }
+  .view-toggle {
+    display: inline-flex;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-2);
+    padding: 2px;
+  }
+  .view-toggle button {
+    padding: 4px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--ink-3);
+    cursor: pointer;
+  }
+  .view-toggle button[data-active="true"] { background: var(--surface-2); color: var(--ink); }
+</style>
+</head>
+<body data-page="workflows">
+<aside class="rail">
+  <div class="rail-brand" aria-hidden="true"></div>
+  <nav class="rail-nav">
+    <a class="rail-link" href="Workflows.html" data-active="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6h7M6 8.5v7M18 8.5v7M8.5 18h7"/></svg><span class="tip">Workflows</span></a>
+    <a class="rail-link" href="Agentes.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="6" cy="7" r="1.5"/><circle cx="18" cy="7" r="1.5"/><circle cx="6" cy="17" r="1.5"/><circle cx="18" cy="17" r="1.5"/><path d="M9.5 10.5L7 8M14.5 10.5L17 8M9.5 13.5L7 16M14.5 13.5L17 16"/></svg><span class="tip">Agentes</span></a>
+    <a class="rail-link" href="Execucoes.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5l12 7-12 7z"/></svg><span class="tip">Execuções</span></a>
+    <a class="rail-link" href="RAG.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6c0-1 4-2 8-2s8 1 8 2v12c0 1-4 2-8 2s-8-1-8-2z"/><path d="M4 6c0 1 4 2 8 2s8-1 8-2M4 12c0 1 4 2 8 2s8-1 8-2"/></svg><span class="tip">Bases RAG</span></a>
+    <a class="rail-link" href="Usuarios.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg><span class="tip">Usuários</span></a>
+  </nav>
+  <div class="rail-spacer"></div>
+  <div class="rail-avatar">DX</div>
+</aside>
+
+<div class="page">
+  <div class="page-topbar">
+    <span class="page-title">Workflows</span>
+    <span class="page-sub" style="color:var(--ink-4)">/</span>
+    <span class="page-sub">Todos os clientes</span>
+    <div style="flex:1"></div>
+    <a class="btn primary" href="Workflow Builder.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Novo workflow</a>
+  </div>
+
+  <div class="page-body">
+    <h1 class="page-h1">Workflows</h1>
+    <p class="page-lead">Workflows que você criou para clientes. Cada um é um grafo de agentes versionado, vinculado a um tenant. Clique para abrir no editor visual.</p>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="label">Total</div><div class="value">28</div><div class="delta">+4 este mês</div></div>
+      <div class="stat"><div class="label">Publicados</div><div class="value">22</div></div>
+      <div class="stat"><div class="label">Rascunhos</div><div class="value">6</div></div>
+      <div class="stat"><div class="label">Execuções (30d)</div><div class="value">42.108</div><div class="delta">+18%</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input class="search-input" placeholder="Buscar por nome, tag ou tenant…" />
+      <select class="field-select" style="width:auto"><option>Todos clientes</option><option>Acme Corp</option><option>Med Atende</option><option>FinTech Brasil</option></select>
+      <select class="field-select" style="width:auto"><option>Todos status</option><option>Publicado</option><option>Rascunho</option><option>Pausado</option></select>
+      <select class="field-select" style="width:auto"><option>Atualizado recentemente</option><option>Mais executados</option><option>Ordem alfabética</option></select>
+      <div class="grow"></div>
+      <div class="view-toggle">
+        <button data-active="true" id="view-list">Lista</button>
+        <button id="view-grid">Grade</button>
+      </div>
+    </div>
+
+    <table class="table" id="wf-list">
+      <thead><tr><th></th><th>Workflow</th><th>Cliente</th><th>Versão</th><th>Status</th><th class="num">Agentes</th><th class="num">Execuções (30d)</th><th>Sucesso</th><th>Atualizado</th><th></th></tr></thead>
+      <tbody id="wf-rows"></tbody>
+    </table>
+
+    <div class="card-grid" id="wf-grid" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // [name, desc, tenant, version, status, agents, runs30d, success, updated, miniGraph]
+  // miniGraph: array of [x%, y%] for nodes, edges drawn between consecutive
+  var workflows = [
+    ["Atendimento WhatsApp","Roteamento + RAG + handoff humano","Acme Corp","v3.2","published",6,8420,99.2,"há 2h",
+      [[10,50],[35,30],[60,30],[60,70],[88,50]]],
+    ["Pipeline RAG (PDFs onboarding)","Ingestão + chunk + embed + index","Acme Corp","v1.4","published",4,1240,98.8,"há 6h",
+      [[10,50],[35,50],[60,50],[88,50]]],
+    ["Decision automation · churn","Score + segmento + ação","FinTech Brasil","v2.0","published",6,3120,97.4,"ontem",
+      [[10,50],[32,30],[32,70],[58,50],[88,50]]],
+    ["Aggregator multi-API (CRM+Pay)","Paralelo · 5 fontes externas","Acme Corp","v4.1","published",7,5840,99.8,"há 3 dias",
+      [[10,30],[10,70],[35,30],[35,70],[60,50],[88,50]]],
+    ["Telegram bot · ticket","Captura + classificação + abertura","Med Atende","v2.3","published",4,1820,98.1,"há 4 dias",
+      [[10,50],[35,50],[60,30],[60,70],[88,50]]],
+    ["Weather batch (200 cidades)","Cron + API + CSV","Acme Corp","v1.0","published",2,820,100,"há 5 dias",
+      [[10,50],[40,50],[80,50]]],
+    ["Suporte multi-turn (memória)","Conversation + RAG + tools","Med Atende","v2.7","published",5,4200,99.5,"há 1 semana",
+      [[10,50],[35,30],[35,70],[65,50],[88,50]]],
+    ["Webhook GitHub → Slack","Filter + transform + post","Acme Corp","v1.2","published",4,11400,99.9,"há 1 semana",
+      [[10,50],[30,50],[55,50],[80,50]]],
+    ["Compliance scan · contratos","Ingest + LLM-classify + alerta","FinTech Brasil","v0.8","draft",6,84,94.2,"há 1 semana",
+      [[10,50],[30,30],[30,70],[60,50],[85,50]]],
+    ["Triagem clínica · sintomas","Conversation + protocolo","Med Atende","v3.1","published",5,2860,98.9,"há 2 semanas",
+      [[10,50],[35,50],[60,30],[60,70],[88,50]]],
+    ["Onboarding · KYC fintech","Captura + OCR + decisão","FinTech Brasil","v1.5","paused",7,420,96.7,"há 3 semanas",
+      [[10,50],[28,30],[28,70],[55,50],[78,30],[78,70]]],
+    ["Lead enrichment + score","CRM + APIs externas + planner","Acme Corp","v2.0","published",5,3240,99.0,"há 3 semanas",
+      [[10,50],[35,50],[60,30],[60,70],[88,50]]],
+    ["Resumo diário (executivo)","Cron + agregação + LLM + email","Acme Corp","v1.1","published",4,30,100,"há 1 mês",
+      [[10,50],[35,50],[60,50],[88,50]]],
+    ["NPS automático pós-atendimento","Trigger + envio + coleta","Med Atende","v0.4","draft",3,12,91.7,"há 1 mês",
+      [[15,50],[50,50],[85,50]]],
+  ];
+  var statusTone = { published:"ok", draft:"warn", paused:"warn", failed:"err" };
+  var statusLabel = { published:"publicado", draft:"rascunho", paused:"pausado" };
+  var tenantInitials = { "Acme Corp":["A","248"], "Med Atende":["M","155"], "FinTech Brasil":["F","35"] };
+
+  function renderMini(graph) {
+    var html = '';
+    graph.forEach(function(n){
+      html += '<div class="mini-node" style="left:'+(n[0])+'%;top:'+(n[1])+'%;transform:translate(-50%,-50%)"></div>';
+    });
+    // simple edges chained heuristically: connect each node to next, fan-in/out
+    for (var i = 0; i < graph.length - 1; i++) {
+      for (var j = i+1; j < graph.length; j++) {
+        if (Math.abs(graph[i][0] - graph[j][0]) <= 30 && j - i <= 3) {
+          var x1 = graph[i][0], y1 = graph[i][1], x2 = graph[j][0], y2 = graph[j][1];
+          var dx = x2 - x1, dy = y2 - y1;
+          var len = Math.sqrt(dx*dx + dy*dy);
+          var ang = Math.atan2(dy, dx) * 180 / Math.PI;
+          html += '<div class="mini-edge" style="left:'+x1+'%;top:'+y1+'%;width:'+len+'%;transform:rotate('+ang+'deg);transform-origin:0 50%"></div>';
+        }
+      }
+    }
+    return html;
+  }
+
+  function tenantBadge(t) {
+    var info = tenantInitials[t] || ["?","240"];
+    return '<div class="user-cell"><div class="user-avatar" style="background:oklch(0.95 0.03 '+info[1]+');border-color:oklch(0.85 0.06 '+info[1]+');color:oklch(0.40 0.12 '+info[1]+')">'+info[0]+'</div><span class="name">'+t+'</span></div>';
+  }
+
+  var tb = document.getElementById("wf-rows");
+  workflows.forEach(function(w){
+    var tr = document.createElement("tr");
+    tr.style.cursor = "pointer";
+    tr.onclick = function(){ window.location.href = "Workflow Builder.html"; };
+    tr.innerHTML = ''
+      + '<td style="width:108px"><div class="mini-canvas">'+renderMini(w[9])+'</div></td>'
+      + '<td><div class="wf-row-name">'+w[0]+'</div><div class="wf-row-desc">'+w[1]+'</div></td>'
+      + '<td>'+tenantBadge(w[2])+'</td>'
+      + '<td class="mono muted">'+w[3]+'</td>'
+      + '<td><span class="pill" data-tone="'+statusTone[w[4]]+'"><span class="dot"></span>'+statusLabel[w[4]]+'</span></td>'
+      + '<td class="num mono">'+w[5]+'</td>'
+      + '<td class="num mono">'+w[6].toLocaleString("pt-BR")+'</td>'
+      + '<td><div style="display:flex;align-items:center;gap:8px"><div class="kbar" style="width:60px"><div class="kbar-fill" style="width:'+w[7]+'%;background:'+(w[7]>=98?'var(--ok)':w[7]>=95?'var(--warn)':'var(--err)')+'"></div></div><span class="mono" style="font-size:11px;color:var(--ink-3)">'+w[7].toFixed(1)+'%</span></div></td>'
+      + '<td class="muted">'+w[8]+'</td>'
+      + '<td style="width:24px;color:var(--ink-4)">→</td>';
+    tb.appendChild(tr);
+  });
+
+  // grid view
+  var grid = document.getElementById("wf-grid");
+  workflows.forEach(function(w){
+    var card = document.createElement("a");
+    card.className = "card";
+    card.href = "Workflow Builder.html";
+    card.style.textDecoration = "none";
+    card.style.color = "inherit";
+    card.innerHTML = ''
+      + '<div class="card-header"><div style="flex:1;min-width:0"><div class="card-title">'+w[0]+'</div><div class="card-sub">'+w[2]+' · '+w[3]+'</div></div><span class="pill" data-tone="'+statusTone[w[4]]+'"><span class="dot"></span>'+statusLabel[w[4]]+'</span></div>'
+      + '<div class="mini-canvas" style="width:100%;height:96px">'+renderMini(w[9])+'</div>'
+      + '<div class="card-desc">'+w[1]+'</div>'
+      + '<div class="card-foot"><span>'+w[5]+' agentes · '+w[6].toLocaleString("pt-BR")+' execs</span><span>'+w[8]+'</span></div>';
+    grid.appendChild(card);
+  });
+
+  document.getElementById("view-list").onclick = function(){
+    document.getElementById("wf-list").style.display = "";
+    document.getElementById("wf-grid").style.display = "none";
+    this.dataset.active = "true";
+    document.getElementById("view-grid").removeAttribute("data-active");
+  };
+  document.getElementById("view-grid").onclick = function(){
+    document.getElementById("wf-list").style.display = "none";
+    document.getElementById("wf-grid").style.display = "grid";
+    this.dataset.active = "true";
+    document.getElementById("view-list").removeAttribute("data-active");
+  };
+})();
+</script>
+</body></html>
