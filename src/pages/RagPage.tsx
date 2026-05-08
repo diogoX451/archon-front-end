@@ -1,6 +1,8 @@
-import React from "react";
+import { useState } from "react";
 import { IconPlus, IconRAG } from "@shared/ui/icons/Icons";
+import { useCreateRAGIngestWorkflow, useCreateRAGQueryWorkflow } from "@shared/hooks/useRag";
 
+// Mock knowledge bases (backend doesn't have a list KB endpoint yet)
 const KBS = [
   ["kb_suporte", "Suporte Acme", "acme_corp", 214, 8420, 90, "OpenAI text-embed-3"],
   ["kb_legal", "Documentos Legais", "acme_corp", 512, 32100, 72, "OpenAI text-embed-3"],
@@ -19,6 +21,60 @@ const RECENT_DOCS = [
 ];
 
 export function RagPage() {
+  const [showIngestDialog, setShowIngestDialog] = useState(false);
+  const [showQueryDialog, setShowQueryDialog] = useState(false);
+
+  // Ingest form state
+  const [ingestTenantId, setIngestTenantId] = useState("");
+  const [ingestKbId, setIngestKbId] = useState("");
+  const [ingestDocId, setIngestDocId] = useState("");
+  const [ingestContent, setIngestContent] = useState("");
+
+  // Query form state
+  const [queryTenantId, setQueryTenantId] = useState("");
+  const [queryText, setQueryText] = useState("");
+  const [queryResult, setQueryResult] = useState<any>(null);
+
+  const ingestMutation = useCreateRAGIngestWorkflow();
+  const queryMutation = useCreateRAGQueryWorkflow();
+
+  const handleIngest = () => {
+    if (!ingestTenantId || !ingestKbId || !ingestDocId || !ingestContent) return;
+    ingestMutation.mutate(
+      {
+        tenant_id: ingestTenantId,
+        knowledge_base_id: ingestKbId,
+        document_id: ingestDocId,
+        content: ingestContent,
+      },
+      {
+        onSuccess: (data) => {
+          alert(`Ingestão iniciada! workflow_id: ${data.workflow_id}`);
+          setShowIngestDialog(false);
+          setIngestContent("");
+          setIngestDocId("");
+        },
+        onError: (err) => alert(`Erro na ingestão: ${err.message}`),
+      }
+    );
+  };
+
+  const handleQuery = () => {
+    if (!queryTenantId || !queryText) return;
+    queryMutation.mutate(
+      {
+        tenant_id: queryTenantId,
+        query: queryText,
+      },
+      {
+        onSuccess: (data) => {
+          setQueryResult(data);
+        },
+        onError: (err) => alert(`Erro na query: ${err.message}`),
+      }
+    );
+  };
+
   return (
     <>
       <div className="page-topbar">
@@ -26,7 +82,10 @@ export function RagPage() {
         <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
         <span className="page-sub">Knowledge bases vetoriais</span>
         <div style={{ flex: 1 }}></div>
-        <button className="btn">
+        <button className="btn" onClick={() => setShowQueryDialog(true)}>
+          Query semântica
+        </button>
+        <button className="btn" onClick={() => setShowIngestDialog(true)}>
           <IconPlus size={14} />
           Ingerir documento
         </button>
@@ -48,6 +107,65 @@ export function RagPage() {
           <div className="stat"><div className="label">Chunks indexados</div><div className="value">218k</div></div>
           <div className="stat"><div className="label">Queries (24h)</div><div className="value">9.124</div><div className="delta">+18%</div></div>
         </div>
+
+        {/* Dialog: Ingestão */}
+        {showIngestDialog && (
+          <div className="card" style={{ marginBottom: 24, border: "1px solid var(--accent)", padding: 20 }}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Ingerir Documento</div>
+            <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input className="search-input" placeholder="tenant_id *" value={ingestTenantId} onChange={(e) => setIngestTenantId(e.target.value)} style={{ flex: 1 }} />
+                <input className="search-input" placeholder="knowledge_base_id *" value={ingestKbId} onChange={(e) => setIngestKbId(e.target.value)} style={{ flex: 1 }} />
+                <input className="search-input" placeholder="document_id *" value={ingestDocId} onChange={(e) => setIngestDocId(e.target.value)} style={{ flex: 1 }} />
+              </div>
+              <textarea
+                className="search-input"
+                placeholder="Conteúdo do documento (texto) *"
+                value={ingestContent}
+                onChange={(e) => setIngestContent(e.target.value)}
+                style={{ minHeight: 100, resize: "vertical" }}
+              />
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button className="btn" onClick={() => setShowIngestDialog(false)}>Cancelar</button>
+                <button className="btn primary" onClick={handleIngest} disabled={ingestMutation.isPending}>
+                  {ingestMutation.isPending ? "Enviando…" : "Iniciar ingestão"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dialog: Query */}
+        {showQueryDialog && (
+          <div className="card" style={{ marginBottom: 24, border: "1px solid var(--accent)", padding: 20 }}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Query Semântica</div>
+            <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
+              <input className="search-input" placeholder="tenant_id *" value={queryTenantId} onChange={(e) => setQueryTenantId(e.target.value)} />
+              <textarea
+                className="search-input"
+                placeholder="O que você quer buscar? *"
+                value={queryText}
+                onChange={(e) => setQueryText(e.target.value)}
+                style={{ minHeight: 60, resize: "vertical" }}
+              />
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button className="btn" onClick={() => { setShowQueryDialog(false); setQueryResult(null); }}>Fechar</button>
+                <button className="btn primary" onClick={handleQuery} disabled={queryMutation.isPending}>
+                  {queryMutation.isPending ? "Buscando…" : "Buscar"}
+                </button>
+              </div>
+              {queryResult && (
+                <pre style={{
+                  background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-2)",
+                  padding: 12, fontSize: 11, fontFamily: "var(--font-mono)", overflow: "auto", maxHeight: 200,
+                  whiteSpace: "pre-wrap", wordBreak: "break-word",
+                }}>
+                  {JSON.stringify(queryResult, null, 2)}
+                </pre>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="card-grid">
           {KBS.map((k, i) => (

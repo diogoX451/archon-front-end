@@ -1,6 +1,47 @@
-import React from "react";
+import { useGetHealth } from "@shared/hooks/useHealth";
+import { useListWorkflows } from "@shared/hooks/useWorkflows";
+import type { WorkflowState } from "@shared/api/types";
+
+const STATUS_TONE: Record<string, string> = { running: "run", completed: "ok", waiting: "warn", failed: "err", spawning: "run" };
+
+function deriveStatus(wf: WorkflowState): string {
+  if (wf.status) return String(wf.status);
+  if (!wf.agents || Object.keys(wf.agents).length === 0) return "spawning";
+  const agents = Object.values(wf.agents);
+  if (agents.some((a) => a.state === "failed")) return "failed";
+  if (agents.every((a) => a.state === "completed")) return "completed";
+  if (agents.some((a) => a.state === "waiting")) return "waiting";
+  return "running";
+}
+
+function timeAgo(dateStr?: string): string {
+  if (!dateStr) return "—";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  if (diff < 60_000) return `há ${Math.floor(diff / 1000)}s`;
+  if (diff < 3_600_000) return `há ${Math.floor(diff / 60_000)}m`;
+  if (diff < 86_400_000) return `há ${Math.floor(diff / 3_600_000)}h`;
+  return `há ${Math.floor(diff / 86_400_000)}d`;
+}
+
+function durationMs(wf: WorkflowState): string | null {
+  if (!wf.created_at || !wf.updated_at) return null;
+  const status = deriveStatus(wf);
+  if (status !== "completed" && status !== "failed") return null;
+  const diff = new Date(wf.updated_at).getTime() - new Date(wf.created_at).getTime();
+  if (diff <= 0) return null;
+  return `${diff}ms`;
+}
 
 export function DashboardPage() {
+  const { data: health } = useGetHealth({ refetchInterval: 30_000 });
+  const { data: workflows } = useListWorkflows();
+
+  const total = workflows?.length ?? 0;
+  const runningCount = workflows?.filter((w) => deriveStatus(w) === "running").length ?? 0;
+  const completedCount = workflows?.filter((w) => deriveStatus(w) === "completed").length ?? 0;
+  const successRate = total > 0 ? ((completedCount / total) * 100).toFixed(1) : "—";
+  const recentWorkflows = workflows?.slice(0, 5) ?? [];
+
   return (
     <>
       <div className="page-topbar">
@@ -8,6 +49,16 @@ export function DashboardPage() {
         <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
         <span className="page-sub">Painel geral</span>
         <div style={{ flex: 1 }}></div>
+        {health && (
+          <span
+            className="pill"
+            data-tone={health.status === "healthy" ? "ok" : "err"}
+            style={{ fontSize: 11 }}
+          >
+            <span className="dot"></span>
+            API {health.status} · {health.version}
+          </span>
+        )}
       </div>
 
       <div className="page-body">
@@ -19,23 +70,23 @@ export function DashboardPage() {
         <div className="stat-grid">
           <div className="stat">
             <div className="label">Workflows ativos</div>
-            <div className="value">28</div>
-            <div className="delta">+4 este mês</div>
+            <div className="value">{total}</div>
+            <div className="delta">via API</div>
           </div>
           <div className="stat">
-            <div className="label">Execuções (24h)</div>
-            <div className="value">1.284</div>
-            <div className="delta">+12%</div>
+            <div className="label">Em execução</div>
+            <div className="value" style={{ color: "oklch(0.45 0.13 60)" }}>{runningCount}</div>
           </div>
           <div className="stat">
             <div className="label">Taxa de sucesso</div>
-            <div className="value">98,4%</div>
-            <div className="delta">+0,3pp</div>
+            <div className="value">{successRate}%</div>
           </div>
           <div className="stat">
-            <div className="label">Agentes online</div>
-            <div className="value">7 / 7</div>
-            <div className="delta">100% saudáveis</div>
+            <div className="label">API Status</div>
+            <div className="value" style={{ color: health?.status === "healthy" ? "oklch(0.45 0.13 155)" : "oklch(0.50 0.16 25)" }}>
+              {health ? health.status : "…"}
+            </div>
+            <div className="delta">{health ? `v${health.version}` : "conectando"}</div>
           </div>
         </div>
 
@@ -88,54 +139,42 @@ export function DashboardPage() {
         </div>
 
         <div className="section-head"><h2>Atividade Recente</h2></div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Workflow</th>
-              <th>Tenant</th>
-              <th>Status</th>
-              <th className="num">Duração</th>
-              <th>Quando</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style={{ cursor: "pointer" }}>
-              <td style={{ fontWeight: 500 }}>Assistente de Clima</td>
-              <td className="muted mono">acme_corp</td>
-              <td><span className="pill" data-tone="ok"><span className="dot"></span>completed</span></td>
-              <td className="num mono">1540ms</td>
-              <td className="muted">há 12s</td>
-            </tr>
-            <tr style={{ cursor: "pointer" }}>
-              <td style={{ fontWeight: 500 }}>Atendimento WhatsApp</td>
-              <td className="muted mono">acme_corp</td>
-              <td><span className="pill" data-tone="run"><span className="dot"></span>running</span></td>
-              <td className="num mono"><span className="muted">—</span></td>
-              <td className="muted">há 1m</td>
-            </tr>
-            <tr style={{ cursor: "pointer" }}>
-              <td style={{ fontWeight: 500 }}>Pipeline RAG (PDF onboarding)</td>
-              <td className="muted mono">tenant_med</td>
-              <td><span className="pill" data-tone="ok"><span className="dot"></span>completed</span></td>
-              <td className="num mono">4220ms</td>
-              <td className="muted">há 3m</td>
-            </tr>
-            <tr style={{ cursor: "pointer" }}>
-              <td style={{ fontWeight: 500 }}>Decision automation · churn</td>
-              <td className="muted mono">tenant_fin</td>
-              <td><span className="pill" data-tone="warn"><span className="dot"></span>blocked</span></td>
-              <td className="num mono"><span className="muted">—</span></td>
-              <td className="muted">há 8m</td>
-            </tr>
-            <tr style={{ cursor: "pointer" }}>
-              <td style={{ fontWeight: 500 }}>Webhook GitHub → Slack</td>
-              <td className="muted mono">acme_corp</td>
-              <td><span className="pill" data-tone="ok"><span className="dot"></span>completed</span></td>
-              <td className="num mono">540ms</td>
-              <td className="muted">há 44m</td>
-            </tr>
-          </tbody>
-        </table>
+        {recentWorkflows.length > 0 ? (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Workflow ID</th>
+                <th>Tenant</th>
+                <th>Status</th>
+                <th className="num">Duração</th>
+                <th>Quando</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentWorkflows.map((wf) => {
+                const status = deriveStatus(wf);
+                const dur = durationMs(wf);
+                return (
+                  <tr key={wf.id} style={{ cursor: "pointer" }}>
+                    <td className="mono" style={{ fontSize: 12 }}>{wf.id}</td>
+                    <td className="muted mono">{wf.tenant_id || "—"}</td>
+                    <td>
+                      <span className="pill" data-tone={STATUS_TONE[status] || "warn"}>
+                        <span className="dot"></span>{status}
+                      </span>
+                    </td>
+                    <td className="num mono">{dur || <span className="muted">—</span>}</td>
+                    <td className="muted">{timeAgo(wf.created_at)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <div style={{ textAlign: "center", padding: 32, color: "var(--ink-3)", fontSize: 13 }}>
+            {workflows === undefined ? "Carregando…" : "Nenhuma atividade recente. Dispare um workflow para começar."}
+          </div>
+        )}
       </div>
     </>
   );

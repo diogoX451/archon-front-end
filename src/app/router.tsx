@@ -9,30 +9,48 @@ import { TenantsPage } from "@pages/TenantsPage";
 import { RagPage } from "@pages/RagPage";
 import { EventsPage } from "@pages/EventsPage";
 import { TemplatesPage } from "@pages/TemplatesPage";
+import { LoginPage } from "@pages/LoginPage";
 import { WorkflowBuilder } from "@features/workflow-builder";
+import { AuthProvider } from "./auth-context";
+import { ProtectedRoute } from "./protected-route";
 
 export function AppRouter() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/workflows/builder" element={<WorkflowBuilder />} />
-        <Route path="/*" element={
-          <AppShell>
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/conversation" element={<ConversationPage />} />
-              <Route path="/workflows" element={<WorkflowsPage />} />
-              <Route path="/workflows/result" element={<WorkflowResultPage />} />
-              <Route path="/profiles" element={<ProfilesPage />} />
-              <Route path="/tenants" element={<TenantsPage />} />
-              <Route path="/rag" element={<RagPage />} />
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/templates" element={<TemplatesPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </AppShell>
-        } />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/workflows/builder"
+            element={
+              <ProtectedRoute>
+                <WorkflowBuilder />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <Routes>
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/conversation" element={<ConversationPage />} />
+                    <Route path="/workflows" element={<WorkflowsPage />} />
+                    <Route path="/workflows/result" element={<WorkflowResultPage />} />
+                    <Route path="/profiles" element={<ProfilesPage />} />
+                    <Route path="/tenants" element={<TenantsPage />} />
+                    <Route path="/rag" element={<RagPage />} />
+                    <Route path="/events" element={<EventsPage />} />
+                    <Route path="/templates" element={<TemplatesPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

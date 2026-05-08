@@ -1,24 +1,51 @@
-import React from "react";
 import { IconReset } from "@shared/ui/icons/Icons";
+import { useListWorkflows } from "@shared/hooks/useWorkflows";
+import type { WorkflowState } from "@shared/api/types";
 
-const RUNS = [
-  ["wf_8a3f2c1d", "Assistente de Clima", "acme_corp", "completed", 3, 12, 1540, "há 12s"],
-  ["wf_4e9b21cc", "Atendimento WhatsApp", "acme_corp", "running", 5, 28, null, "há 1m"],
-  ["wf_2c1aa980", "Pipeline RAG (PDF onboarding)", "tenant_med", "completed", 4, 18, 4220, "há 3m"],
-  ["wf_91dd02ef", "Aggregator multi-API (CRM+Pay)", "acme_corp", "completed", 7, 34, 2890, "há 5m"],
-  ["wf_77ea4f00", "Decision automation · churn", "tenant_fin", "blocked", 6, 21, null, "há 8m"],
-  ["wf_baf4e519", "Telegram bot · ticket", "tenant_med", "completed", 4, 16, 2110, "há 11m"],
-  ["wf_36c8a2b7", "Weather batch (200 cities)", "acme_corp", "running", 2, 142, null, "há 12m"],
-  ["wf_d019cc34", "RAG ingest · contratos.pdf", "tenant_fin", "failed", 2, 4, 1280, "há 18m"],
-  ["wf_50aa7711", "Planner · LLM routing", "acme_corp", "completed", 5, 22, 3140, "há 22m"],
-  ["wf_aac9018e", "Conversa multi-turn · suporte", "tenant_med", "completed", 3, 9, 890, "há 31m"],
-  ["wf_113fef02", "Aggregator · 5 APIs", "tenant_fin", "completed", 6, 24, 2640, "há 38m"],
-  ["wf_77019cab", "Webhook GitHub → Slack", "acme_corp", "completed", 4, 11, 540, "há 44m"],
-];
+const STATUS_TONE: Record<string, string> = { completed: "ok", running: "run", waiting: "warn", failed: "err", spawning: "run" };
 
-const STATUS_TONE: Record<string, string> = { completed: "ok", running: "run", blocked: "warn", failed: "err" };
+function agentCount(wf: WorkflowState): number {
+  if (!wf.agents) return 0;
+  return Object.keys(wf.agents).length;
+}
+
+function deriveStatus(wf: WorkflowState): string {
+  if (wf.status) return String(wf.status);
+  if (!wf.agents || Object.keys(wf.agents).length === 0) return "spawning";
+  const agents = Object.values(wf.agents);
+  if (agents.some((a) => a.state === "failed")) return "failed";
+  if (agents.every((a) => a.state === "completed")) return "completed";
+  if (agents.some((a) => a.state === "waiting")) return "waiting";
+  return "running";
+}
+
+function timeAgo(dateStr?: string): string {
+  if (!dateStr) return "—";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  if (diff < 60_000) return `há ${Math.floor(diff / 1000)}s`;
+  if (diff < 3_600_000) return `há ${Math.floor(diff / 60_000)}m`;
+  if (diff < 86_400_000) return `há ${Math.floor(diff / 3_600_000)}h`;
+  return `há ${Math.floor(diff / 86_400_000)}d`;
+}
+
+function durationMs(wf: WorkflowState): string | null {
+  if (!wf.created_at || !wf.updated_at) return null;
+  const status = deriveStatus(wf);
+  if (status !== "completed" && status !== "failed") return null;
+  const diff = new Date(wf.updated_at).getTime() - new Date(wf.created_at).getTime();
+  if (diff <= 0) return null;
+  return `${diff}ms`;
+}
 
 export function EventsPage() {
+  const { data: workflows, isLoading, error, refetch } = useListWorkflows();
+
+  const runningCount = workflows?.filter((w) => deriveStatus(w) === "running").length ?? 0;
+  const completedCount = workflows?.filter((w) => deriveStatus(w) === "completed").length ?? 0;
+  const failedCount = workflows?.filter((w) => deriveStatus(w) === "failed").length ?? 0;
+  const total = workflows?.length ?? 0;
+  const successRate = total > 0 ? ((completedCount / total) * 100).toFixed(1) : "—";
+
   return (
     <>
       <div className="page-topbar">
@@ -26,7 +53,7 @@ export function EventsPage() {
         <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
         <span className="page-sub">Histórico e observabilidade</span>
         <div style={{ flex: 1 }}></div>
-        <button className="btn">
+        <button className="btn" onClick={() => refetch()}>
           <IconReset size={14} />
           Atualizar
         </button>
@@ -39,56 +66,93 @@ export function EventsPage() {
         </p>
 
         <div className="stat-grid">
-          <div className="stat"><div className="label">Hoje</div><div className="value">1.284</div><div className="delta">+12% vs ontem</div></div>
-          <div className="stat"><div className="label">Em execução</div><div className="value" style={{ color: "oklch(0.45 0.13 60)" }}>7</div><div className="delta">média 420ms</div></div>
-          <div className="stat"><div className="label">Taxa de sucesso (24h)</div><div className="value">98,4%</div><div className="delta">+0,3pp</div></div>
-          <div className="stat"><div className="label">p95 latência</div><div className="value">1,82s</div><div className="delta down">+120ms</div></div>
+          <div className="stat">
+            <div className="label">Total</div>
+            <div className="value">{isLoading ? "…" : total}</div>
+            <div className="delta">via API</div>
+          </div>
+          <div className="stat">
+            <div className="label">Em execução</div>
+            <div className="value" style={{ color: "oklch(0.45 0.13 60)" }}>{runningCount}</div>
+          </div>
+          <div className="stat">
+            <div className="label">Taxa de sucesso</div>
+            <div className="value">{successRate}%</div>
+          </div>
+          <div className="stat">
+            <div className="label">Falhas</div>
+            <div className="value" style={{ color: "oklch(0.50 0.16 25)" }}>{failedCount}</div>
+          </div>
         </div>
 
         <div className="toolbar">
           <input className="search-input" placeholder="Buscar por workflow_id, user…" />
-          <select className="field-select" style={{ width: "auto" }}>
-            <option>Todos status</option><option>running</option><option>completed</option><option>blocked</option><option>failed</option>
-          </select>
-          <select className="field-select" style={{ width: "auto" }}>
-            <option>Última 1h</option><option>Últimas 24h</option><option>Últimos 7 dias</option>
-          </select>
           <div className="grow"></div>
-          <span style={{ color: "var(--ink-3)", fontSize: 12 }}>12 de 1.284</span>
+          <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
+            {isLoading ? "carregando…" : `${total} execuções`}
+          </span>
         </div>
 
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Workflow ID</th>
-              <th>Nome</th>
-              <th>Tenant</th>
-              <th>Status</th>
-              <th>Agentes</th>
-              <th>Eventos</th>
-              <th className="num">Duração</th>
-              <th>Iniciado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {RUNS.map((r, i) => (
-              <tr key={i} style={{ cursor: "pointer" }}>
-                <td className="mono">{r[0]}</td>
-                <td>{r[1]}</td>
-                <td className="muted mono" style={{ fontSize: 11.5 }}>{r[2]}</td>
-                <td>
-                  <span className="pill" data-tone={STATUS_TONE[r[3] as string]}>
-                    <span className="dot"></span>{r[3]}
-                  </span>
-                </td>
-                <td className="num mono">{r[4]}</td>
-                <td className="num mono">{r[5]}</td>
-                <td className="num mono">{r[6] ? `${r[6]}ms` : <span className="muted">—</span>}</td>
-                <td className="muted">{r[7]}</td>
+        {error && (
+          <div className="card" style={{ padding: 16, borderColor: "var(--err)", marginBottom: 16 }}>
+            <span style={{ color: "var(--err)", fontSize: 13 }}>
+              Erro ao carregar execuções: {error.message}
+            </span>
+          </div>
+        )}
+
+        {isLoading && (
+          <div style={{ textAlign: "center", padding: 40, color: "var(--ink-3)" }}>
+            Carregando execuções…
+          </div>
+        )}
+
+        {!isLoading && (!workflows || workflows.length === 0) && !error && (
+          <div style={{ textAlign: "center", padding: 60 }}>
+            <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>⚡</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Nenhuma execução encontrada</div>
+            <div style={{ color: "var(--ink-3)", fontSize: 13 }}>
+              Execuções aparecerão aqui quando workflows forem disparados.
+            </div>
+          </div>
+        )}
+
+        {workflows && workflows.length > 0 && (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Workflow ID</th>
+                <th>Tenant</th>
+                <th>User</th>
+                <th>Status</th>
+                <th className="num">Agentes</th>
+                <th className="num">Duração</th>
+                <th>Iniciado</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {workflows.map((wf) => {
+                const status = deriveStatus(wf);
+                const dur = durationMs(wf);
+                return (
+                  <tr key={wf.id} style={{ cursor: "pointer" }}>
+                    <td className="mono" style={{ fontSize: 12 }}>{wf.id}</td>
+                    <td className="muted mono" style={{ fontSize: 11.5 }}>{wf.tenant_id || "—"}</td>
+                    <td className="muted mono" style={{ fontSize: 11.5 }}>{wf.user_id || "—"}</td>
+                    <td>
+                      <span className="pill" data-tone={STATUS_TONE[status] || "warn"}>
+                        <span className="dot"></span>{status}
+                      </span>
+                    </td>
+                    <td className="num mono">{agentCount(wf)}</td>
+                    <td className="num mono">{dur || <span className="muted">—</span>}</td>
+                    <td className="muted">{timeAgo(wf.created_at)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </>
   );
