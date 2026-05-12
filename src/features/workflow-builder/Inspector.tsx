@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { AGENT_TYPES, SAMPLE_WORKFLOW } from "./data";
 import { AgentNodeData, ConnectionData, WorkflowData } from "./types";
+import type { CanvasMeta } from "./profileSerializer";
 import { IconSliders, IconTerminal, IconShare, IconTrash, GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
 
 function hashString(s: string) {
@@ -23,19 +24,272 @@ function Field({ label, children }: FieldProps) {
   );
 }
 
-function WorkflowInspector({ workflow }: { workflow: WorkflowData }) {
-  const counts = workflow.agents.reduce((acc: any, a) => { 
-    acc[a.type] = (acc[a.type] || 0) + 1; 
-    return acc; 
-  }, {});
-  
+type PlannerAction = {
+  name: string;
+  description?: string;
+  agent_type?: string;
+  need_type?: string;
+  config?: Record<string, any>;
+};
+
+const ACTION_KINDS: { id: string; label: string; agent_type?: string; need_type?: string; configFields?: string[] }[] = [
+  { id: "complete", label: "complete (responder direto)" },
+  { id: "ask_user", label: "ask_user (pedir info)" },
+  { id: "http", label: "http (chamar API externa)", agent_type: "http", configFields: ["method", "url", "headers", "timeout"] },
+  { id: "rag", label: "rag.query (buscar contexto)", agent_type: "event", need_type: "rag.query" },
+  { id: "interaction", label: "interaction (canal)", agent_type: "interaction", need_type: "user_interaction.whatsapp.buttons" },
+  { id: "event", label: "event (custom)", agent_type: "event" },
+];
+
+function detectKind(action: PlannerAction): string {
+  if (action.name === "complete") return "complete";
+  if (action.name === "ask_user") return "ask_user";
+  if (action.agent_type === "http") return "http";
+  if (action.need_type === "rag.query") return "rag";
+  if (action.agent_type === "interaction") return "interaction";
+  return "event";
+}
+
+function applyKind(action: PlannerAction, kind: string): PlannerAction {
+  const spec = ACTION_KINDS.find((k) => k.id === kind);
+  if (!spec) return action;
+  const next: PlannerAction = { ...action };
+  if (kind === "complete" || kind === "ask_user") {
+    if (!next.name || ["complete", "ask_user"].indexOf(next.name) === -1) next.name = kind;
+    delete next.agent_type;
+    delete next.need_type;
+    delete next.config;
+    return next;
+  }
+  next.agent_type = spec.agent_type;
+  if (spec.need_type) next.need_type = spec.need_type;
+  if (kind === "http" && !next.config) next.config = { method: "GET", url: "", timeout: 15 };
+  return next;
+}
+
+function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[]; onChange: (next: PlannerAction[]) => void }) {
+  const update = (idx: number, patch: Partial<PlannerAction>) => {
+    onChange(actions.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
+  };
+  const updateConfig = (idx: number, key: string, value: any) => {
+    onChange(actions.map((a, i) => (i === idx ? { ...a, config: { ...(a.config || {}), [key]: value } } : a)));
+  };
+  const remove = (idx: number) => onChange(actions.filter((_, i) => i !== idx));
+  const add = () => onChange([...actions, { name: "nova_action", description: "" }]);
+
   return (
     <>
-      <div className="section-title">Workflow</div>
+      {actions.length === 0 && <div className="empty-state" style={{ marginBottom: 8 }}>Nenhuma action. Adicione ao menos <code>complete</code>.</div>}
+      {actions.map((action, idx) => {
+        const kind = detectKind(action);
+        const spec = ACTION_KINDS.find((k) => k.id === kind);
+        return (
+          <div key={idx} className="card" style={{ padding: 12, marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 8 }}>
+              <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>#{idx + 1}</span>
+              <select
+                className="field-select"
+                style={{ flex: 1 }}
+                value={kind}
+                onChange={(e) => onChange(actions.map((a, i) => (i === idx ? applyKind(a, e.target.value) : a)))}
+              >
+                {ACTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
+              </select>
+              <button className="btn ghost" onClick={() => remove(idx)} title="Remover action" style={{ padding: "4px 8px" }}>×</button>
+            </div>
+            <Field label="name">
+              <input
+                className="field-input"
+                value={action.name}
+                onChange={(e) => update(idx, { name: e.target.value })}
+                disabled={kind === "complete" || kind === "ask_user"}
+              />
+            </Field>
+            <Field label="description">
+              <input
+                className="field-input"
+                value={action.description || ""}
+                onChange={(e) => update(idx, { description: e.target.value })}
+                placeholder="O que esta tool faz"
+              />
+            </Field>
+            {kind === "event" && (
+              <Field label="need_type">
+                <input
+                  className="field-input"
+                  value={action.need_type || ""}
+                  onChange={(e) => update(idx, { need_type: e.target.value })}
+                  placeholder="my.custom.event"
+                />
+              </Field>
+            )}
+            {kind === "http" && (
+              <>
+                <Field label="method">
+                  <select
+                    className="field-select"
+                    value={(action.config?.method as string) || "GET"}
+                    onChange={(e) => updateConfig(idx, "method", e.target.value)}
+                  >
+                    <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
+                  </select>
+                </Field>
+                <Field label="url">
+                  <input
+                    className="field-input"
+                    value={(action.config?.url as string) || ""}
+                    onChange={(e) => updateConfig(idx, "url", e.target.value)}
+                    placeholder="https://api…/{param}"
+                  />
+                </Field>
+                <Field label="headers (JSON)">
+                  <textarea
+                    className="field-textarea"
+                    value={typeof action.config?.headers === "string" ? action.config.headers : JSON.stringify(action.config?.headers || {}, null, 2)}
+                    onChange={(e) => updateConfig(idx, "headers", e.target.value)}
+                    placeholder='{"Accept": "application/json"}'
+                  />
+                </Field>
+                <Field label="timeout (s)">
+                  <input
+                    className="field-input"
+                    type="number"
+                    value={(action.config?.timeout as number) || 15}
+                    onChange={(e) => updateConfig(idx, "timeout", +e.target.value)}
+                  />
+                </Field>
+              </>
+            )}
+            {kind === "interaction" && (
+              <Field label="need_type">
+                <input
+                  className="field-input"
+                  value={action.need_type || ""}
+                  onChange={(e) => update(idx, { need_type: e.target.value })}
+                  placeholder="user_interaction.whatsapp.buttons"
+                />
+              </Field>
+            )}
+            {spec && spec.need_type && kind !== "event" && kind !== "interaction" && (
+              <div className="field-hint" style={{ marginTop: -4 }}>
+                need_type: <code>{spec.need_type}</code>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <button className="btn" onClick={add} style={{ width: "100%", marginTop: 4 }}>+ Adicionar action</button>
+      <div className="field-hint" style={{ marginTop: 8 }}>
+        Actions definem o que o planner pode escolher. <code>response_schema</code> é derivado automaticamente ao salvar.
+      </div>
+    </>
+  );
+}
+
+function MemoryHooksEditor({ rules, onChange }: { rules: Array<{ relations: string[]; edge_type: string }>; onChange: (next: Array<{ relations: string[]; edge_type: string }>) => void }) {
+  const update = (idx: number, patch: Partial<{ relations: string[]; edge_type: string }>) => {
+    onChange(rules.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+  const remove = (idx: number) => onChange(rules.filter((_, i) => i !== idx));
+  const add = () => onChange([...rules, { relations: [], edge_type: "" }]);
+
+  return (
+    <>
+      {rules.length === 0 && (
+        <div className="empty-state" style={{ marginBottom: 8 }}>
+          Nenhuma regra. Hook rules mapeiam relações extraídas pelo planner para arestas Neo4j.
+        </div>
+      )}
+      {rules.map((rule, idx) => (
+        <div key={idx} className="card" style={{ padding: 10, marginBottom: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>regra #{idx + 1}</span>
+            <button className="btn ghost" onClick={() => remove(idx)} style={{ padding: "2px 8px" }}>×</button>
+          </div>
+          <Field label="relations (separadas por vírgula)">
+            <input
+              className="field-input"
+              value={rule.relations.join(", ")}
+              onChange={(e) => update(idx, { relations: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+              placeholder="WORKS_ON, TRABALHA_EM"
+            />
+          </Field>
+          <Field label="edge_type">
+            <input
+              className="field-input"
+              value={rule.edge_type}
+              onChange={(e) => update(idx, { edge_type: e.target.value })}
+              placeholder="WORKS_ON"
+            />
+          </Field>
+        </div>
+      ))}
+      <button className="btn" onClick={add} style={{ width: "100%" }}>+ Nova regra</button>
+    </>
+  );
+}
+
+function WorkflowInspector({
+  workflow,
+  meta,
+  onMetaChange,
+}: {
+  workflow: WorkflowData;
+  meta?: CanvasMeta;
+  onMetaChange?: (patch: Partial<CanvasMeta>) => void;
+}) {
+  const counts = workflow.agents.reduce((acc: any, a) => {
+    acc[a.type] = (acc[a.type] || 0) + 1;
+    return acc;
+  }, {});
+
+  const id = meta?.id || "—";
+  const hookRules = meta?.memory_hook_rules || [];
+
+  return (
+    <>
+      <div className="section-title">Profile</div>
+      <Field label="ID do profile">
+        <input
+          className="field-input"
+          value={meta?.id || ""}
+          onChange={(e) => onMetaChange?.({ id: e.target.value })}
+          placeholder="meu-agente"
+        />
+        <div className="field-hint">Slug único. Caracteres permitidos: a-z, 0-9, _ e -.</div>
+      </Field>
+      <Field label="Descrição">
+        <textarea
+          className="field-textarea"
+          value={meta?.description || ""}
+          onChange={(e) => onMetaChange?.({ description: e.target.value })}
+          placeholder="Para que serve este agente"
+        />
+      </Field>
+      <Field label="executor_type">
+        <select
+          className="field-select"
+          value={meta?.executor_type || "conversation"}
+          onChange={(e) => onMetaChange?.({ executor_type: e.target.value })}
+        >
+          <option value="conversation">conversation</option>
+          <option value="agenda">agenda</option>
+          <option value="task">task</option>
+        </select>
+        <div className="field-hint">Determina qual MemorySignalExtractor é usado após o workflow.</div>
+      </Field>
+      <Field label="user_id_prefix">
+        <input
+          className="field-input"
+          value={meta?.user_id_prefix || ""}
+          onChange={(e) => onMetaChange?.({ user_id_prefix: e.target.value })}
+          placeholder="conversation:"
+        />
+      </Field>
+
+      <div className="section-title">Estatísticas</div>
       <div className="kv-list">
-        <div className="kv-row"><span className="k">id</span><span className="v">wf_{Math.abs(hashString(workflow.name)).toString(36).slice(0, 8)}</span></div>
-        <div className="kv-row"><span className="k">user_id</span><span className="v">user_123</span></div>
-        <div className="kv-row"><span className="k">tenant_id</span><span className="v">acme_corp</span></div>
+        <div className="kv-row"><span className="k">id</span><span className="v mono">{id}</span></div>
         <div className="kv-row"><span className="k">agentes</span><span className="v">{workflow.agents.length}</span></div>
         <div className="kv-row"><span className="k">conexões</span><span className="v">{workflow.connections.length}</span></div>
       </div>
@@ -51,9 +305,14 @@ function WorkflowInspector({ workflow }: { workflow: WorkflowData }) {
         ))}
       </div>
 
+      <div className="section-title">Memory hooks</div>
+      <MemoryHooksEditor
+        rules={hookRules}
+        onChange={(next) => onMetaChange?.({ memory_hook_rules: next })}
+      />
+
       <div className="section-title">Atalhos</div>
       <div className="kv-list">
-        <div className="kv-row"><span className="k">⌘ ↵</span><span className="v">executar workflow</span></div>
         <div className="kv-row"><span className="k">Space</span><span className="v">mover canvas</span></div>
         <div className="kv-row"><span className="k">⌫</span><span className="v">excluir seleção</span></div>
         <div className="kv-row"><span className="k">ctrl+scroll</span><span className="v">zoom</span></div>
@@ -117,6 +376,10 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
               <option value="static">static (mock)</option>
             </select>
           </Field>
+          <Field label="need_type">
+            <input className="field-input" value={agent.config.need_type || "planner"} onChange={(e) => setConfig("need_type", e.target.value)} placeholder="planner" />
+            <div className="field-hint">Subject NATS do executor LLM. Padrão: <code>planner</code>.</div>
+          </Field>
           <Field label="Provider">
             <select className="field-select" value={agent.config.provider || "openai"} onChange={(e) => setConfig("provider", e.target.value)}>
               <option>openai</option><option>anthropic</option><option>ollama</option>
@@ -128,6 +391,12 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
           <Field label="Instruções">
             <textarea className="field-textarea" value={agent.config.instructions || ""} onChange={(e) => setConfig("instructions", e.target.value)} placeholder="Você é um assistente que…" />
           </Field>
+
+          <div className="section-title">Actions (ferramentas)</div>
+          <PlannerActionsEditor
+            actions={Array.isArray(agent.config.actions) ? agent.config.actions : []}
+            onChange={(next) => setConfig("actions", next)}
+          />
         </>
       )}
       {agent.type === "transform" && (
@@ -304,12 +573,14 @@ type InspectorProps = {
   selectedAgent: AgentNodeData | null;
   selectedConn: ConnectionData | null;
   workflow: WorkflowData;
+  meta?: CanvasMeta;
+  onMetaChange?: (patch: Partial<CanvasMeta>) => void;
   onUpdateAgent: (id: string, patch: any) => void;
   onRemoveAgent: (id: string) => void;
   onRemoveConnection: (id: string) => void;
 };
 
-export function Inspector({ tab, setTab, selectedAgent, selectedConn, workflow, onUpdateAgent, onRemoveAgent, onRemoveConnection }: InspectorProps) {
+export function Inspector({ tab, setTab, selectedAgent, selectedConn, workflow, meta, onMetaChange, onUpdateAgent, onRemoveAgent, onRemoveConnection }: InspectorProps) {
   return (
     <aside className="inspector">
       <div className="inspector-tabs">
@@ -328,7 +599,7 @@ export function Inspector({ tab, setTab, selectedAgent, selectedConn, workflow, 
         {tab === "config" && (
           selectedAgent ? <AgentInspector agent={selectedAgent} onUpdate={(patch) => onUpdateAgent(selectedAgent.id, patch)} onRemove={() => onRemoveAgent(selectedAgent.id)} /> :
           selectedConn ? <ConnectionInspector conn={selectedConn} workflow={workflow} onRemove={() => onRemoveConnection(selectedConn.id)} /> :
-          <WorkflowInspector workflow={workflow} />
+          <WorkflowInspector workflow={workflow} meta={meta} onMetaChange={onMetaChange} />
         )}
         {tab === "input" && <InputTab workflow={workflow} />}
         {tab === "rules" && <RulesTab workflow={workflow} />}

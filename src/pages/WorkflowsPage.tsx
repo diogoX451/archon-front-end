@@ -155,7 +155,7 @@ export function WorkflowsPage() {
               {workflows.map((wf) => {
                 const status = deriveStatus(wf);
                 return (
-                  <tr key={wf.id} style={{ cursor: "pointer" }} onClick={() => window.location.href = "/workflows/builder"}>
+                  <tr key={wf.id} style={{ cursor: "pointer" }} onClick={() => window.location.href = `/workflows/result?id=${encodeURIComponent(wf.id)}`}>
                     <td className="mono" style={{ fontSize: 12 }}>{wf.id}</td>
                     <td className="muted mono" style={{ fontSize: 12 }}>{wf.tenant_id || "—"}</td>
                     <td className="muted mono" style={{ fontSize: 12 }}>{wf.user_id || "—"}</td>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { AGENT_TYPES, SAMPLE_WORKFLOW, SIMULATED_TRACE } from "./data";
 import { WorkflowData, SelectedEntity, AgentNodeData, ConnectionData } from "./types";
 import { Palette } from "./Palette";
@@ -7,6 +8,8 @@ import { EventDrawer } from "./EventDrawer";
 import { AgentNode } from "./AgentNode";
 import { GLYPHS, GlyphPlanner, IconPlay, IconReset, IconValidate, IconCursor, IconHand, IconMinus, IconPlus } from "@shared/ui/icons/Icons";
 import { Rail } from "@shared/ui/Rail";
+import { useProfiles, useUpsertProfile } from "@shared/hooks/useProfiles";
+import { canvasToProfile, profileToCanvas, emptyCanvas, type CanvasMeta } from "./profileSerializer";
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -31,11 +34,67 @@ function bezierPath(a: {x: number, y: number}, b: {x: number, y: number}) {
 }
 
 export function WorkflowBuilder() {
-  const [workflow, setWorkflow] = useState<WorkflowData>(() => ({
-    name: SAMPLE_WORKFLOW.name,
-    agents: SAMPLE_WORKFLOW.agents.map((a: any) => ({ ...a, status: "idle" })),
-    connections: SAMPLE_WORKFLOW.connections.map((c: any) => ({ ...c, status: "idle" })),
+  const { id: routeId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const isNew = routeId === "new";
+  const hasRouteId = !!routeId && !isNew;
+
+  const { data: profilesList, isLoading: profilesLoading } = useProfiles();
+  const upsertMutation = useUpsertProfile();
+
+  const [meta, setMeta] = useState<CanvasMeta>(() => ({
+    id: isNew ? "" : routeId || "demo-workflow",
+    description: "",
   }));
+  const [loadedFromBackend, setLoadedFromBackend] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [workflow, setWorkflow] = useState<WorkflowData>(() => {
+    if (isNew || hasRouteId) return emptyCanvas("Novo agente");
+    return {
+      name: SAMPLE_WORKFLOW.name,
+      agents: SAMPLE_WORKFLOW.agents.map((a: any) => ({ ...a, status: "idle" })),
+      connections: SAMPLE_WORKFLOW.connections.map((c: any) => ({ ...c, status: "idle" })),
+    };
+  });
+
+  // Hydrate canvas from backend when route carries a profile id
+  useEffect(() => {
+    if (!hasRouteId || loadedFromBackend) return;
+    if (!profilesList) return;
+    const match = profilesList.find((p) => (p.profile_id || p.id) === routeId);
+    if (!match) return;
+    const { workflow: loadedWorkflow, meta: loadedMeta } = profileToCanvas(match);
+    setWorkflow(loadedWorkflow);
+    setMeta(loadedMeta);
+    setLoadedFromBackend(true);
+  }, [profilesList, hasRouteId, routeId, loadedFromBackend]);
+
+  const handleSave = async () => {
+    setSaveError(null);
+    const id = (meta.id || "").trim();
+    if (!id) {
+      setSaveError("Defina um ID para o agente antes de salvar.");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+      setSaveError("ID deve conter apenas letras, números, _ ou -.");
+      return;
+    }
+    if (workflow.agents.length === 0) {
+      setSaveError("Adicione ao menos um agente antes de salvar.");
+      return;
+    }
+    try {
+      const payload = canvasToProfile(workflow, { ...meta, id });
+      await upsertMutation.mutateAsync(payload);
+      if (isNew || routeId !== id) {
+        navigate(`/workflows/builder/${encodeURIComponent(id)}`, { replace: true });
+      }
+    } catch (err: any) {
+      setSaveError(err?.message || "Falha ao salvar profile.");
+    }
+  };
 
   const [selected, setSelected] = useState<SelectedEntity>({ kind: null, id: null });
   const [runState, setRunState] = useState<"idle" | "running" | "completed" | "error">("idle");
@@ -278,9 +337,29 @@ export function WorkflowBuilder() {
             className="workflow-name"
             value={workflow.name}
             onChange={(e) => setWorkflow((w) => ({ ...w, name: e.target.value }))}
+            placeholder="Nome do agente"
+          />
+          <input
+            className="workflow-name"
+            value={meta.id}
+            onChange={(e) => setMeta((m) => ({ ...m, id: e.target.value }))}
+            placeholder="id-do-profile"
+            style={{ fontFamily: "var(--font-mono)", fontSize: 12, maxWidth: 200 }}
+            readOnly={hasRouteId && loadedFromBackend}
+            title={hasRouteId ? "ID do profile (imutável após criação)" : "ID único do profile (a-z, 0-9, _, -)"}
           />
 
           <div className="spacer" />
+
+          {saveError && (
+            <span style={{ color: "var(--err)", fontSize: 12, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={saveError}>
+              {saveError}
+            </span>
+          )}
+
+          {hasRouteId && profilesLoading && !loadedFromBackend && (
+            <span style={{ color: "var(--ink-3)", fontSize: 12 }}>carregando profile…</span>
+          )}
 
           <div className="status-pill" data-state={runState}>
             <span className="dot" />
@@ -300,10 +379,31 @@ export function WorkflowBuilder() {
             <span>Reset</span>
           </button>
 
-          <button className="btn primary" onClick={run} disabled={runState === "running"}>
+          <button
+            className="btn primary"
+            onClick={handleSave}
+            disabled={upsertMutation.isPending}
+            title="Persistir profile no backend (POST /api/v1/profiles)"
+          >
+            <span>{upsertMutation.isPending ? "Salvando…" : "Salvar"}</span>
+          </button>
+
+          <button
+            className="btn"
+            onClick={() => {
+              const id = (meta.id || "").trim();
+              if (!id) return;
+              navigate(`/conversation?profile=${encodeURIComponent(id)}`);
+            }}
+            disabled={!hasRouteId || !loadedFromBackend}
+            title={loadedFromBackend ? "Abrir conversa de teste com este profile" : "Salve o profile antes de testar"}
+          >
+            <span>Testar</span>
+          </button>
+
+          <button className="btn" onClick={run} disabled={runState === "running"} title="Simulação local (não chama o backend)">
             <IconPlay className="icon" />
-            <span>Executar</span>
-            <span className="kbd">⌘↵</span>
+            <span>Simular</span>
           </button>
         </div>
 
@@ -478,6 +578,8 @@ export function WorkflowBuilder() {
           selectedAgent={selectedAgent}
           selectedConn={selectedConn}
           workflow={workflow}
+          meta={meta}
+          onMetaChange={(patch) => setMeta((m) => ({ ...m, ...patch }))}
           onUpdateAgent={updateAgent}
           onRemoveAgent={removeAgent}
           onRemoveConnection={removeConnection}

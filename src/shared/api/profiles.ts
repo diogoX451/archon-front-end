@@ -7,6 +7,8 @@ export interface ConversationProfileV2 {
   description?: string;
   user_id_prefix?: string;
   user_id?: string;
+  executor_type?: string;
+  memory_schema?: unknown;
   agents: unknown;
   connections?: unknown;
   input_defaults?: unknown;
@@ -21,6 +23,8 @@ export interface ProfileWriteInput {
   description?: string;
   user_id_prefix?: string;
   user_id?: string;
+  executor_type?: string;
+  memory_schema?: unknown;
   agents: unknown;
   connections?: unknown;
   input_defaults?: unknown;

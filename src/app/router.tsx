@@ -29,6 +29,14 @@ export function AppRouter() {
             }
           />
           <Route
+            path="/workflows/builder/:id"
+            element={
+              <ProtectedRoute>
+                <WorkflowBuilder />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/*"
             element={
               <ProtectedRoute>

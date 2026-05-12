@@ -154,8 +154,10 @@ export interface WorkflowState {
   id: string;
   user_id: string;
   tenant_id?: string;
+  profile_id?: string;
   status: string;
   agents?: Record<string, AgentSnapshot>;
+  connections?: any[];
   waiting?: any[];
   created_at?: string;
   updated_at?: string;
