@@ -1,25 +1,35 @@
-import React from "react";
+import { useMemo, useState } from "react";
 import { IconPlus } from "@shared/ui/icons/Icons";
-
-const TENANTS = [
-  {
-    initial: "A", name: "Acme Corp", slug: "acme_corp", status: "ativo", tone: "ok",
-    hue: "248", members: 8, workflows: 22, ragBases: 3, plan: "scale",
-    extra: "",
-  },
-  {
-    initial: "M", name: "Med Atende", slug: "tenant_med", status: "ativo", tone: "ok",
-    hue: "155", members: 4, workflows: 11, ragBases: 2, plan: "pro",
-    extra: "",
-  },
-  {
-    initial: "F", name: "FinTech Brasil", slug: "tenant_fin", status: "trial", tone: "warn",
-    hue: "35", members: 2, workflows: 7, ragBases: 2, plan: "trial",
-    extra: " · 7d restantes",
-  },
-];
+import { useCreateTenant, useTenants } from "@shared/hooks/useTenants";
 
 export function TenantsPage() {
+  const { data: tenants, isLoading, error } = useTenants();
+  const createTenant = useCreateTenant();
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [slug, setSlug] = useState("");
+  const [name, setName] = useState("");
+  const [document, setDocument] = useState("");
+
+  const activeCount = useMemo(() => (tenants || []).filter((t) => t.active).length, [tenants]);
+
+  const handleCreate = async () => {
+    if (!slug.trim() || !name.trim()) return;
+    try {
+      await createTenant.mutateAsync({
+        slug: slug.trim(),
+        name: name.trim(),
+        document: document.trim() || undefined,
+      });
+      setSlug("");
+      setName("");
+      setDocument("");
+      setShowCreate(false);
+    } catch (err: any) {
+      window.alert(`Erro ao criar tenant: ${err?.message || err}`);
+    }
+  };
+
   return (
     <>
       <div className="page-topbar">
@@ -27,113 +37,88 @@ export function TenantsPage() {
         <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
         <span className="page-sub">Organizações e isolamento</span>
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary">
-          <IconPlus size={14} />
-          Novo tenant
+        <button className="btn primary" onClick={() => setShowCreate(true)}>
+          <IconPlus size={14} /> Novo tenant
         </button>
       </div>
 
       <div className="page-body">
         <h1 className="page-h1">Tenants</h1>
-        <p className="page-lead">
-          Cada tenant é um namespace isolado. Operações RAG, workflows e conversas são segregadas por <code style={{ fontFamily: "var(--font-mono)", fontSize: 13, background: "var(--surface)", padding: "1px 5px", borderRadius: 3, border: "1px solid var(--line)" }}>tenant_id</code> via chaves Redis e metadata em vetor stores.
-        </p>
+        <p className="page-lead">Gerenciamento via <code>/api/v1/tenants</code>.</p>
 
         <div className="stat-grid">
-          <div className="stat"><div className="label">Tenants ativos</div><div className="value">3</div></div>
-          <div className="stat"><div className="label">Total de membros</div><div className="value">14</div></div>
-          <div className="stat"><div className="label">Workflows totais</div><div className="value">40</div></div>
-          <div className="stat"><div className="label">Bases RAG</div><div className="value">7</div></div>
+          <div className="stat"><div className="label">Tenants ativos</div><div className="value">{isLoading ? "…" : activeCount}</div></div>
+          <div className="stat"><div className="label">Total</div><div className="value">{isLoading ? "…" : tenants?.length || 0}</div></div>
         </div>
 
-        <div className="card-grid">
-          {TENANTS.map((t) => (
-            <div key={t.slug} className="card" style={{ cursor: "pointer" }}>
-              <div className="card-header">
-                <div
-                  className="card-glyph"
-                  style={{
-                    background: `oklch(0.95 0.025 ${t.hue})`,
-                    borderColor: `oklch(0.85 0.06 ${t.hue})`,
-                    color: `oklch(0.40 0.12 ${t.hue})`,
-                  }}
-                >
-                  <strong>{t.initial}</strong>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div className="card-title">{t.name}</div>
-                  <div className="card-sub">{t.slug}</div>
-                </div>
-                <span className="pill" data-tone={t.tone}>
-                  <span className="dot"></span>{t.status}
-                </span>
-              </div>
-              <div style={{ display: "flex", gap: 20, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-3)" }}>
-                <div>
-                  <div style={{ color: "var(--ink-4)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>membros</div>
-                  <div style={{ color: "var(--ink)", fontSize: 16 }}>{t.members}</div>
-                </div>
-                <div>
-                  <div style={{ color: "var(--ink-4)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>workflows</div>
-                  <div style={{ color: "var(--ink)", fontSize: 16 }}>{t.workflows}</div>
-                </div>
-                <div>
-                  <div style={{ color: "var(--ink-4)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>bases rag</div>
-                  <div style={{ color: "var(--ink)", fontSize: 16 }}>{t.ragBases}</div>
-                </div>
-              </div>
-              <div className="card-foot">
-                <span>plano: {t.plan}{t.extra}</span>
-                <span>→</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        {error && (
+          <div className="card" style={{ borderColor: "var(--err)", color: "var(--err)", marginBottom: 20 }}>
+            Erro ao carregar tenants: {error.message}
+          </div>
+        )}
 
-        <div className="section-head" style={{ marginTop: 40 }}><h2>Uso por Tenant</h2></div>
         <table className="table">
           <thead>
             <tr>
-              <th>Tenant</th>
-              <th>Plano</th>
-              <th className="num">Membros</th>
-              <th className="num">Workflows</th>
-              <th className="num">Execuções (30d)</th>
-              <th className="num">Bases RAG</th>
+              <th>Nome</th>
+              <th>Slug</th>
+              <th>Documento</th>
               <th>Status</th>
+              <th>Criado</th>
             </tr>
           </thead>
           <tbody>
-            <tr style={{ cursor: "pointer" }}>
-              <td style={{ fontWeight: 500 }}>Acme Corp</td>
-              <td className="mono">scale</td>
-              <td className="num mono">8</td>
-              <td className="num mono">22</td>
-              <td className="num mono">38.420</td>
-              <td className="num mono">3</td>
-              <td><span className="pill" data-tone="ok"><span className="dot"></span>ativo</span></td>
-            </tr>
-            <tr style={{ cursor: "pointer" }}>
-              <td style={{ fontWeight: 500 }}>Med Atende</td>
-              <td className="mono">pro</td>
-              <td className="num mono">4</td>
-              <td className="num mono">11</td>
-              <td className="num mono">10.430</td>
-              <td className="num mono">2</td>
-              <td><span className="pill" data-tone="ok"><span className="dot"></span>ativo</span></td>
-            </tr>
-            <tr style={{ cursor: "pointer" }}>
-              <td style={{ fontWeight: 500 }}>FinTech Brasil</td>
-              <td className="mono">trial</td>
-              <td className="num mono">2</td>
-              <td className="num mono">7</td>
-              <td className="num mono">1.320</td>
-              <td className="num mono">2</td>
-              <td><span className="pill" data-tone="warn"><span className="dot"></span>trial</span></td>
-            </tr>
+            {(tenants || []).map((t) => (
+              <tr key={t.id}>
+                <td style={{ fontWeight: 500 }}>{t.name}</td>
+                <td className="mono">{t.slug}</td>
+                <td className="muted mono">{t.document || "—"}</td>
+                <td>
+                  <span className="pill" data-tone={t.active ? "ok" : "warn"}>
+                    <span className="dot"></span>{t.active ? "ativo" : "inativo"}
+                  </span>
+                </td>
+                <td className="muted">{new Date(t.created_at).toLocaleString("pt-BR")}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
+
+      {showCreate && (
+        <div style={overlayStyle} onClick={() => setShowCreate(false)}>
+          <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Cadastrar tenant</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <input className="search-input" placeholder="slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
+              <input className="search-input" placeholder="nome" value={name} onChange={(e) => setName(e.target.value)} />
+              <input className="search-input" placeholder="documento (opcional)" value={document} onChange={(e) => setDocument(e.target.value)} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+              <button className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
+              <button className="btn primary" onClick={handleCreate} disabled={createTenant.isPending}>
+                {createTenant.isPending ? "Criando..." : "Criar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
+
+const overlayStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgb(10 12 16 / 0.55)",
+  display: "grid",
+  placeItems: "center",
+  zIndex: 50,
+  padding: 20,
+};
+
+const modalStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 520,
+  padding: 18,
+};

@@ -20,8 +20,10 @@ export interface KBWriteInput {
   metadata?: unknown;
 }
 
-export const listKBs = (tenantSlug: string) =>
-  fetchClient<KnowledgeBase[]>(`/api/v1/rag/knowledge-bases?tenant=${encodeURIComponent(tenantSlug)}`);
+export const listKBs = (tenantSlug: string, limit = 50, offset = 0) =>
+  fetchClient<KnowledgeBase[]>(
+    `/api/v1/rag/knowledge-bases?tenant=${encodeURIComponent(tenantSlug)}&limit=${limit}&offset=${offset}`
+  );
 
 export const createKB = (tenantSlug: string, input: KBWriteInput) =>
   fetchClient<KnowledgeBase>(`/api/v1/rag/knowledge-bases?tenant=${encodeURIComponent(tenantSlug)}`, {

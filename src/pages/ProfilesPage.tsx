@@ -1,30 +1,40 @@
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import { IconPlus } from "@shared/ui/icons/Icons";
-
-const PEOPLE = [
-  ["Diogo Xavier", "diogo@acme.dev", "DX", "owner", "acme_corp", 14, 4820, "agora", "active"],
-  ["Marina Costa", "marina@acme.dev", "MC", "architect", "acme_corp", 8, 2104, "há 8m", "active"],
-  ["Renato Lima", "renato@acme.dev", "RL", "developer", "acme_corp", 6, 1842, "há 22m", "active"],
-  ["Aline Souza", "aline@acme.dev", "AS", "developer", "acme_corp", 4, 920, "há 1h", "active"],
-  ["Pedro Tavares", "pedro@acme.dev", "PT", "operator", "acme_corp", 2, 540, "há 3h", "active"],
-  ["Camila Rocha", "camila@medatende.com.br", "CR", "architect", "tenant_med", 5, 1410, "há 4h", "active"],
-  ["Bruno Mello", "bruno@medatende.com.br", "BM", "developer", "tenant_med", 3, 820, "ontem", "active"],
-  ["Larissa Vidal", "larissa@medatende.com.br", "LV", "operator", "tenant_med", 2, 140, "há 2 dias", "active"],
-  ["Gabriel Pinto", "gabriel@fintechbr.com", "GP", "architect", "tenant_fin", 4, 612, "há 6h", "active"],
-  ["Helena Duarte", "helena@fintechbr.com", "HD", "developer", "tenant_fin", 3, 288, "há 1 dia", "active"],
-  ["Rafael Brito", "rafael@acme.dev", "RB", "viewer", "acme_corp", 0, 0, "nunca", "invited"],
-  ["Júlia Andrade", "julia@medatende.com.br", "JA", "viewer", "tenant_med", 0, 0, "nunca", "invited"],
-];
-
-const ROLE_STYLE: Record<string, React.CSSProperties> = {
-  owner: { background: "oklch(0.94 0.04 60)", color: "oklch(0.42 0.14 60)", borderColor: "transparent" },
-  architect: { background: "var(--accent-soft)", color: "var(--accent-ink)", borderColor: "transparent" },
-  developer: {},
-  operator: {},
-  viewer: { background: "var(--surface-2)", color: "var(--ink-3)" },
-};
+import { useCreateUser, useUsers } from "@shared/hooks/useUsers";
 
 export function ProfilesPage() {
+  const { data: users, isLoading, error } = useUsers();
+  const createUser = useCreateUser();
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [tenantSlug, setTenantSlug] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isTenantAdmin, setIsTenantAdmin] = useState(false);
+
+  const activeCount = useMemo(() => (users || []).filter((u) => u.is_active).length, [users]);
+
+  const handleCreate = async () => {
+    if (!tenantSlug.trim() || !name.trim() || !email.trim() || !password.trim()) return;
+    try {
+      await createUser.mutateAsync({
+        tenant_slug: tenantSlug.trim(),
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        is_tenant_admin: isTenantAdmin,
+      });
+      setName("");
+      setEmail("");
+      setPassword("");
+      setIsTenantAdmin(false);
+      setShowCreate(false);
+    } catch (err: any) {
+      window.alert(`Erro ao criar usuário: ${err?.message || err}`);
+    }
+  };
+
   return (
     <>
       <div className="page-topbar">
@@ -32,80 +42,93 @@ export function ProfilesPage() {
         <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
         <span className="page-sub">Membros da equipe</span>
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary">
-          <IconPlus size={14} />
-          Convidar
+        <button className="btn primary" onClick={() => setShowCreate(true)}>
+          <IconPlus size={14} /> Novo usuário
         </button>
       </div>
 
       <div className="page-body">
         <h1 className="page-h1">Usuários</h1>
-        <p className="page-lead">
-          Membros da equipe com acesso ao painel Archon. Cada workflow exige <code style={{ fontFamily: "var(--font-mono)", fontSize: 13, background: "var(--surface)", padding: "1px 5px", borderRadius: 3, border: "1px solid var(--line)" }}>user_id</code> para rastreabilidade. Gerencie permissões por role e tenant.
-        </p>
+        <p className="page-lead">Lista e cadastro via <code>/api/v1/users</code>.</p>
 
         <div className="stat-grid">
-          <div className="stat"><div className="label">Total de membros</div><div className="value">14</div></div>
-          <div className="stat"><div className="label">Ativos agora</div><div className="value" style={{ color: "oklch(0.45 0.13 60)" }}>10</div></div>
-          <div className="stat"><div className="label">Convidados pendentes</div><div className="value">2</div></div>
-          <div className="stat"><div className="label">Tenants</div><div className="value">3</div></div>
+          <div className="stat"><div className="label">Total</div><div className="value">{isLoading ? "…" : users?.length || 0}</div></div>
+          <div className="stat"><div className="label">Ativos</div><div className="value">{isLoading ? "…" : activeCount}</div></div>
         </div>
 
-        <div className="toolbar">
-          <input className="search-input" placeholder="Buscar pessoa…" />
-          <select className="field-select" style={{ width: "auto" }}>
-            <option>Todos tenants</option><option>acme_corp</option><option>tenant_med</option><option>tenant_fin</option>
-          </select>
-          <select className="field-select" style={{ width: "auto" }}>
-            <option>Todas roles</option><option>owner</option><option>architect</option><option>developer</option><option>operator</option><option>viewer</option>
-          </select>
-          <div className="grow"></div>
-          <span style={{ color: "var(--ink-3)", fontSize: 13 }}>14 membros</span>
-        </div>
+        {error && (
+          <div className="card" style={{ borderColor: "var(--err)", color: "var(--err)", marginBottom: 20 }}>
+            Erro ao carregar usuários: {error.message}
+          </div>
+        )}
 
         <table className="table">
           <thead>
             <tr>
-              <th>Pessoa</th>
-              <th>Role</th>
+              <th>Nome</th>
+              <th>Email</th>
               <th>Tenant</th>
-              <th>Workflows</th>
-              <th className="num">Execuções (30d)</th>
-              <th>Última atividade</th>
+              <th>Perfil</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {PEOPLE.map((p, i) => (
-              <tr key={i} style={{ cursor: "pointer" }}>
+            {(users || []).map((u) => (
+              <tr key={u.id}>
+                <td style={{ fontWeight: 500 }}>{u.name}</td>
+                <td className="mono">{u.email}</td>
+                <td className="muted mono">{u.tenant_slug}</td>
+                <td>{u.is_super ? "super-admin" : u.is_tenant_admin ? "tenant-admin" : "user"}</td>
                 <td>
-                  <div className="user-cell">
-                    <div className="user-avatar">{p[2]}</div>
-                    <div>
-                      <div className="name">{p[0]}</div>
-                      <div className="email">{p[1]}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span className="pill" style={ROLE_STYLE[p[3] as string] || {}}>{p[3]}</span>
-                </td>
-                <td className="muted mono" style={{ fontSize: 12.5 }}>{p[4]}</td>
-                <td className="num mono">{p[5]}</td>
-                <td className="num mono">{(p[6] as number).toLocaleString("pt-BR")}</td>
-                <td className="muted">{p[7]}</td>
-                <td>
-                  {p[8] === "active" ? (
-                    <span className="pill" data-tone="ok"><span className="dot"></span>ativo</span>
-                  ) : (
-                    <span className="pill" data-tone="warn"><span className="dot"></span>convidado</span>
-                  )}
+                  <span className="pill" data-tone={u.is_active ? "ok" : "warn"}>
+                    <span className="dot"></span>{u.is_active ? "ativo" : "inativo"}
+                  </span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {showCreate && (
+        <div style={overlayStyle} onClick={() => setShowCreate(false)}>
+          <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Cadastrar usuário</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <input className="search-input" placeholder="tenant_slug" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
+              <input className="search-input" placeholder="nome" value={name} onChange={(e) => setName(e.target.value)} />
+              <input className="search-input" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input className="search-input" placeholder="senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <input type="checkbox" checked={isTenantAdmin} onChange={(e) => setIsTenantAdmin(e.target.checked)} />
+                Tenant admin
+              </label>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+              <button className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
+              <button className="btn primary" onClick={handleCreate} disabled={createUser.isPending}>
+                {createUser.isPending ? "Criando..." : "Criar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
+
+const overlayStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgb(10 12 16 / 0.55)",
+  display: "grid",
+  placeItems: "center",
+  zIndex: 50,
+  padding: 20,
+};
+
+const modalStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 520,
+  padding: 18,
+};

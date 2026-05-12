@@ -1,233 +1,320 @@
-import { useState } from "react";
-import { IconPlus, IconRAG } from "@shared/ui/icons/Icons";
-import { useCreateRAGIngestWorkflow, useCreateRAGQueryWorkflow } from "@shared/hooks/useRag";
+import { useEffect, useMemo, useState } from "react";
+import { IconPlus, IconRAG, IconTrash } from "@shared/ui/icons/Icons";
+import {
+  useCreateRAGIngestUploadWorkflow,
+  useRAGCoverage,
+  useRAGDashboard,
+  useRAGDocuments,
+} from "@shared/hooks/useRag";
+import { useCreateKB, useDeleteKB, useKBs } from "@shared/hooks/useKBs";
+import { useTenants } from "@shared/hooks/useTenants";
 
-// Mock knowledge bases (backend doesn't have a list KB endpoint yet)
-const KBS = [
-  ["kb_suporte", "Suporte Acme", "acme_corp", 214, 8420, 90, "OpenAI text-embed-3"],
-  ["kb_legal", "Documentos Legais", "acme_corp", 512, 32100, 72, "OpenAI text-embed-3"],
-  ["kb_faq", "FAQ Produto", "acme_corp", 38, 940, 84, "OpenAI text-embed-3"],
-  ["kb_clinico", "Base Clínica", "tenant_med", 1820, 98400, 65, "BGE-M3"],
-  ["kb_contratos", "Contratos", "tenant_fin", 642, 48100, 52, "OpenAI text-embed-3"],
-  ["kb_compliance", "Compliance", "tenant_fin", 256, 29800, 40, "OpenAI text-embed-3"],
-];
+function slugifyKBID(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+}
 
-const RECENT_DOCS = [
-  { file: "politica-de-privacidade-v3.pdf", kb: "kb_legal", tenant: "acme_corp", type: "PDF", size: "1.2 MB", chunks: "42", status: "indexado", tone: "ok", time: "há 4m" },
-  { file: "onboarding-clientes.docx", kb: "kb_suporte", tenant: "acme_corp", type: "DOCX", size: "340 KB", chunks: "18", status: "indexado", tone: "ok", time: "há 12m" },
-  { file: "contratos-2026-q1.pdf", kb: "kb_legal", tenant: "tenant_fin", type: "PDF", size: "8.4 MB", chunks: "312", status: "processando", tone: "run", time: "há 18m" },
-  { file: "faq-produto.txt", kb: "kb_faq", tenant: "acme_corp", type: "TXT", size: "86 KB", chunks: "9", status: "indexado", tone: "ok", time: "há 1h" },
-  { file: "guia-medicamentos.pdf", kb: "kb_clinico", tenant: "tenant_med", type: "PDF", size: "22 MB", chunks: "—", status: "falhou", tone: "err", time: "há 2h" },
-];
+function fmtBytes(value?: number): string {
+  if (!value || value <= 0) return "—";
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function statusTone(status?: string): "ok" | "warn" | "err" {
+  if (status === "indexed") return "ok";
+  if (status === "failed") return "err";
+  return "warn";
+}
 
 export function RagPage() {
-  const [showIngestDialog, setShowIngestDialog] = useState(false);
-  const [showQueryDialog, setShowQueryDialog] = useState(false);
+  const { data: tenants } = useTenants();
+  const [tenantSlug, setTenantSlug] = useState("");
+  const effectiveTenantSlug = tenantSlug.trim();
 
-  // Ingest form state
-  const [ingestTenantId, setIngestTenantId] = useState("");
-  const [ingestKbId, setIngestKbId] = useState("");
-  const [ingestDocId, setIngestDocId] = useState("");
-  const [ingestContent, setIngestContent] = useState("");
+  const [showCreateKBModal, setShowCreateKBModal] = useState(false);
+  const [showIngestModal, setShowIngestModal] = useState(false);
+  const [selectedKBID, setSelectedKBID] = useState("");
 
-  // Query form state
-  const [queryTenantId, setQueryTenantId] = useState("");
-  const [queryText, setQueryText] = useState("");
-  const [queryResult, setQueryResult] = useState<any>(null);
+  const [newKBName, setNewKBName] = useState("");
+  const [newKBID, setNewKBID] = useState("");
+  const [newKBDescription, setNewKBDescription] = useState("");
+  const [newKBScope, setNewKBScope] = useState("tenant");
 
-  const ingestMutation = useCreateRAGIngestWorkflow();
-  const queryMutation = useCreateRAGQueryWorkflow();
+  const [file, setFile] = useState<File | null>(null);
+  const [docTitle, setDocTitle] = useState("");
+  const [documentID, setDocumentID] = useState("");
 
-  const handleIngest = () => {
-    if (!ingestTenantId || !ingestKbId || !ingestDocId || !ingestContent) return;
-    ingestMutation.mutate(
-      {
-        tenant_id: ingestTenantId,
-        knowledge_base_id: ingestKbId,
-        document_id: ingestDocId,
-        content: ingestContent,
-      },
-      {
-        onSuccess: (data) => {
-          alert(`Ingestão iniciada! workflow_id: ${data.workflow_id}`);
-          setShowIngestDialog(false);
-          setIngestContent("");
-          setIngestDocId("");
-        },
-        onError: (err) => alert(`Erro na ingestão: ${err.message}`),
-      }
-    );
+  const [pollingDocs, setPollingDocs] = useState(false);
+
+  const dashboardQuery = useRAGDashboard(effectiveTenantSlug || undefined);
+  const kbsQuery = useKBs(effectiveTenantSlug, { limit: 50, offset: 0 });
+  const createKB = useCreateKB(effectiveTenantSlug);
+  const deleteKB = useDeleteKB(effectiveTenantSlug);
+  const ingestUploadMutation = useCreateRAGIngestUploadWorkflow();
+
+  const docsQuery = useRAGDocuments(effectiveTenantSlug || undefined, selectedKBID || undefined, {
+    enabled: !!effectiveTenantSlug && !!selectedKBID,
+    refetchInterval: pollingDocs ? 4000 : false,
+  });
+  const coverageQuery = useRAGCoverage(effectiveTenantSlug || undefined, selectedKBID || undefined);
+
+  const kbs = kbsQuery.data || [];
+  const docs = docsQuery.data?.items || [];
+  const coverage = coverageQuery.data;
+
+  useEffect(() => {
+    if (!selectedKBID && kbs.length > 0) {
+      setSelectedKBID(kbs[0].kb_id);
+    }
+  }, [kbs, selectedKBID]);
+
+  useEffect(() => {
+    const hasPending = docs.some((d) => d.status === "pending");
+    if (pollingDocs && !hasPending) {
+      setPollingDocs(false);
+    }
+  }, [docs, pollingDocs]);
+
+  useEffect(() => {
+    const suggested = slugifyKBID(newKBName);
+    if (suggested && (!newKBID || newKBID === slugifyKBID(newKBName))) {
+      setNewKBID(suggested);
+    }
+  }, [newKBName]);
+
+  const onCreateKB = async () => {
+    if (!effectiveTenantSlug || !newKBName.trim() || !newKBID.trim()) return;
+    try {
+      await createKB.mutateAsync({
+        name: newKBName.trim(),
+        kb_id: newKBID.trim(),
+        description: newKBDescription.trim() || undefined,
+        access_scope: newKBScope || "tenant",
+      });
+      setShowCreateKBModal(false);
+      setNewKBName("");
+      setNewKBID("");
+      setNewKBDescription("");
+      setNewKBScope("tenant");
+    } catch (err: any) {
+      window.alert(`Erro ao criar base: ${err?.message || err}`);
+    }
   };
 
-  const handleQuery = () => {
-    if (!queryTenantId || !queryText) return;
-    queryMutation.mutate(
-      {
-        tenant_id: queryTenantId,
-        query: queryText,
-      },
-      {
-        onSuccess: (data) => {
-          setQueryResult(data);
-        },
-        onError: (err) => alert(`Erro na query: ${err.message}`),
-      }
-    );
+  const onDeleteKB = async (kbID: string) => {
+    if (!window.confirm(`Excluir base ${kbID}?`)) return;
+    try {
+      await deleteKB.mutateAsync(kbID);
+      if (selectedKBID === kbID) setSelectedKBID("");
+    } catch (err: any) {
+      window.alert(`Erro ao excluir base: ${err?.message || err}`);
+    }
   };
+
+  const onPickFile = (next: File | null) => {
+    setFile(next);
+    if (!next) return;
+    const title = next.name.replace(/\.[^.]+$/, "");
+    setDocTitle(title);
+    setDocumentID(globalThis.crypto?.randomUUID?.() || `${Date.now()}`);
+  };
+
+  const onIngest = async () => {
+    if (!effectiveTenantSlug || !selectedKBID || !file) return;
+    const fd = new FormData();
+    fd.append("tenant_id", effectiveTenantSlug);
+    fd.append("knowledge_base_id", selectedKBID);
+    fd.append("document_id", documentID || (globalThis.crypto?.randomUUID?.() || `${Date.now()}`));
+    fd.append("metadata", JSON.stringify({ title: docTitle || file.name.replace(/\.[^.]+$/, "") }));
+    fd.append("file", file);
+
+    try {
+      await ingestUploadMutation.mutateAsync(fd);
+      setShowIngestModal(false);
+      setFile(null);
+      setDocTitle("");
+      setDocumentID("");
+      setPollingDocs(true);
+      docsQuery.refetch();
+    } catch (err: any) {
+      window.alert(`Erro no upload: ${err?.message || err}`);
+    }
+  };
+
+  const coveragePct = Math.max(0, Math.min(100, Math.round((coverage?.coverage_score || 0) * 100)));
 
   return (
     <>
       <div className="page-topbar">
-        <span className="page-title">Bases RAG</span>
+        <span className="page-title">RAG Dashboard</span>
         <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
-        <span className="page-sub">Knowledge bases vetoriais</span>
+        <span className="page-sub">Knowledge base operations</span>
         <div style={{ flex: 1 }}></div>
-        <button className="btn" onClick={() => setShowQueryDialog(true)}>
-          Query semântica
-        </button>
-        <button className="btn" onClick={() => setShowIngestDialog(true)}>
-          <IconPlus size={14} />
-          Ingerir documento
-        </button>
-        <button className="btn primary">
-          <IconPlus size={14} />
-          Nova base
+        <button className="btn primary" onClick={() => setShowCreateKBModal(true)} disabled={!effectiveTenantSlug}>
+          <IconPlus size={14} /> Nova Base de Conhecimento
         </button>
       </div>
 
       <div className="page-body">
-        <h1 className="page-h1">Bases de Conhecimento</h1>
-        <p className="page-lead">
-          Cada base é um namespace de vetores isolado por tenant. Documentos passam por chunking + embedding e ficam disponíveis para query semântica nos agentes <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-2)" }}>rag-query</span>.
-        </p>
-
-        <div className="stat-grid">
-          <div className="stat"><div className="label">Bases ativas</div><div className="value">12</div></div>
-          <div className="stat"><div className="label">Documentos</div><div className="value">3.482</div><div className="delta">+128 hoje</div></div>
-          <div className="stat"><div className="label">Chunks indexados</div><div className="value">218k</div></div>
-          <div className="stat"><div className="label">Queries (24h)</div><div className="value">9.124</div><div className="delta">+18%</div></div>
+        <div className="toolbar" style={{ marginBottom: 12 }}>
+          <select className="field-select" style={{ width: 320 }} value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)}>
+            <option value="">Selecione um tenant</option>
+            {(tenants || []).map((t) => (
+              <option key={t.id} value={t.slug}>{t.slug} ({t.name})</option>
+            ))}
+          </select>
+          <input className="search-input" style={{ width: 260 }} placeholder="ou digite tenant_slug" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
         </div>
 
-        {/* Dialog: Ingestão */}
-        {showIngestDialog && (
-          <div className="card" style={{ marginBottom: 24, border: "1px solid var(--accent)", padding: 20 }}>
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>Ingerir Documento</div>
-            <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input className="search-input" placeholder="tenant_id *" value={ingestTenantId} onChange={(e) => setIngestTenantId(e.target.value)} style={{ flex: 1 }} />
-                <input className="search-input" placeholder="knowledge_base_id *" value={ingestKbId} onChange={(e) => setIngestKbId(e.target.value)} style={{ flex: 1 }} />
-                <input className="search-input" placeholder="document_id *" value={ingestDocId} onChange={(e) => setIngestDocId(e.target.value)} style={{ flex: 1 }} />
-              </div>
-              <textarea
-                className="search-input"
-                placeholder="Conteúdo do documento (texto) *"
-                value={ingestContent}
-                onChange={(e) => setIngestContent(e.target.value)}
-                style={{ minHeight: 100, resize: "vertical" }}
-              />
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button className="btn" onClick={() => setShowIngestDialog(false)}>Cancelar</button>
-                <button className="btn primary" onClick={handleIngest} disabled={ingestMutation.isPending}>
-                  {ingestMutation.isPending ? "Enviando…" : "Iniciar ingestão"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="stat-grid">
+          <div className="stat"><div className="label">Knowledge Bases</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.knowledge_bases_total ?? "…") : "—"}</div></div>
+          <div className="stat"><div className="label">Documentos</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.documents_total ?? "…") : "—"}</div></div>
+          <div className="stat"><div className="label">Chunks</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.chunks_total ?? "…") : "—"}</div></div>
+          <div className="stat"><div className="label">Queries 24h</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.queries_24h ?? "…") : "—"}</div></div>
+          <div className="stat"><div className="label">Ingests 24h</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.ingests_24h ?? "…") : "—"}</div></div>
+        </div>
 
-        {/* Dialog: Query */}
-        {showQueryDialog && (
-          <div className="card" style={{ marginBottom: 24, border: "1px solid var(--accent)", padding: 20 }}>
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>Query Semântica</div>
-            <div style={{ display: "flex", gap: 12, flexDirection: "column" }}>
-              <input className="search-input" placeholder="tenant_id *" value={queryTenantId} onChange={(e) => setQueryTenantId(e.target.value)} />
-              <textarea
-                className="search-input"
-                placeholder="O que você quer buscar? *"
-                value={queryText}
-                onChange={(e) => setQueryText(e.target.value)}
-                style={{ minHeight: 60, resize: "vertical" }}
-              />
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button className="btn" onClick={() => { setShowQueryDialog(false); setQueryResult(null); }}>Fechar</button>
-                <button className="btn primary" onClick={handleQuery} disabled={queryMutation.isPending}>
-                  {queryMutation.isPending ? "Buscando…" : "Buscar"}
-                </button>
-              </div>
-              {queryResult && (
-                <pre style={{
-                  background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-2)",
-                  padding: 12, fontSize: 11, fontFamily: "var(--font-mono)", overflow: "auto", maxHeight: 200,
-                  whiteSpace: "pre-wrap", wordBreak: "break-word",
-                }}>
-                  {JSON.stringify(queryResult, null, 2)}
-                </pre>
-              )}
-            </div>
-          </div>
-        )}
+        {dashboardQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Dashboard API: {(dashboardQuery.error as Error).message}</div>}
+        {kbsQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>KBs API: {(kbsQuery.error as Error).message}</div>}
 
+        <div className="section-head" style={{ marginTop: 18 }}><h2>Bases de Conhecimento</h2></div>
         <div className="card-grid">
-          {KBS.map((k, i) => (
-            <div key={i} className="card" style={{ cursor: "pointer" }}>
+          {kbs.map((kb) => (
+            <div key={kb.id} className="card">
               <div className="card-header">
-                <div className="card-glyph">
-                  <IconRAG size={16} />
-                </div>
+                <div className="card-glyph"><IconRAG size={16} /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="card-title">{k[1]}</div>
-                  <div className="card-sub">{k[0]} · {k[2]}</div>
+                  <div className="card-title">{kb.name}</div>
+                  <div className="card-sub">{kb.kb_id}</div>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 18, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>
-                <div><div style={{ color: "var(--ink-4)", fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>docs</div><div style={{ color: "var(--ink)", fontSize: 14 }}>{(k[3] as number).toLocaleString("pt-BR")}</div></div>
-                <div><div style={{ color: "var(--ink-4)", fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>chunks</div><div style={{ color: "var(--ink)", fontSize: 14 }}>{(k[4] as number).toLocaleString("pt-BR")}</div></div>
-                <div><div style={{ color: "var(--ink-4)", fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 2 }}>embedding</div><div style={{ color: "var(--ink-2)", fontSize: 11.5 }}>{k[6]}</div></div>
-              </div>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--ink-3)", marginBottom: 4 }}>
-                  <span>cobertura semântica</span><span className="mono">{k[5]}%</span>
-                </div>
-                <div className="kbar"><div className="kbar-fill" style={{ width: `${k[5]}%` }} /></div>
-              </div>
-              <div className="card-foot">
-                <span>top-k=5 · score≥0.5</span>
-                <span>→</span>
+              <div style={{ fontSize: 12, color: "var(--ink-3)", minHeight: 32 }}>{kb.description || "Sem descrição"}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button className="btn" onClick={() => setSelectedKBID(kb.kb_id)}>Ver documentos</button>
+                <button className="btn ghost" onClick={() => onDeleteKB(kb.kb_id)} disabled={deleteKB.isPending}><IconTrash size={14} /> Excluir</button>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="section-head"><h2>Atividade Recente</h2></div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Documento</th>
-              <th>Base</th>
-              <th>Tenant</th>
-              <th>Tipo</th>
-              <th className="num">Tamanho</th>
-              <th className="num">Chunks</th>
-              <th>Status</th>
-              <th>Ingerido</th>
-            </tr>
-          </thead>
-          <tbody>
-            {RECENT_DOCS.map((doc, i) => (
-              <tr key={i}>
-                <td>{doc.file}</td>
-                <td className="mono">{doc.kb}</td>
-                <td className="muted mono">{doc.tenant}</td>
-                <td className="muted">{doc.type}</td>
-                <td className="num mono">{doc.size}</td>
-                <td className="num mono">{doc.chunks}</td>
-                <td><span className="pill" data-tone={doc.tone}><span className="dot"></span>{doc.status}</span></td>
-                <td className="muted">{doc.time}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {!!selectedKBID && (
+          <>
+            <div className="section-head" style={{ marginTop: 28 }}>
+              <h2>Documentos da KB: <span className="mono">{selectedKBID}</span></h2>
+              <div style={{ flex: 1 }}></div>
+              <button className="btn primary" onClick={() => setShowIngestModal(true)}>Adicionar Documento</button>
+            </div>
+
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
+                <span>Cobertura Semântica</span>
+                <span className="mono">{coveragePct}%</span>
+              </div>
+              <div style={{ height: 8, borderRadius: 999, background: "var(--surface-2)", border: "1px solid var(--line)", overflow: "hidden" }}>
+                <div style={{ width: `${coveragePct}%`, height: "100%", background: "oklch(0.62 0.16 160)" }}></div>
+              </div>
+            </div>
+
+            {docsQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Documents API: {(docsQuery.error as Error).message}</div>}
+            {coverageQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Coverage API: {(coverageQuery.error as Error).message}</div>}
+
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Título</th>
+                  <th>Status</th>
+                  <th className="num">Chunks</th>
+                  <th className="num">Tamanho</th>
+                  <th>Criado em</th>
+                </tr>
+              </thead>
+              <tbody>
+                {docs.map((d) => (
+                  <tr key={d.id}>
+                    <td>{d.title || d.id}</td>
+                    <td>
+                      <span className="pill" data-tone={statusTone(d.status)}>
+                        <span className="dot"></span>{d.status || "pending"}
+                      </span>
+                    </td>
+                    <td className="num mono">{d.chunks_count ?? "—"}</td>
+                    <td className="num mono">{fmtBytes(d.size_bytes)}</td>
+                    <td className="muted">{new Date(d.created_at).toLocaleString("pt-BR")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
+
+      {showCreateKBModal && (
+        <div style={overlayStyle} onClick={() => setShowCreateKBModal(false)}>
+          <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Nova Base de Conhecimento</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <input className="search-input" placeholder="Nome da base *" value={newKBName} onChange={(e) => setNewKBName(e.target.value)} />
+              <input className="search-input" placeholder="Identificador (kb_id) *" value={newKBID} onChange={(e) => setNewKBID(e.target.value)} />
+              <textarea className="search-input" placeholder="Descrição" value={newKBDescription} onChange={(e) => setNewKBDescription(e.target.value)} style={{ minHeight: 72, resize: "vertical" }} />
+              <select className="field-select" value={newKBScope} onChange={(e) => setNewKBScope(e.target.value)}>
+                <option value="tenant">tenant</option>
+                <option value="private">private</option>
+                <option value="public">public</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+              <button className="btn" onClick={() => setShowCreateKBModal(false)}>Cancelar</button>
+              <button className="btn primary" onClick={onCreateKB} disabled={createKB.isPending || !newKBName.trim() || !newKBID.trim()}>
+                {createKB.isPending ? "Criando..." : "Criar Base"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showIngestModal && (
+        <div style={overlayStyle} onClick={() => setShowIngestModal(false)}>
+          <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Adicionar Documento</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <input type="file" accept=".pdf,.docx,.txt,.md,.csv,.json,.xml,.yaml,.yml,.html" onChange={(e) => onPickFile(e.target.files?.[0] || null)} />
+              <input className="search-input" placeholder="Título" value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
+              <input className="search-input" placeholder="document_id" value={documentID} onChange={(e) => setDocumentID(e.target.value)} />
+              <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                KB: <code>{selectedKBID}</code> · tenant: <code>{effectiveTenantSlug}</code>
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+              <button className="btn" onClick={() => setShowIngestModal(false)}>Cancelar</button>
+              <button className="btn primary" onClick={onIngest} disabled={ingestUploadMutation.isPending || !file || !selectedKBID || !effectiveTenantSlug}>
+                {ingestUploadMutation.isPending ? "Enviando..." : "Ingerir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
+
+const overlayStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgb(10 12 16 / 0.55)",
+  display: "grid",
+  placeItems: "center",
+  zIndex: 50,
+  padding: 20,
+};
+
+const modalStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 620,
+  padding: 18,
+};

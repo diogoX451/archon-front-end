@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createKB, deleteKB, listKBs, updateKB, type KBWriteInput } from "@shared/api/kbs";
 
-export const useKBs = (tenantSlug: string) =>
+export const useKBs = (tenantSlug: string, options?: { limit?: number; offset?: number }) =>
   useQuery({
-    queryKey: ["kbs", tenantSlug],
-    queryFn: () => listKBs(tenantSlug),
+    queryKey: ["kbs", tenantSlug, options?.limit || 50, options?.offset || 0],
+    queryFn: () => listKBs(tenantSlug, options?.limit, options?.offset),
     enabled: !!tenantSlug,
   });
 
