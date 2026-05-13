@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { IconPlus, IconTrash, GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
 import { AGENT_TYPES } from "@features/workflow-builder/data";
 import { useProfiles, useDeleteProfile } from "@shared/hooks/useProfiles";
+import { ProfileDetailDrawer } from "@shared/ui/ProfileDetailDrawer";
 import type { ConversationProfileV2 } from "@shared/api/profiles";
 
 function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: string }> {
@@ -14,6 +15,7 @@ function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: 
 export function TemplatesPage() {
   const [tab, setTab] = useState("profiles");
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<ConversationProfileV2 | null>(null);
   const { data: profiles, isLoading, error } = useProfiles();
   const deleteMutation = useDeleteProfile();
 
@@ -135,7 +137,7 @@ export function TemplatesPage() {
                     const id = p.profile_id || p.id;
                     const agents = agentsArray(p);
                     return (
-                      <tr key={p.id}>
+                      <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => setSelected(p)}>
                         <td className="mono" style={{ fontSize: 12 }}>{id}</td>
                         <td style={{ maxWidth: 320 }}>
                           <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -147,7 +149,15 @@ export function TemplatesPage() {
                         <td className="muted" style={{ fontSize: 12 }}>
                           {p.updated_at ? new Date(p.updated_at).toLocaleString("pt-BR") : "—"}
                         </td>
-                        <td style={{ width: 160, textAlign: "right" }}>
+                        <td style={{ width: 220, textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="btn ghost"
+                            onClick={() => setSelected(p)}
+                            style={{ marginRight: 6 }}
+                            title="Inspecionar profile completo"
+                          >
+                            Ver
+                          </button>
                           <Link to={`/workflows/builder/${encodeURIComponent(id)}`} className="btn ghost" style={{ marginRight: 6 }}>
                             Abrir
                           </Link>
@@ -209,6 +219,12 @@ export function TemplatesPage() {
           </>
         )}
       </div>
+
+      <ProfileDetailDrawer
+        open={!!selected}
+        profile={selected}
+        onClose={() => setSelected(null)}
+      />
     </>
   );
 }
