@@ -11,6 +11,8 @@ import { GLYPHS, GlyphPlanner, IconPlay, IconReset, IconValidate, IconCursor, Ic
 import { Rail } from "@shared/ui/Rail";
 import { useProfiles, useUpsertProfile } from "@shared/hooks/useProfiles";
 import { canvasToProfile, profileToCanvas, emptyCanvas, type CanvasMeta } from "./profileSerializer";
+import { useCreateConversationTurn } from "@shared/hooks/useConversation";
+import { useEventStream } from "@shared/hooks/useEventStream";
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -105,6 +107,14 @@ export function WorkflowBuilder() {
 
   const { data: profilesList, isLoading: profilesLoading } = useProfiles();
   const upsertMutation = useUpsertProfile();
+  const createTurn = useCreateConversationTurn();
+
+  // Real-execution state. simulationWorkflowId is set when the user
+  // clicks Simular and a workflow gets spawned via /conversation/turns.
+  // useEventStream tracks the matching SSE channel and feeds the
+  // event log + per-agent status (effect below).
+  const [simulationWorkflowId, setSimulationWorkflowId] = useState<string | null>(null);
+  const [simulationError, setSimulationError] = useState<string | null>(null);
   // Resolved backend profile (when editing an existing one). Powers the
   // Inspector "Profile" tab with the rich docs/profiles/*.json view.
   const [loadedProfile, setLoadedProfile] = useState<any>(null);
@@ -115,6 +125,7 @@ export function WorkflowBuilder() {
   }));
   const [loadedFromBackend, setLoadedFromBackend] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveOk, setSaveOk] = useState<string | null>(null);
 
   const [workflow, setWorkflow] = useState<WorkflowData>(() => {
     if (isNew || hasRouteId) return emptyCanvas("Novo agente");
@@ -142,6 +153,7 @@ export function WorkflowBuilder() {
 
   const handleSave = async () => {
     setSaveError(null);
+    setSaveOk(null);
     const id = (meta.id || "").trim();
     if (!id) {
       setSaveError("Defina um ID para o agente antes de salvar.");
@@ -157,11 +169,25 @@ export function WorkflowBuilder() {
     }
     try {
       const payload = canvasToProfile(workflow, { ...meta, id });
-      await upsertMutation.mutateAsync(payload);
-      if (isNew || routeId !== id) {
-        navigate(`/workflows/builder/${encodeURIComponent(id)}`, { replace: true });
+      // Tracing for support — drops a copy of the payload to the
+      // browser console so a stuck "Salvar" can be diagnosed quickly.
+      // eslint-disable-next-line no-console
+      console.log("[workflow-builder] saving profile:", payload);
+      const saved = await upsertMutation.mutateAsync(payload);
+      // eslint-disable-next-line no-console
+      console.log("[workflow-builder] saved:", saved);
+      setLoadedProfile(saved as any);
+      setSaveOk(`Salvo: ${id}`);
+      window.setTimeout(() => setSaveOk(null), 3500);
+      // Update route to the canonical UUID so reloads land on the
+      // stable id, even when the user typed a slug or renamed.
+      const canonicalId = (saved as any)?.id || id;
+      if (isNew || routeId !== canonicalId) {
+        navigate(`/workflows/builder/${encodeURIComponent(canonicalId)}`, { replace: true });
       }
     } catch (err: any) {
+      // eslint-disable-next-line no-console
+      console.error("[workflow-builder] save failed:", err);
       setSaveError(err?.message || "Falha ao salvar profile.");
     }
   };
@@ -380,6 +406,9 @@ export function WorkflowBuilder() {
     stopRun();
     setRunState("idle");
     setEventLog([]);
+    setSimulationWorkflowId(null);
+    setSimulationError(null);
+    liveCursor.current = 0;
     setWorkflow((w) => ({
       ...w,
       agents: w.agents.map((a) => ({ ...a, status: "idle" })),
@@ -387,9 +416,15 @@ export function WorkflowBuilder() {
     }));
   };
 
-  const run = () => {
+  // Real run: spawn the workflow through /api/v1/conversation/turns and
+  // wait for the NATS-backed SSE stream to drive the canvas. Requires
+  // the profile to be saved (we need a profile_id). The previous mock
+  // SIMULATED_TRACE is kept as a fallback for the "demo" scenario when
+  // there's no backend profile yet (e.g. unsaved sample workflow).
+  const run = async () => {
     stopRun();
     setEventLog([]);
+    setSimulationError(null);
     setRunState("running");
     setWorkflow((w) => ({
       ...w,
@@ -398,33 +433,125 @@ export function WorkflowBuilder() {
     }));
     setDrawerOpen(true);
 
-    SIMULATED_TRACE.forEach((evt, i) => {
-      const tm = window.setTimeout(() => {
-        setEventLog((log) => [...log, { ...evt, n: i + 1 }]);
-        if (evt.type === "fire" && evt.agent) {
-          setWorkflow((w) => ({
-            ...w,
-            agents: w.agents.map((a) => a.id === evt.agent ? { ...a, status: "running" } : a),
-            connections: w.connections.map((c) =>
-              c.to.agent === evt.agent ? { ...c, status: "active" } : c
-            ),
-          }));
-        } else if ((evt.type === "response" || evt.type === "local") && evt.agent && evt.status === "done") {
-          setWorkflow((w) => ({
-            ...w,
-            agents: w.agents.map((a) => a.id === evt.agent ? { ...a, status: "done" } : a),
-            connections: w.connections.map((c) =>
-              c.from.agent === evt.agent ? { ...c, status: "done" } :
-              c.to.agent === evt.agent && c.status === "active" ? { ...c, status: "done" } : c
-            ),
-          }));
-        } else if (evt.type === "result") {
-          setRunState("completed");
-        }
-      }, evt.t);
-      runTimers.current.push(tm);
-    });
+    const profileId = (meta.id || "").trim();
+    // Fall back to the canned demo trace when we don't have a saved
+    // profile yet (new/unnamed builder session).
+    if (!profileId || !loadedFromBackend) {
+      setSimulationError("Salve o profile antes de simular para rodar a execução real. Mostrando trace demo.");
+      SIMULATED_TRACE.forEach((evt, i) => {
+        const tm = window.setTimeout(() => {
+          setEventLog((log) => [...log, { ...evt, n: i + 1 }]);
+          if (evt.type === "fire" && evt.agent) {
+            setWorkflow((w) => ({
+              ...w,
+              agents: w.agents.map((a) => a.id === evt.agent ? { ...a, status: "running" } : a),
+              connections: w.connections.map((c) =>
+                c.to.agent === evt.agent ? { ...c, status: "active" } : c
+              ),
+            }));
+          } else if ((evt.type === "response" || evt.type === "local") && evt.agent && evt.status === "done") {
+            setWorkflow((w) => ({
+              ...w,
+              agents: w.agents.map((a) => a.id === evt.agent ? { ...a, status: "done" } : a),
+              connections: w.connections.map((c) =>
+                c.from.agent === evt.agent ? { ...c, status: "done" } :
+                c.to.agent === evt.agent && c.status === "active" ? { ...c, status: "done" } : c
+              ),
+            }));
+          } else if (evt.type === "result") {
+            setRunState("completed");
+          }
+        }, evt.t);
+        runTimers.current.push(tm);
+      });
+      return;
+    }
+
+    const conversationId = `sim_${Date.now().toString(36)}`;
+    const message = window.prompt(
+      "Mensagem de teste para simular o profile:",
+      "Olá, preciso de ajuda com a base de conhecimento.",
+    );
+    if (message == null) {
+      setRunState("idle");
+      return;
+    }
+    try {
+      const resp = await createTurn.mutateAsync({
+        profile_id: profileId,
+        conversation_id: conversationId,
+        message,
+      });
+      setSimulationWorkflowId((resp as any).workflow_id);
+    } catch (err: any) {
+      // eslint-disable-next-line no-console
+      console.error("[workflow-builder] simulation failed:", err);
+      setSimulationError(err?.message || "Falha ao spawnar workflow");
+      setRunState("error");
+    }
   };
+
+  // Stream live events for the spawned workflow and translate them
+  // into canvas state changes. Each interaction.pending event marks
+  // the referenced agent as running; response/result drive it to done
+  // / completes the run.
+  const liveStream = useEventStream({
+    enabled: !!simulationWorkflowId,
+    workflowId: simulationWorkflowId || undefined,
+    subjects: [
+      "archon.command.>",
+      "archon.interaction.>",
+      "archon.need.>",
+      "archon.response.>",
+      "archon.result.>",
+    ],
+    bufferSize: 200,
+  });
+  // The hook returns a cumulative buffer; we only need to react to
+  // the *new* events since the last pass. Track index in a ref.
+  const liveCursor = useRef(0);
+  useEffect(() => {
+    if (!simulationWorkflowId) {
+      liveCursor.current = 0;
+      return;
+    }
+    const events = liveStream.events;
+    if (events.length <= liveCursor.current) return;
+    const fresh = events.slice(liveCursor.current);
+    liveCursor.current = events.length;
+    for (const ev of fresh) {
+      setEventLog((log) => [...log, {
+        n: log.length + 1,
+        type: ev.event_type,
+        subject: ev.subject,
+        summary: ev.subject + (ev.agent_id ? ` (${ev.agent_id})` : ""),
+        agent: ev.agent_id || null,
+        status: "info",
+        ts: ev.received_at,
+      }]);
+      const agentId = ev.agent_id;
+      if (ev.event_type === "interaction" && agentId) {
+        setWorkflow((w) => ({
+          ...w,
+          agents: w.agents.map((a) => a.id === agentId ? { ...a, status: "running" } : a),
+          connections: w.connections.map((c) =>
+            c.to.agent === agentId ? { ...c, status: "active" } : c
+          ),
+        }));
+      } else if (ev.event_type === "response" && agentId) {
+        setWorkflow((w) => ({
+          ...w,
+          agents: w.agents.map((a) => a.id === agentId ? { ...a, status: "done" } : a),
+          connections: w.connections.map((c) =>
+            c.from.agent === agentId ? { ...c, status: "done" } :
+            c.to.agent === agentId && c.status === "active" ? { ...c, status: "done" } : c
+          ),
+        }));
+      } else if (ev.event_type === "result") {
+        setRunState("completed");
+      }
+    }
+  }, [liveStream.events, simulationWorkflowId]);
 
   useEffect(() => () => stopRun(), []);
 
@@ -521,8 +648,23 @@ export function WorkflowBuilder() {
           <div className="spacer" />
 
           {saveError && (
-            <span style={{ color: "var(--err)", fontSize: 12, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={saveError}>
-              {saveError}
+            <span className="pill" data-tone="err" title={saveError} style={{ maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              ⚠ {saveError}
+            </span>
+          )}
+          {saveOk && !saveError && (
+            <span className="pill" data-tone="ok" title={saveOk}>
+              ✓ {saveOk}
+            </span>
+          )}
+          {simulationError && (
+            <span className="pill" data-tone="warn" title={simulationError} style={{ maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              ⚠ {simulationError}
+            </span>
+          )}
+          {simulationWorkflowId && (
+            <span className="pill" data-tone="run" title={`workflow_id: ${simulationWorkflowId}`}>
+              <span className="dot" /> simulando · {liveStream.status}
             </span>
           )}
 
