@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useGetWorkflow, useGetWorkflowResult, useGetWorkflowStatus } from "@shared/hooks/useWorkflows";
 import { useWorkflowEventsSSE } from "@shared/hooks/useWorkflowEventsSSE";
+import { TimelineDrawer } from "@shared/ui/TimelineDrawer";
 import { useProfiles } from "@shared/hooks/useProfiles";
 import type { AgentSnapshot, WorkflowState } from "@shared/api/types";
 
@@ -367,6 +368,7 @@ export function WorkflowResultPage() {
   }
 
   const liveStatus = status?.status || result?.status || (state ? "running" : "—");
+  const [timelineOpen, setTimelineOpen] = useState(false);
 
   return (
     <>
@@ -374,6 +376,15 @@ export function WorkflowResultPage() {
         <span className="page-title">Workflow Result</span>
         <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
         <span className="page-sub">Trace + resultado</span>
+        <div style={{ flex: 1 }} />
+        <button
+          className="btn ghost"
+          onClick={() => setTimelineOpen(true)}
+          disabled={!searchId}
+          title="Abrir trail completo de auditoria deste workflow"
+        >
+          Auditoria
+        </button>
       </div>
 
       <div className="page-body">
@@ -508,6 +519,14 @@ export function WorkflowResultPage() {
           </>
         )}
       </div>
+
+      {searchId && (
+        <TimelineDrawer
+          open={timelineOpen}
+          onClose={() => setTimelineOpen(false)}
+          scope={{ kind: "workflow", id: searchId }}
+        />
+      )}
     </>
   );
 }

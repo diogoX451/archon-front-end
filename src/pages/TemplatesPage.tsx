@@ -49,11 +49,6 @@ export function TemplatesPage() {
 
       <div className="page-body">
         <h1 className="page-h1">Agentes</h1>
-        <p className="page-lead">
-          Profiles são as definições de agentes IA persistidas no backend (<code>/api/v1/profiles</code>).
-          Cada profile contém os agentes internos (planner, http, rag, ...), as conexões entre eles e
-          o JSON consumido pelo orquestrador. Edite no builder visual para gerar o JSON automaticamente.
-        </p>
 
         <div className="stat-grid">
           <div className="stat">

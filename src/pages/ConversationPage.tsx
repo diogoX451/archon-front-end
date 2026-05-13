@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { IconPlus } from "@shared/ui/icons/Icons";
+import { TimelineDrawer } from "@shared/ui/TimelineDrawer";
 import { useListConversationProfiles, useCreateConversationTurn } from "@shared/hooks/useConversation";
 import { useGetWorkflowResult, useGetWorkflowStatus } from "@shared/hooks/useWorkflows";
 import {
@@ -218,6 +219,7 @@ export function ConversationPage() {
   };
 
   const activePending = turns.some((t) => t.status === "pending");
+  const [timelineOpen, setTimelineOpen] = useState(false);
 
   return (
     <>
@@ -328,6 +330,14 @@ export function ConversationPage() {
                     </div>
                   </div>
                   {activePending && <span className="pill" data-tone="run"><span className="dot"></span>aguardando</span>}
+                  <button
+                    className="btn ghost"
+                    onClick={() => setTimelineOpen(true)}
+                    title="Abrir trail de auditoria desta conversa"
+                    style={{ fontSize: 12 }}
+                  >
+                    Auditoria
+                  </button>
                 </>
               ) : (
                 <div style={{ color: "var(--ink-3)", fontSize: 13 }}>
@@ -417,6 +427,14 @@ export function ConversationPage() {
           />
         ))}
       </div>
+
+      {activeConvId && (
+        <TimelineDrawer
+          open={timelineOpen}
+          onClose={() => setTimelineOpen(false)}
+          scope={{ kind: "conversation", id: activeConvId }}
+        />
+      )}
     </>
   );
 }
