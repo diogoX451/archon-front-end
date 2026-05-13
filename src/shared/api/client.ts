@@ -1,6 +1,19 @@
 import { clearAuth, getToken } from "./token";
 
-export const API_BASE_URL = import.meta.env.VITE_ARCHON_API_URL || import.meta.env.VITE_API_URL || "http://localhost:8080";
+function normalizeApiBaseUrl(value?: string): string {
+  if (!value) return "";
+  if (value === "/") return "";
+  return value.replace(/\/+$/, "");
+}
+
+export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_ARCHON_API_URL || import.meta.env.VITE_API_URL);
+
+export function withApiBase(endpoint: string): string {
+  if (!endpoint.startsWith("/")) {
+    return API_BASE_URL ? `${API_BASE_URL}/${endpoint}` : `/${endpoint}`;
+  }
+  return `${API_BASE_URL}${endpoint}`;
+}
 
 export class ApiError extends Error {
   constructor(public status: number, public message: string, public code?: string) {
@@ -20,7 +33,7 @@ export function setUnauthorizedHandler(fn: UnauthorizedHandler | null) {
 }
 
 export async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = withApiBase(endpoint);
 
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {

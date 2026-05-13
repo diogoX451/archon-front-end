@@ -32,3 +32,10 @@ export const getConversationTimeline = (conversationId: string, limit = 500) =>
   fetchClient<WorkflowEvent[]>(
     `/api/v1/conversations/${encodeURIComponent(conversationId)}/timeline?limit=${limit}`,
   );
+
+export const getEventsTimeline = (params?: { tenant?: string; limit?: number }) => {
+  const q = new URLSearchParams();
+  if (params?.tenant) q.set("tenant", params.tenant);
+  q.set("limit", String(params?.limit ?? 200));
+  return fetchClient<WorkflowEvent[]>(`/api/v1/events/timeline?${q.toString()}`);
+};

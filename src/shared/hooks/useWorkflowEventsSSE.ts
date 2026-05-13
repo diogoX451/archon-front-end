@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { WorkflowState } from "@shared/api/types";
-import { API_BASE_URL } from "@shared/api/client";
+import { withApiBase } from "@shared/api/client";
 import { getToken } from "@shared/api/token";
 
 type SSEStatus = "idle" | "connecting" | "open" | "terminal" | "error";
@@ -28,7 +28,7 @@ export function useWorkflowEventsSSE(workflowId: string, enabled = true) {
 
     const token = getToken();
     const params = token ? `?token=${encodeURIComponent(token)}` : "";
-    const url = `${API_BASE_URL}/api/v1/workflows/${encodeURIComponent(workflowId)}/events${params}`;
+    const url = withApiBase(`/api/v1/workflows/${encodeURIComponent(workflowId)}/events${params}`);
     setStatus("connecting");
     setError(null);
 

@@ -5,6 +5,7 @@ import { useWorkflowEventsSSE } from "@shared/hooks/useWorkflowEventsSSE";
 import { TimelineDrawer } from "@shared/ui/TimelineDrawer";
 import { useProfiles } from "@shared/hooks/useProfiles";
 import type { AgentSnapshot, WorkflowState } from "@shared/api/types";
+import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 const STATE_TONE: Record<string, string> = {
   idle: "warn",
@@ -222,7 +223,7 @@ function WorkflowGraph({
 }
 
 function AgentCard({ row }: { row: AgentRow }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(row.state === "failed" || row.state === "error");
   const tone = STATE_TONE[row.state] || "warn";
 
   return (
@@ -358,6 +359,31 @@ export function WorkflowResultPage() {
   }, [profileId, profiles]);
 
   const trace = useMemo(() => deriveTrace(state), [state]);
+  const [traceFilter, setTraceFilter] = useState("");
+  const filteredTrace = useMemo(() => {
+    const q = traceFilter.trim().toLowerCase();
+    if (!q) return trace;
+    return trace.filter((row) => {
+      const hay = `${row.id} ${row.type} ${row.state} ${shortJSON(row.input, 120)} ${shortJSON(row.output, 120)}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [trace, traceFilter]);
+  const failedAgents = useMemo(
+    () => trace.filter((a) => a.state === "failed" || a.state === "error"),
+    [trace],
+  );
+  const waitingAgents = useMemo(
+    () => trace.filter((a) => a.state === "waiting"),
+    [trace],
+  );
+  const likelyError = useMemo(() => {
+    if (result?.error) return String(result.error);
+    const lastFailed = [...failedAgents].reverse()[0];
+    if (!lastFailed) return "";
+    const outputText = shortJSON(lastFailed.output, 500);
+    if (outputText && outputText !== "—") return outputText;
+    return shortJSON(lastFailed.need, 500);
+  }, [result?.error, failedAgents]);
   const totalDuration = useMemo(() => {
     if (!state) return null;
     return timeDelta(state.created_at || "", state.updated_at);
@@ -373,9 +399,7 @@ export function WorkflowResultPage() {
   return (
     <>
       <div className="page-topbar">
-        <span className="page-title">Workflow Result</span>
-        <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
-        <span className="page-sub">Trace + resultado</span>
+        <DynamicBreadcrumbs />
         <div style={{ flex: 1 }} />
         <button
           className="btn ghost"
@@ -441,6 +465,24 @@ export function WorkflowResultPage() {
               </div>
             </div>
 
+            {(failedAgents.length > 0 || waitingAgents.length > 0 || likelyError) && (
+              <div className="card" style={{ marginTop: 14, padding: 14, borderColor: failedAgents.length > 0 ? "var(--err)" : "var(--line)" }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                  <strong style={{ fontSize: 13 }}>Diagnóstico rápido</strong>
+                  {failedAgents.length > 0 && <span className="pill" data-tone="err">{failedAgents.length} falha(s)</span>}
+                  {waitingAgents.length > 0 && <span className="pill" data-tone="warn">{waitingAgents.length} aguardando</span>}
+                </div>
+                {likelyError && (
+                  <div style={{ fontSize: 12.5, color: "var(--ink-2)", marginBottom: 8 }}>
+                    <strong style={{ color: "var(--err)" }}>Erro provável:</strong> {likelyError}
+                  </div>
+                )}
+                <div style={{ color: "var(--ink-3)", fontSize: 12 }}>
+                  Dica: abra "Auditoria" para rastrear `need`/`response`/`result` e identificar onde o fluxo travou.
+                </div>
+              </div>
+            )}
+
             <div className="section-head" style={{ marginTop: 24 }}>
               <h2>Mapa do fluxo</h2>
               <span style={{ fontSize: 12, color: "var(--ink-3)" }}>auto-layout · cores por estado</span>
@@ -461,13 +503,26 @@ export function WorkflowResultPage() {
               )}
             </div>
 
+            <div className="toolbar" style={{ marginBottom: 10 }}>
+              <input
+                className="search-input"
+                placeholder="Filtrar agentes por id, tipo, estado, input/output..."
+                value={traceFilter}
+                onChange={(e) => setTraceFilter(e.target.value)}
+              />
+              <div className="grow" />
+              <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
+                {filteredTrace.length}/{trace.length} etapas
+              </span>
+            </div>
+
             {trace.length === 0 && (
               <div style={{ textAlign: "center", padding: 40, color: "var(--ink-3)" }}>
                 Nenhum agente registrado ainda.
               </div>
             )}
 
-            {trace.map((row) => (
+            {filteredTrace.map((row) => (
               <AgentCard key={`${row.id}-${row.updated_at}`} row={row} />
             ))}
 

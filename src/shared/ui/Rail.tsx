@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "@app/auth-context";
 import {
   IconOverview,
   IconConversation,
@@ -31,8 +32,23 @@ const links = [
   { to: "/tenants", label: "Tenants", icon: IconTenants },
 ];
 
+function initialsFromUser(name?: string, email?: string): string {
+  const source = (name || "").trim();
+  if (source) {
+    const parts = source.split(/\s+/).filter(Boolean);
+    const first = parts[0]?.[0] || "";
+    const second = parts.length > 1 ? parts[parts.length - 1]?.[0] || "" : (parts[0]?.[1] || "");
+    const out = `${first}${second}`.toUpperCase();
+    return out || "US";
+  }
+  const mail = (email || "").trim();
+  if (mail) return mail.slice(0, 2).toUpperCase();
+  return "US";
+}
+
 export function Rail() {
   const location = useLocation();
+  const { user } = useAuth();
 
   const isActive = (link: typeof links[0]) => {
     if (link.exact) return location.pathname === link.to;
@@ -56,7 +72,13 @@ export function Rail() {
         ))}
       </nav>
       <div className="rail-spacer"></div>
-      <div className="rail-avatar">DX</div>
+      <div
+        className="rail-avatar"
+        title={user ? `${user.name} (${user.email})` : "Usuário"}
+        aria-label={user ? `Usuário ${user.name}` : "Usuário"}
+      >
+        {initialsFromUser(user?.name, user?.email)}
+      </div>
     </aside>
   );
 }

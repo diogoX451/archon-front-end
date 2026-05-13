@@ -8,6 +8,7 @@ import {
 } from "@shared/hooks/useRag";
 import { useCreateKB, useDeleteKB, useKBs } from "@shared/hooks/useKBs";
 import { useTenants } from "@shared/hooks/useTenants";
+import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 function slugifyKBID(name: string): string {
   return name
@@ -152,9 +153,7 @@ export function RagPage() {
   return (
     <>
       <div className="page-topbar">
-        <span className="page-title">RAG Dashboard</span>
-        <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
-        <span className="page-sub">Knowledge base operations</span>
+        <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
         <button className="btn primary" onClick={() => setShowCreateKBModal(true)} disabled={!effectiveTenantSlug}>
           <IconPlus size={14} /> Nova Base de Conhecimento
@@ -196,7 +195,9 @@ export function RagPage() {
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-3)", minHeight: 32 }}>{kb.description || "Sem descrição"}</div>
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button className="btn" onClick={() => setSelectedKBID(kb.kb_id)}>Ver documentos</button>
+                <button className="btn" onClick={() => setSelectedKBID(kb.kb_id)}>
+                  {selectedKBID === kb.kb_id ? "Base aberta" : "Abrir documentos da base"}
+                </button>
                 <button className="btn ghost" onClick={() => onDeleteKB(kb.kb_id)} disabled={deleteKB.isPending}><IconTrash size={14} /> Excluir</button>
               </div>
             </div>

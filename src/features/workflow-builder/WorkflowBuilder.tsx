@@ -9,10 +9,13 @@ import { AgentNode } from "./AgentNode";
 import { GhostActionNode, type GhostAction } from "./GhostActionNode";
 import { GLYPHS, GlyphPlanner, IconPlay, IconReset, IconValidate, IconCursor, IconHand, IconMinus, IconPlus } from "@shared/ui/icons/Icons";
 import { Rail } from "@shared/ui/Rail";
+import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useProfiles, useUpsertProfile } from "@shared/hooks/useProfiles";
 import { canvasToProfile, profileToCanvas, emptyCanvas, type CanvasMeta } from "./profileSerializer";
 import { useCreateConversationTurn } from "@shared/hooks/useConversation";
 import { useEventStream } from "@shared/hooks/useEventStream";
+import { useWorkflowTimeline } from "@shared/hooks/useTimeline";
+import type { WorkflowEvent } from "@shared/api/events";
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -29,6 +32,28 @@ function pointInAgent(stage: { x: number; y: number }, agent: AgentNodeData): bo
     stage.y >= agent.y &&
     stage.y <= agent.y + AGENT_H
   );
+}
+
+type StreamEventLike = Pick<WorkflowEvent, "subject" | "event_type" | "workflow_id" | "conversation_id" | "agent_id" | "correlation_id" | "occurred_at" | "received_at">;
+
+function streamEventKey(ev: StreamEventLike): string {
+  return [
+    ev.subject || "",
+    ev.event_type || "",
+    ev.workflow_id || "",
+    ev.conversation_id || "",
+    ev.agent_id || "",
+    ev.correlation_id || "",
+    ev.occurred_at || ev.received_at || "",
+  ].join("|");
+}
+
+function sortStreamEvents(events: StreamEventLike[]): StreamEventLike[] {
+  return [...events].sort((a, b) => {
+    const ta = new Date(a.occurred_at || a.received_at || 0).getTime();
+    const tb = new Date(b.occurred_at || b.received_at || 0).getTime();
+    return ta - tb;
+  });
 }
 
 // Map a palette agent-type into the shape of a planner action. Generic
@@ -115,6 +140,8 @@ export function WorkflowBuilder() {
   // event log + per-agent status (effect below).
   const [simulationWorkflowId, setSimulationWorkflowId] = useState<string | null>(null);
   const [simulationError, setSimulationError] = useState<string | null>(null);
+  const [simulationModalOpen, setSimulationModalOpen] = useState(false);
+  const [simulationMessage, setSimulationMessage] = useState("Ola, preciso de ajuda com a base de conhecimento.");
   // Resolved backend profile (when editing an existing one). Powers the
   // Inspector "Profile" tab with the rich docs/profiles/*.json view.
   const [loadedProfile, setLoadedProfile] = useState<any>(null);
@@ -408,7 +435,6 @@ export function WorkflowBuilder() {
     setEventLog([]);
     setSimulationWorkflowId(null);
     setSimulationError(null);
-    liveCursor.current = 0;
     setWorkflow((w) => ({
       ...w,
       agents: w.agents.map((a) => ({ ...a, status: "idle" })),
@@ -467,19 +493,19 @@ export function WorkflowBuilder() {
       return;
     }
 
-    const conversationId = `sim_${Date.now().toString(36)}`;
-    const message = window.prompt(
-      "Mensagem de teste para simular o profile:",
-      "Olá, preciso de ajuda com a base de conhecimento.",
-    );
-    if (message == null) {
-      setRunState("idle");
-      return;
-    }
+    setSimulationMessage("Ola, preciso de ajuda com a base de conhecimento.");
+    setSimulationModalOpen(true);
+  };
+
+  const confirmRun = async () => {
+    const profileId = (meta.id || "").trim();
+    const message = simulationMessage.trim();
+    if (!profileId || !message) return;
+    setSimulationModalOpen(false);
     try {
       const resp = await createTurn.mutateAsync({
         profile_id: profileId,
-        conversation_id: conversationId,
+        conversation_id: `sim_${Date.now().toString(36)}`,
         message,
       });
       setSimulationWorkflowId((resp as any).workflow_id);
@@ -507,19 +533,21 @@ export function WorkflowBuilder() {
     ],
     bufferSize: 200,
   });
-  // The hook returns a cumulative buffer; we only need to react to
-  // the *new* events since the last pass. Track index in a ref.
-  const liveCursor = useRef(0);
+  const workflowTimeline = useWorkflowTimeline(simulationWorkflowId || "", {
+    enabled: !!simulationWorkflowId,
+    limit: 500,
+  });
+  const processedEventKeys = useRef(new Set<string>());
   useEffect(() => {
     if (!simulationWorkflowId) {
-      liveCursor.current = 0;
+      processedEventKeys.current = new Set();
       return;
     }
-    const events = liveStream.events;
-    if (events.length <= liveCursor.current) return;
-    const fresh = events.slice(liveCursor.current);
-    liveCursor.current = events.length;
-    for (const ev of fresh) {
+    const events = sortStreamEvents([...(workflowTimeline.data || []), ...liveStream.events]);
+    for (const ev of events) {
+      const key = streamEventKey(ev);
+      if (processedEventKeys.current.has(key)) continue;
+      processedEventKeys.current.add(key);
       setEventLog((log) => [...log, {
         n: log.length + 1,
         type: ev.event_type,
@@ -549,9 +577,10 @@ export function WorkflowBuilder() {
         }));
       } else if (ev.event_type === "result") {
         setRunState("completed");
+        setSimulationWorkflowId(null);
       }
     }
-  }, [liveStream.events, simulationWorkflowId]);
+  }, [liveStream.events, workflowTimeline.data, simulationWorkflowId]);
 
   useEffect(() => () => stopRun(), []);
 
@@ -619,15 +648,8 @@ export function WorkflowBuilder() {
         data-palette={paletteOpen ? "open" : "closed"}
       >
         <div className="topbar">
-          <div className="brand">
-            <div className="brand-mark" aria-hidden="true"></div>
-            <span>Archon</span>
-          </div>
           <div className="crumbs">
-            <span>Workspace</span>
-            <span className="sep">/</span>
-            <span>Workflows</span>
-            <span className="sep">/</span>
+            <DynamicBreadcrumbs mode="inline" includeWorkspace />
           </div>
           <input
             className="workflow-name"
@@ -949,6 +971,51 @@ export function WorkflowBuilder() {
           </div>
         </div>
       )}
+
+      {simulationModalOpen && (
+        <div style={overlayStyle} onClick={() => { setSimulationModalOpen(false); setRunState("idle"); }}>
+          <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Mensagem de Simulacao</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <textarea
+                className="search-input"
+                placeholder="Digite a mensagem para iniciar a simulacao"
+                value={simulationMessage}
+                onChange={(e) => setSimulationMessage(e.target.value)}
+                style={{ minHeight: 96, resize: "vertical" }}
+                autoFocus
+              />
+              <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                A simulacao real inicia uma conversa no backend para este profile.
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+              <button className="btn" onClick={() => { setSimulationModalOpen(false); setRunState("idle"); }}>
+                Cancelar
+              </button>
+              <button className="btn primary" onClick={confirmRun} disabled={createTurn.isPending || !simulationMessage.trim()}>
+                {createTurn.isPending ? "Iniciando..." : "Iniciar Simulacao"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
+
+const overlayStyle: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgb(10 12 16 / 0.55)",
+  display: "grid",
+  placeItems: "center",
+  zIndex: 50,
+  padding: 20,
+};
+
+const modalStyle: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 620,
+  padding: 18,
+};

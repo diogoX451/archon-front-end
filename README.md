@@ -39,4 +39,5 @@ npm install
 npm run dev
 ```
 
-Por padrão usa `VITE_ARCHON_API_URL=http://localhost:8080`.
+Por padrão usa `VITE_ARCHON_API_URL=` (vazio), para chamar a API na mesma origem
+ou via proxy do Vite no `npm run dev`.

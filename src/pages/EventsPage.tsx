@@ -1,6 +1,10 @@
 import { IconReset } from "@shared/ui/icons/Icons";
 import { useListWorkflows } from "@shared/hooks/useWorkflows";
 import type { WorkflowState } from "@shared/api/types";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { getEventsTimeline } from "@shared/api/events";
+import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 const STATUS_TONE: Record<string, string> = { completed: "ok", running: "run", waiting: "warn", failed: "err", spawning: "run" };
 
@@ -39,6 +43,20 @@ function durationMs(wf: WorkflowState): string | null {
 
 export function EventsPage() {
   const { data: workflows, isLoading, error, refetch } = useListWorkflows();
+  const [tenantFilter, setTenantFilter] = useState("");
+  const tenant = tenantFilter.trim();
+  const { data: recentEvents, isLoading: eventsLoading, refetch: refetchEvents } = useQuery({
+    queryKey: ["events-timeline", tenant || "all"],
+    queryFn: () => getEventsTimeline({ tenant: tenant || undefined, limit: 200 }),
+  });
+  const eventCountByType = useMemo(() => {
+    const count: Record<string, number> = {};
+    (recentEvents || []).forEach((ev) => {
+      const t = ev.event_type || "other";
+      count[t] = (count[t] || 0) + 1;
+    });
+    return count;
+  }, [recentEvents]);
 
   const runningCount = workflows?.filter((w) => deriveStatus(w) === "running").length ?? 0;
   const completedCount = workflows?.filter((w) => deriveStatus(w) === "completed").length ?? 0;
@@ -49,13 +67,15 @@ export function EventsPage() {
   return (
     <>
       <div className="page-topbar">
-        <span className="page-title">Execuções</span>
-        <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
-        <span className="page-sub">Histórico e observabilidade</span>
+        <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
         <button className="btn" onClick={() => refetch()}>
           <IconReset size={14} />
           Atualizar
+        </button>
+        <button className="btn" onClick={() => refetchEvents()}>
+          <IconReset size={14} />
+          Atualizar eventos
         </button>
       </div>
 
@@ -90,6 +110,19 @@ export function EventsPage() {
           <div className="grow"></div>
           <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
             {isLoading ? "carregando…" : `${total} execuções`}
+          </span>
+        </div>
+
+        <div className="toolbar" style={{ marginTop: 10 }}>
+          <input
+            className="search-input"
+            placeholder="Filtrar eventos por tenant (vazio = sistema todo)"
+            value={tenantFilter}
+            onChange={(e) => setTenantFilter(e.target.value)}
+          />
+          <div className="grow"></div>
+          <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
+            {eventsLoading ? "eventos carregando…" : `${recentEvents?.length || 0} eventos`}
           </span>
         </div>
 
@@ -153,6 +186,40 @@ export function EventsPage() {
             </tbody>
           </table>
         )}
+
+        <div style={{ marginTop: 18 }}>
+          <h2 className="page-h1" style={{ fontSize: 18, marginBottom: 10 }}>Eventos Recentes</h2>
+          <p className="page-lead" style={{ marginBottom: 8 }}>
+            Visão de auditoria do sistema {tenant ? `para tenant ${tenant}` : "(todos os tenants)"}.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+            {Object.entries(eventCountByType).map(([k, v]) => (
+              <span key={k} className="pill" data-tone="run">{k}: {v}</span>
+            ))}
+          </div>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Quando</th>
+                <th>Tipo</th>
+                <th>Subject</th>
+                <th>Tenant</th>
+                <th>Workflow</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(recentEvents || []).map((ev, i) => (
+                <tr key={`${ev.id || "evt"}_${i}`}>
+                  <td className="muted">{ev.occurred_at ? timeAgo(ev.occurred_at) : "—"}</td>
+                  <td><span className="pill" data-tone="warn">{ev.event_type || "other"}</span></td>
+                  <td className="mono" style={{ fontSize: 11.5 }}>{ev.subject}</td>
+                  <td className="mono" style={{ fontSize: 11.5 }}>{ev.tenant_id || "—"}</td>
+                  <td className="mono" style={{ fontSize: 11.5 }}>{ev.workflow_id || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   );

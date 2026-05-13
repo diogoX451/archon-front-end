@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { API_BASE_URL } from "@shared/api/client";
+import { withApiBase } from "@shared/api/client";
 import { getToken } from "@shared/api/token";
 import type { WorkflowEvent } from "@shared/api/events";
 
@@ -51,7 +51,7 @@ export function useEventStream({
     if (conversationId) params.set("conversation_id", conversationId);
     const token = getToken();
     if (token) params.set("token", token);
-    const url = `${API_BASE_URL}/api/v1/events/stream?${params.toString()}`;
+    const url = withApiBase(`/api/v1/events/stream?${params.toString()}`);
 
     setStatus("connecting");
     const es = new EventSource(url, { withCredentials: true });

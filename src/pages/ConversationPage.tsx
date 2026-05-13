@@ -14,6 +14,7 @@ import {
   useRegenerateConversationTurn,
 } from "@shared/hooks/useConversationsHistory";
 import type { ConversationTurnRow } from "@shared/api/conversationsHistory";
+import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 function extractAssistantText(output: any): string {
   if (output == null) return "";
@@ -243,7 +244,7 @@ export function ConversationPage() {
       `}} />
 
       <div className="page-topbar">
-        <span className="page-title">Conversation</span>
+        <DynamicBreadcrumbs />
         <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
         <span className="page-sub">{activeConvId || "selecione ou crie"}</span>
         <div style={{ flex: 1 }}></div>

@@ -21,6 +21,16 @@ export interface CreateUserInput {
   is_tenant_admin?: boolean;
 }
 
+export interface UpdateUserInput {
+  name?: string;
+  email?: string;
+  is_tenant_admin?: boolean;
+}
+
+export interface UpdateUserStatusInput {
+  is_active: boolean;
+}
+
 export const listUsers = (tenantSlug?: string) => {
   const qs = tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
   return fetchClient<User[]>(`/api/v1/users${qs}`);
@@ -29,5 +39,17 @@ export const listUsers = (tenantSlug?: string) => {
 export const createUser = (input: CreateUserInput) =>
   fetchClient<User>("/api/v1/users", {
     method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const updateUser = (id: string, input: UpdateUserInput) =>
+  fetchClient<User>(`/api/v1/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+export const updateUserStatus = (id: string, input: UpdateUserStatusInput) =>
+  fetchClient<User>(`/api/v1/users/${id}/status`, {
+    method: "PATCH",
     body: JSON.stringify(input),
   });

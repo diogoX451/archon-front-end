@@ -1,6 +1,7 @@
 import { useGetHealth } from "@shared/hooks/useHealth";
 import { useListWorkflows } from "@shared/hooks/useWorkflows";
 import type { WorkflowState } from "@shared/api/types";
+import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 const STATUS_TONE: Record<string, string> = { running: "run", completed: "ok", waiting: "warn", failed: "err", spawning: "run" };
 
@@ -45,9 +46,7 @@ export function DashboardPage() {
   return (
     <>
       <div className="page-topbar">
-        <span className="page-title">Overview</span>
-        <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
-        <span className="page-sub">Painel geral</span>
+        <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
         {health && (
           <span
@@ -63,9 +62,6 @@ export function DashboardPage() {
 
       <div className="page-body">
         <h1 className="page-h1">Archon Control Plane</h1>
-        <p className="page-lead">
-          Painel centralizado de controle operacional do Archon: disparo de conversa, inspeção de workflows, eventos de canal, profiles e operações RAG.
-        </p>
 
         <div className="stat-grid">
           <div className="stat">

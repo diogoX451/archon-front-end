@@ -1,10 +1,14 @@
 import { useMemo, useState } from "react";
 import { IconPlus } from "@shared/ui/icons/Icons";
-import { useCreateUser, useUsers } from "@shared/hooks/useUsers";
+import { useCreateUser, useUpdateUser, useUpdateUserStatus, useUsers } from "@shared/hooks/useUsers";
+import type { User } from "@shared/api/users";
+import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 export function ProfilesPage() {
   const { data: users, isLoading, error } = useUsers();
   const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
+  const updateUserStatus = useUpdateUserStatus();
 
   const [showCreate, setShowCreate] = useState(false);
   const [tenantSlug, setTenantSlug] = useState("");
@@ -12,6 +16,10 @@ export function ProfilesPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isTenantAdmin, setIsTenantAdmin] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editIsTenantAdmin, setEditIsTenantAdmin] = useState(false);
 
   const activeCount = useMemo(() => (users || []).filter((u) => u.is_active).length, [users]);
 
@@ -35,12 +43,49 @@ export function ProfilesPage() {
     }
   };
 
+  const openEdit = (user: User) => {
+    setEditingUser(user);
+    setEditName(user.name);
+    setEditEmail(user.email);
+    setEditIsTenantAdmin(user.is_tenant_admin);
+  };
+
+  const handleEdit = async () => {
+    if (!editingUser || !editName.trim() || !editEmail.trim()) return;
+    try {
+      await updateUser.mutateAsync({
+        id: editingUser.id,
+        input: {
+          name: editName.trim(),
+          email: editEmail.trim(),
+          is_tenant_admin: editIsTenantAdmin,
+        },
+      });
+      setEditingUser(null);
+      setEditName("");
+      setEditEmail("");
+      setEditIsTenantAdmin(false);
+    } catch (err: any) {
+      window.alert(`Erro ao editar usuário: ${err?.message || err}`);
+    }
+  };
+
+  const handleToggleStatus = async (user: User) => {
+    const nextActive = !user.is_active;
+    try {
+      await updateUserStatus.mutateAsync({
+        id: user.id,
+        input: { is_active: nextActive },
+      });
+    } catch (err: any) {
+      window.alert(`Erro ao ${nextActive ? "ativar" : "inativar"} usuário: ${err?.message || err}`);
+    }
+  };
+
   return (
     <>
       <div className="page-topbar">
-        <span className="page-title">Usuários</span>
-        <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
-        <span className="page-sub">Membros da equipe</span>
+        <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
         <button className="btn primary" onClick={() => setShowCreate(true)}>
           <IconPlus size={14} /> Novo usuário
@@ -49,8 +94,7 @@ export function ProfilesPage() {
 
       <div className="page-body">
         <h1 className="page-h1">Usuários</h1>
-        <p className="page-lead">Lista e cadastro via <code>/api/v1/users</code>.</p>
-
+        
         <div className="stat-grid">
           <div className="stat"><div className="label">Total</div><div className="value">{isLoading ? "…" : users?.length || 0}</div></div>
           <div className="stat"><div className="label">Ativos</div><div className="value">{isLoading ? "…" : activeCount}</div></div>
@@ -70,6 +114,7 @@ export function ProfilesPage() {
               <th>Tenant</th>
               <th>Perfil</th>
               <th>Status</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -83,6 +128,16 @@ export function ProfilesPage() {
                   <span className="pill" data-tone={u.is_active ? "ok" : "warn"}>
                     <span className="dot"></span>{u.is_active ? "ativo" : "inativo"}
                   </span>
+                </td>
+                <td>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="btn" onClick={() => openEdit(u)}>
+                      Editar
+                    </button>
+                    <button className="btn" onClick={() => void handleToggleStatus(u)} disabled={updateUserStatus.isPending}>
+                      {u.is_active ? "Inativar" : "Ativar"}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -108,6 +163,29 @@ export function ProfilesPage() {
               <button className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
               <button className="btn primary" onClick={handleCreate} disabled={createUser.isPending}>
                 {createUser.isPending ? "Criando..." : "Criar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingUser && (
+        <div style={overlayStyle} onClick={() => setEditingUser(null)}>
+          <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Editar usuário</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <input className="search-input" value={editingUser.tenant_slug} disabled />
+              <input className="search-input" placeholder="nome" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              <input className="search-input" placeholder="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <input type="checkbox" checked={editIsTenantAdmin} onChange={(e) => setEditIsTenantAdmin(e.target.checked)} />
+                Tenant admin
+              </label>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+              <button className="btn" onClick={() => setEditingUser(null)}>Cancelar</button>
+              <button className="btn primary" onClick={handleEdit} disabled={updateUser.isPending}>
+                {updateUser.isPending ? "Salvando..." : "Salvar"}
               </button>
             </div>
           </div>

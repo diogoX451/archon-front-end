@@ -1,15 +1,22 @@
 import { useMemo, useState } from "react";
 import { IconPlus } from "@shared/ui/icons/Icons";
-import { useCreateTenant, useTenants } from "@shared/hooks/useTenants";
+import { useCreateTenant, useTenants, useUpdateTenant, useUpdateTenantStatus } from "@shared/hooks/useTenants";
+import type { Tenant } from "@shared/api/tenants";
+import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 export function TenantsPage() {
   const { data: tenants, isLoading, error } = useTenants();
   const createTenant = useCreateTenant();
+  const updateTenant = useUpdateTenant();
+  const updateTenantStatus = useUpdateTenantStatus();
 
   const [showCreate, setShowCreate] = useState(false);
   const [slug, setSlug] = useState("");
   const [name, setName] = useState("");
   const [document, setDocument] = useState("");
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDocument, setEditDocument] = useState("");
 
   const activeCount = useMemo(() => (tenants || []).filter((t) => t.active).length, [tenants]);
 
@@ -30,12 +37,46 @@ export function TenantsPage() {
     }
   };
 
+  const openEdit = (tenant: Tenant) => {
+    setEditingTenant(tenant);
+    setEditName(tenant.name);
+    setEditDocument(tenant.document || "");
+  };
+
+  const handleEdit = async () => {
+    if (!editingTenant || !editName.trim()) return;
+    try {
+      await updateTenant.mutateAsync({
+        id: editingTenant.id,
+        input: {
+          name: editName.trim(),
+          document: editDocument.trim() || undefined,
+        },
+      });
+      setEditingTenant(null);
+      setEditName("");
+      setEditDocument("");
+    } catch (err: any) {
+      window.alert(`Erro ao editar tenant: ${err?.message || err}`);
+    }
+  };
+
+  const handleToggleStatus = async (tenant: Tenant) => {
+    const nextActive = !tenant.active;
+    try {
+      await updateTenantStatus.mutateAsync({
+        id: tenant.id,
+        input: { active: nextActive },
+      });
+    } catch (err: any) {
+      window.alert(`Erro ao ${nextActive ? "ativar" : "inativar"} tenant: ${err?.message || err}`);
+    }
+  };
+
   return (
     <>
       <div className="page-topbar">
-        <span className="page-title">Tenants</span>
-        <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
-        <span className="page-sub">Organizações e isolamento</span>
+        <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
         <button className="btn primary" onClick={() => setShowCreate(true)}>
           <IconPlus size={14} /> Novo tenant
@@ -44,8 +85,7 @@ export function TenantsPage() {
 
       <div className="page-body">
         <h1 className="page-h1">Tenants</h1>
-        <p className="page-lead">Gerenciamento via <code>/api/v1/tenants</code>.</p>
-
+    
         <div className="stat-grid">
           <div className="stat"><div className="label">Tenants ativos</div><div className="value">{isLoading ? "…" : activeCount}</div></div>
           <div className="stat"><div className="label">Total</div><div className="value">{isLoading ? "…" : tenants?.length || 0}</div></div>
@@ -65,6 +105,7 @@ export function TenantsPage() {
               <th>Documento</th>
               <th>Status</th>
               <th>Criado</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -79,6 +120,16 @@ export function TenantsPage() {
                   </span>
                 </td>
                 <td className="muted">{new Date(t.created_at).toLocaleString("pt-BR")}</td>
+                <td>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="btn" onClick={() => openEdit(t)}>
+                      Editar
+                    </button>
+                    <button className="btn" onClick={() => void handleToggleStatus(t)} disabled={updateTenantStatus.isPending}>
+                      {t.active ? "Inativar" : "Ativar"}
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -98,6 +149,25 @@ export function TenantsPage() {
               <button className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
               <button className="btn primary" onClick={handleCreate} disabled={createTenant.isPending}>
                 {createTenant.isPending ? "Criando..." : "Criar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingTenant && (
+        <div style={overlayStyle} onClick={() => setEditingTenant(null)}>
+          <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Editar tenant</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <input className="search-input" value={editingTenant.slug} disabled />
+              <input className="search-input" placeholder="nome" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              <input className="search-input" placeholder="documento (opcional)" value={editDocument} onChange={(e) => setEditDocument(e.target.value)} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+              <button className="btn" onClick={() => setEditingTenant(null)}>Cancelar</button>
+              <button className="btn primary" onClick={handleEdit} disabled={updateTenant.isPending}>
+                {updateTenant.isPending ? "Salvando..." : "Salvar"}
               </button>
             </div>
           </div>

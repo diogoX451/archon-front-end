@@ -5,6 +5,7 @@ import { AGENT_TYPES } from "@features/workflow-builder/data";
 import { useProfiles, useDeleteProfile } from "@shared/hooks/useProfiles";
 import { useTenants } from "@shared/hooks/useTenants";
 import type { ConversationProfileV2 } from "@shared/api/profiles";
+import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: string }> {
   const raw = profile.agents as any;
@@ -46,9 +47,7 @@ export function TemplatesPage() {
   return (
     <>
       <div className="page-topbar">
-        <span className="page-title">Agentes</span>
-        <span className="page-sub" style={{ color: "var(--ink-4)" }}>/</span>
-        <span className="page-sub">Profiles e tipos disponíveis</span>
+        <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
         <Link to="/workflows/builder/new" className="btn primary">
           <IconPlus size={14} />
