@@ -624,20 +624,19 @@ export function WorkflowBuilder() {
             })()}
             {/* Ghost edges: planner.output → action.input. Dashed so the
                 user can see at a glance that these are runtime branches,
-                not static connections. */}
+                not static connections. End slightly before the card so
+                the line "lands" instead of disappearing under it. */}
             {ghostActions.map((g) => {
               const planner = findAgent(g.plannerId);
               if (!planner) return null;
               const a = portCoords(planner, "output", "auxiliary");
-              const b = { x: g.x, y: g.y + 32 };
+              const b = { x: g.x - 6, y: g.y + 32 };
               const sel = selected.kind === "ghost" && selected.id === g.id;
               return (
-                <path
-                  key={`ghost-edge-${g.id}`}
-                  d={bezierPath(a, b)}
-                  className="ghost-edge"
-                  data-selected={sel}
-                />
+                <g key={`ghost-edge-${g.id}`}>
+                  <path d={bezierPath(a, b)} className="ghost-edge" data-selected={sel} />
+                  <circle cx={b.x} cy={b.y} r={2.5} className="ghost-edge-end" data-selected={sel} />
+                </g>
               );
             })}
           </svg>

@@ -476,17 +476,19 @@ input, textarea, select {
   user-select: none;
   cursor: pointer;
   transition: border-color 120ms, box-shadow 120ms;
-  opacity: 0.92;
+  /* Solid background so the dashed bezier behind it can't show
+     through. The dashed border + muted glyph colour already signal
+     "this is a runtime branch, not a concrete node". */
+  box-shadow: var(--shadow-1);
 }
 .ghost-action:hover {
   border-color: var(--ink-4);
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-2);
 }
 .ghost-action[data-selected="true"] {
   border-color: var(--accent);
   border-style: dashed;
-  box-shadow: 0 0 0 3px var(--accent-soft);
-  opacity: 1;
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-2);
 }
 .ghost-action[data-tone="terminal"] {
   background: var(--surface-2);
@@ -498,15 +500,15 @@ input, textarea, select {
   margin-bottom: 4px;
 }
 .ghost-action-glyph {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: 5px;
   display: grid;
   place-items: center;
-  color: var(--ink-3);
-  flex: 0 0 18px;
+  color: var(--ink-2);
+  flex: 0 0 22px;
 }
 .ghost-action-name {
   font-family: var(--font-mono);
@@ -547,6 +549,14 @@ input, textarea, select {
 }
 .ghost-edge[data-selected="true"] {
   stroke: var(--accent);
+  opacity: 1;
+}
+.ghost-edge-end {
+  fill: var(--ink-4);
+  opacity: 0.85;
+}
+.ghost-edge-end[data-selected="true"] {
+  fill: var(--accent);
   opacity: 1;
 }
 

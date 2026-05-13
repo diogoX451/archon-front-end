@@ -73,7 +73,7 @@ export function GhostActionNode({ action, selected, onSelect }: Props) {
       title={action.description || action.name}
     >
       <div className="ghost-action-head">
-        <div className="ghost-action-glyph"><Glyph size={11} /></div>
+        <div className="ghost-action-glyph"><Glyph size={13} /></div>
         <span className="ghost-action-name">{action.name}</span>
       </div>
       <div className="ghost-action-meta">
