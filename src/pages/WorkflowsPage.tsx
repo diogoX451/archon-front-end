@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { IconPlus } from "@shared/ui/icons/Icons";
 import { useListWorkflows } from "@shared/hooks/useWorkflows";
+import { useEventStream } from "@shared/hooks/useEventStream";
 import type { WorkflowState } from "@shared/api/types";
 
 const STATUS_TONE: Record<string, string> = { running: "run", completed: "ok", waiting: "warn", failed: "err", spawning: "run" };
@@ -34,6 +35,10 @@ function timeAgo(dateStr?: string): string {
 export function WorkflowsPage() {
   const [view, setView] = useState("list");
   const { data: workflows, isLoading, error } = useListWorkflows();
+  const { events: liveEvents, status: streamStatus } = useEventStream({
+    bufferSize: 50,
+  });
+  const recent = liveEvents.slice(-8).reverse();
 
   return (
     <>
@@ -104,6 +109,32 @@ export function WorkflowsPage() {
         <div className="toolbar">
           <input className="search-input" placeholder="Buscar por nome, tag ou tenant…" />
           <div className="grow"></div>
+          <span
+            title={`SSE ${streamStatus} · ${liveEvents.length} eventos no buffer`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              color: "var(--ink-3)",
+              fontSize: 12,
+              marginRight: 8,
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background:
+                  streamStatus === "open"
+                    ? "oklch(0.65 0.18 145)"
+                    : streamStatus === "error"
+                    ? "oklch(0.55 0.18 25)"
+                    : "oklch(0.65 0.15 80)",
+              }}
+            />
+            {streamStatus === "open" ? "ao vivo" : streamStatus === "error" ? "desconectado" : "conectando…"}
+          </span>
           <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
             {isLoading ? "carregando…" : `${workflows?.length ?? 0} workflows`}
           </span>
@@ -173,6 +204,35 @@ export function WorkflowsPage() {
               })}
             </tbody>
           </table>
+        )}
+
+        {recent.length > 0 && (
+          <div className="card" style={{ marginTop: 24, padding: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <strong style={{ fontSize: 13 }}>Atividade ao vivo</strong>
+              <span style={{ color: "var(--ink-4)", fontSize: 11 }}>
+                últimos {recent.length} eventos · fonte: NATS via SSE
+              </span>
+            </div>
+            <div style={{ display: "grid", gap: 4, fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
+              {recent.map((ev, i) => (
+                <div key={`${ev.subject}-${i}-${ev.received_at ?? ""}`} style={{ display: "flex", gap: 8 }}>
+                  <span style={{ color: "var(--ink-4)", minWidth: 90 }}>
+                    {ev.received_at ? new Date(ev.received_at).toLocaleTimeString("pt-BR") : "—"}
+                  </span>
+                  <span className="pill" data-tone={ev.event_type === "result" ? "ok" : ev.event_type === "command" ? "run" : "warn"} style={{ minWidth: 80, justifyContent: "center" }}>
+                    {ev.event_type}
+                  </span>
+                  <span style={{ color: "var(--ink-2)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {ev.subject}
+                  </span>
+                  <span style={{ color: "var(--ink-4)" }}>
+                    {ev.workflow_id ? `wf=${ev.workflow_id.slice(0, 8)}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {workflows && workflows.length > 0 && view === "grid" && (

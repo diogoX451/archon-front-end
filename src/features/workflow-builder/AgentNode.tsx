@@ -19,11 +19,13 @@ function summaryFor(agent: AgentNodeData) {
   const c = agent.config || {};
   if (agent.type === "http") return `${c.method || "GET"} · ${(c.url || "").replace(/^https?:\/\//, "") || "—"}`;
   if (agent.type === "planner") return `${c.provider || "—"} · ${c.model || ""}`;
-  if (agent.type === "transform") return c.script ? `${(c.script).slice(0, 28)}…` : "—";
-  if (agent.type === "rag-query") return `kb=${c.knowledge_base_id || "—"} · k=${c.top_k || 5}`;
+  if (agent.type === "transform") return c.expr ? `${String(c.expr).slice(0, 28)}…` : "—";
+  if (agent.type === "rag.query") return `kb=${c.knowledge_base_id || "—"} · k=${c.top_k ?? 5}`;
+  if (agent.type === "rag.ingest") return `kb=${c.knowledge_base_id || "—"}`;
+  if (agent.type === "graph.memory") return "neo4j";
+  if (agent.type === "channel.delivery") return c.channel || "—";
   if (agent.type === "event") return `need=${c.need_type || "—"}`;
   if (agent.type === "interaction") return `${c.channel || "—"} · ${c.template || ""}`;
-  if (agent.type === "conversation") return `profile=${c.profile_id || "—"}`;
   return "—";
 }
 
@@ -38,7 +40,17 @@ export function AgentNode({
   onPortMouseUp, 
   connectedPorts 
 }: AgentNodeProps) {
-  const meta = AGENT_TYPES[agent.type];
+  // Unknown agent type falls back to a neutral planner-like card so the
+  // canvas still renders profiles authored against future/extended types.
+  const meta = AGENT_TYPES[agent.type] ?? {
+    label: agent.type,
+    category: "Desconhecido",
+    description: "Tipo não registrado no front. Verifique /api/v1/agents/templates.",
+    ports: { principal: ["input"], auxiliary: ["output"] },
+    needType: null,
+    glyph: "planner",
+    defaultConfig: {},
+  };
   const Glyph = (GLYPHS as any)[meta.glyph] || GlyphPlanner;
   const [editing, setEditing] = useState(false);
   const [tempId, setTempId] = useState(agent.id);

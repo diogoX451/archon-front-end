@@ -13,14 +13,17 @@ import { canvasToProfile, profileToCanvas, emptyCanvas, type CanvasMeta } from "
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 
+const FALLBACK_PORTS = { principal: ["input"], auxiliary: ["output"] };
+
 function portCoords(agent: AgentNodeData, portName: string, kind: string) {
   const meta = AGENT_TYPES[agent.type];
-  const isPrincipal = meta.ports.principal.includes(portName);
+  const ports = meta?.ports ?? FALLBACK_PORTS;
+  const isPrincipal = ports.principal.includes(portName);
   const w = 220;
   const headerH = 36;
   const portRowH = 20;
-  const ports = isPrincipal ? meta.ports.principal : meta.ports.auxiliary;
-  const idx = ports.indexOf(portName);
+  const portsList = isPrincipal ? ports.principal : ports.auxiliary;
+  const idx = portsList.indexOf(portName);
   const x = isPrincipal ? agent.x : agent.x + w;
   const y = agent.y + headerH + 12 + idx * portRowH;
   return { x, y };

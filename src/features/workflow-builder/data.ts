@@ -11,6 +11,16 @@ export type AgentTypeMetadata = {
   defaultConfig: Record<string, any>;
 };
 
+// AGENT_TYPES espelha internal/core/catalog/seed.go (DefaultAgentTemplates)
+// do backend, que é a fonte de verdade. Tipos só existem aqui se houver
+// um executor real escutando o subject NATS correspondente. Para mudar
+// a lista, edite o seed e re-execute `go run ./cmd/seed-profiles` ou
+// reinicie a API — depois sincronize aqui.
+//
+// Tipos extras (event, interaction) NÃO entram na paleta principal: são
+// alvos de `planner.actions[].agent_type` quando o planner faz fan-out.
+// Mantemos a metadata para o builder renderizá-los caso apareçam em um
+// profile existente.
 export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
   planner: {
     label: "Planner",
@@ -38,78 +48,73 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
   transform: {
     label: "Transform",
     category: "Dados",
-    description: "Transforma dados via script (map, filter, reshape).",
+    description: "Transforma dados via JSONPath, regex ou expressão.",
     ports: { principal: ["input"], auxiliary: ["output"] },
-    needType: null, // local
+    needType: null,
     glyph: "transform",
-    defaultConfig: { script: "return input;" },
+    defaultConfig: { expr: "" },
   },
+  "rag.query": {
+    label: "RAG Query",
+    category: "Conhecimento",
+    description: "Consulta base RAG e retorna chunks com scores.",
+    ports: { principal: ["query"], auxiliary: ["chunks"] },
+    needType: "rag.query",
+    glyph: "rag",
+    defaultConfig: { top_k: 5, min_score_threshold: 0.0 },
+  },
+  "rag.ingest": {
+    label: "RAG Ingest",
+    category: "Conhecimento",
+    description: "Ingere documento na base RAG (text, PDF, DOCX).",
+    ports: { principal: ["document"], auxiliary: ["status"] },
+    needType: "rag.ingest",
+    glyph: "rag",
+    defaultConfig: { knowledge_base_id: "" },
+  },
+  "graph.memory": {
+    label: "Graph Memory",
+    category: "Memória",
+    description: "Persiste entidades, relações e conceitos em Neo4j.",
+    ports: { principal: ["signal"], auxiliary: ["ack"] },
+    needType: "graph.memory.log",
+    glyph: "graph",
+    defaultConfig: {},
+  },
+  "channel.delivery": {
+    label: "Channel Delivery",
+    category: "Saída",
+    description: "Envia mensagem ao canal (WhatsApp, web, etc.).",
+    ports: { principal: ["payload"], auxiliary: ["receipt"] },
+    needType: "channel.delivery",
+    glyph: "delivery",
+    defaultConfig: { channel: "whatsapp" },
+  },
+  // Runtime-only: alvos de planner.actions[].agent_type, não entram na
+  // paleta. Definidos aqui para que profiles legacy renderizem.
   event: {
     label: "Event",
-    category: "I/O Externo",
-    description: "Publica evento e aguarda resposta assíncrona via webhook.",
+    category: "Runtime",
+    description: "Alvo de planner action — publica need genérico.",
     ports: { principal: ["trigger"], auxiliary: ["response"] },
     needType: "event",
     glyph: "event",
-    defaultConfig: { need_type: "my.custom.event" },
+    defaultConfig: { need_type: "" },
   },
   interaction: {
     label: "Interaction",
-    category: "Canais",
-    description: "Interage com usuário em canal (WhatsApp, Telegram, Slack).",
+    category: "Runtime",
+    description: "Alvo de planner action — interação com canal (botões, formulários).",
     ports: { principal: ["request"], auxiliary: ["response"] },
     needType: "interaction",
     glyph: "interaction",
-    defaultConfig: { channel: "whatsapp", template: "menu" },
-  },
-  router: {
-    label: "Router",
-    category: "Decisão",
-    description: "Roteia execução baseado em condição (path_a, path_b, ...).",
-    ports: { principal: ["input"], auxiliary: ["path_a", "path_b", "default"] },
-    needType: null,
-    glyph: "router",
-    defaultConfig: { condition: "" },
-  },
-  calculator: {
-    label: "Calculator",
-    category: "Dados",
-    description: "Realiza cálculo matemático sobre input numérico.",
-    ports: { principal: ["input"], auxiliary: ["output"] },
-    needType: null,
-    glyph: "calculator",
-    defaultConfig: { expression: "" },
-  },
-  "rag-query": {
-    label: "RAG Query",
-    category: "RAG",
-    description: "Busca semântica em base vetorial. Retorna top-k documentos.",
-    ports: { principal: ["input"], auxiliary: ["documents"] },
-    needType: "rag.query",
-    glyph: "rag",
-    defaultConfig: { knowledge_base_id: "", top_k: 5, min_score: 0.5 },
-  },
-  "rag-ingestion": {
-    label: "RAG Ingest",
-    category: "RAG",
-    description: "Ingere documento (PDF/DOCX/TXT) — chunking + embedding.",
-    ports: { principal: ["input"], auxiliary: ["document_id"] },
-    needType: "rag.ingest",
-    glyph: "rag",
-    defaultConfig: { tenant_id: "", knowledge_base_id: "" },
-  },
-  conversation: {
-    label: "Conversation",
-    category: "Canais",
-    description: "Turno de conversa multi-turn com histórico e contexto.",
-    ports: { principal: ["input"], auxiliary: ["reply"] },
-    needType: "conversation.turn",
-    glyph: "conversation",
-    defaultConfig: { profile_id: "" },
+    defaultConfig: {},
   },
 };
 
-export const CATEGORIES = ["Decisão", "I/O Externo", "Dados", "RAG", "Canais"];
+// Categorias listadas na paleta. "Runtime" é omitida de propósito —
+// event/interaction não devem ser arrastáveis.
+export const CATEGORIES = ["Decisão", "I/O Externo", "Dados", "Conhecimento", "Memória", "Saída"];
 
 export const SAMPLE_WORKFLOW = {
   name: "Assistente de Clima",
@@ -140,7 +145,7 @@ export const SAMPLE_WORKFLOW = {
       type: "transform",
       x: 840, y: 180,
       config: {
-        script: "return { weather: input.main, temp: input.temp };",
+        expr: "{ weather: input.main, temp: input.temp }",
       },
     },
   ],

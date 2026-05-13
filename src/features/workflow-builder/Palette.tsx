@@ -34,7 +34,7 @@ export function Palette({ onStartDrag }: PaletteProps) {
       <div className="panel-header">
         <span>Paleta de Agentes</span>
         <span style={{ color: "var(--ink-4)", fontFamily: "var(--font-mono)", fontSize: 10.5 }}>
-          {Object.keys(AGENT_TYPES).length}
+          {Object.values(AGENT_TYPES).filter((m) => CATEGORIES.includes(m.category)).length}
         </span>
       </div>
       <div style={{ position: "relative", margin: "0 12px 8px" }}>

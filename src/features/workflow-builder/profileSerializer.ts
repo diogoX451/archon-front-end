@@ -85,9 +85,19 @@ function deriveResponseSchema(actions: PlannerAction[]): Record<string, any> {
   };
 }
 
+function hasCustomResponseSchema(schema: unknown): boolean {
+  if (!schema || typeof schema !== "object") return false;
+  const keys = Object.keys(schema as Record<string, unknown>);
+  return keys.length > 0;
+}
+
 /**
- * Sanitize planner config: parse headers JSON strings, ensure actions array
- * shape, auto-derive response_schema.
+ * Sanitize planner config: parse headers JSON strings, normalize each
+ * action's shape, and derive a default response_schema only when the
+ * profile doesn't already ship one. Profiles authored by hand (e.g.
+ * docs/profiles/archon-assistant.json) carry richer schemas with
+ * per-action input shapes — we must not flatten those back to the
+ * generic auto-derived form, or planner validation breaks.
  */
 function sanitizePlannerConfig(config: Record<string, any>): Record<string, any> {
   const out = { ...config };
@@ -118,7 +128,7 @@ function sanitizePlannerConfig(config: Record<string, any>): Record<string, any>
     return next;
   });
   out.actions = actions;
-  if (actions.length > 0) {
+  if (actions.length > 0 && !hasCustomResponseSchema(out.response_schema)) {
     out.response_schema = deriveResponseSchema(actions);
   }
   return out;
