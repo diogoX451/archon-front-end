@@ -7,30 +7,37 @@ import { useTenants } from "@shared/hooks/useTenants";
 // Inline styles live in a single string so callers don't have to import
 // CSS in every place ProfileDetail is mounted. The drawer adds its own
 // chrome (backdrop, fixed positioning) on top.
+//
+// Layout strategy: every container that holds the KV grid is set up as
+// a CSS container so .pd-grid-2 collapses to a single column when the
+// holder is narrower than ~360px. Falls back gracefully on older
+// browsers (single column everywhere — still legible, just less dense).
 const STYLES = `
+.pd-root { container-type: inline-size; min-width: 0; }
 .pd-section { border: 1px solid var(--line); border-radius: var(--r-2); background: var(--surface-2); overflow: hidden; }
 .pd-section + .pd-section { margin-top: 10px; }
 .pd-section-head { width: 100%; background: transparent; border: 0; padding: 10px 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; text-align: left; }
 .pd-section-head:hover { background: var(--surface); }
 .pd-section-title { font-weight: 600; font-size: 12.5px; }
 .pd-section-count { font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); background: var(--surface); padding: 1px 6px; border-radius: 4px; }
-.pd-section-body { padding: 10px 12px; border-top: 1px solid var(--line); background: var(--surface); }
+.pd-section-body { padding: 10px 12px; border-top: 1px solid var(--line); background: var(--surface); min-width: 0; }
 .pd-arrow { display: inline-block; transition: transform 120ms ease; color: var(--ink-3); font-size: 10px; }
 .pd-arrow[data-open="true"] { transform: rotate(90deg); }
-.pd-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
-.pd-kv { display: flex; gap: 8px; font-size: 12px; line-height: 1.5; }
-.pd-kv .pd-k { color: var(--ink-4); min-width: 96px; font-size: 11px; padding-top: 1px; }
-.pd-kv .pd-v { color: var(--ink); flex: 1; word-break: break-word; }
+.pd-grid-2 { display: grid; grid-template-columns: 1fr; gap: 8px 16px; }
+@container (min-width: 380px) { .pd-grid-2 { grid-template-columns: 1fr 1fr; } }
+.pd-kv { display: flex; gap: 8px; font-size: 12px; line-height: 1.5; min-width: 0; }
+.pd-kv .pd-k { color: var(--ink-4); flex: 0 0 84px; font-size: 11px; padding-top: 1px; text-transform: uppercase; letter-spacing: 0.04em; }
+.pd-kv .pd-v { color: var(--ink); flex: 1 1 auto; min-width: 0; word-break: break-word; overflow-wrap: anywhere; }
 .pd-kv .pd-v.mono { font-family: var(--font-mono); font-size: 11.5px; }
 .pd-text { font-size: 12.5px; line-height: 1.55; color: var(--ink); white-space: pre-wrap; background: var(--surface-2); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--line); max-height: 320px; overflow: auto; }
-.pd-json { background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 10.5px; line-height: 1.45; overflow: auto; white-space: pre; font-family: var(--font-mono); margin: 0; }
-.pd-row { display: flex; gap: 8px; align-items: center; }
-.pd-agent { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
-.pd-agent-head { display: flex; gap: 10px; align-items: center; }
-.pd-glyph { width: 28px; height: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; display: grid; place-items: center; color: var(--ink-2); }
-.pd-agent-id { font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+.pd-json { background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 10.5px; line-height: 1.45; overflow: auto; white-space: pre; font-family: var(--font-mono); margin: 0; max-width: 100%; }
+.pd-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pd-agent { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.pd-agent-head { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.pd-glyph { width: 28px; height: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; display: grid; place-items: center; color: var(--ink-2); flex: 0 0 28px; }
+.pd-agent-id { font-family: var(--font-mono); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pd-agent-sub { margin-top: 2px; }
-.pd-action { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.pd-action { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .pd-action-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12.5px; }
 .pd-action-desc { font-size: 11.5px; color: var(--ink-3); line-height: 1.45; }
 .pd-id { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-4); }
@@ -217,7 +224,7 @@ export function ProfileDetail({ profile, styleInjected = false }: ProfileDetailP
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="pd-root" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {!styleInjected && <style dangerouslySetInnerHTML={{ __html: STYLES }} />}
 
       <Section title="Identidade" defaultOpen>
@@ -298,16 +305,25 @@ export function ProfileHeader({ profile }: { profile: ConversationProfileV2 }) {
   const { data: tenants } = useTenants();
   const tenant = tenants?.find((t) => t.id === profile.tenant_id);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <div style={{ fontWeight: 600, fontSize: 14, fontFamily: "var(--font-mono)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+      <div style={{
+        fontWeight: 600, fontSize: 13.5, fontFamily: "var(--font-mono)",
+        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+      }}>
         {profile.profile_id}
       </div>
       {profile.description && (
-        <div style={{ color: "var(--ink-3)", fontSize: 12, lineHeight: 1.45 }}>
+        <div style={{
+          color: "var(--ink-3)", fontSize: 11.5, lineHeight: 1.4,
+          display: "-webkit-box",
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}>
           {profile.description}
         </div>
       )}
-      <div style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center", flexWrap: "wrap" }}>
         {tenant && <span className="pill" data-tone="muted">{tenant.name}</span>}
         {profile.executor_type && (
           <span className="pill" style={{ fontFamily: "var(--font-mono)" }}>{profile.executor_type}</span>
