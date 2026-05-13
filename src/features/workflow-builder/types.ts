@@ -30,6 +30,6 @@ export type WorkflowData = {
 };
 
 export type SelectedEntity = {
-  kind: "agent" | "connection" | null;
+  kind: "agent" | "connection" | "ghost" | null;
   id: string | null;
 };

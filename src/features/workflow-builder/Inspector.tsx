@@ -5,6 +5,7 @@ import type { CanvasMeta } from "./profileSerializer";
 import { IconSliders, IconTerminal, IconShare, IconTrash, GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
 import type { ConversationProfileV2 } from "@shared/api/profiles";
 import { ProfileDetail, ProfileHeader } from "@shared/ui/ProfileDetail";
+import type { GhostAction } from "./GhostActionNode";
 
 function hashString(s: string) {
   let h = 0;
@@ -574,6 +575,7 @@ type InspectorProps = {
   setTab: (tab: string) => void;
   selectedAgent: AgentNodeData | null;
   selectedConn: ConnectionData | null;
+  selectedGhost?: GhostAction | null;
   workflow: WorkflowData;
   meta?: CanvasMeta;
   /** Backend profile object — when present enables the "Profile" tab
@@ -585,7 +587,46 @@ type InspectorProps = {
   onRemoveConnection: (id: string) => void;
 };
 
-export function Inspector({ tab, setTab, selectedAgent, selectedConn, workflow, meta, profile, onMetaChange, onUpdateAgent, onRemoveAgent, onRemoveConnection }: InspectorProps) {
+function GhostActionInspector({ ghost }: { ghost: GhostAction }) {
+  const isTerminal = !ghost.agentType && !ghost.needType;
+  return (
+    <div className="form-stack">
+      <div className="section-title">Action do planner</div>
+      <Field label="Planner">
+        <div className="mono" style={{ fontSize: 12 }}>{ghost.plannerId}</div>
+      </Field>
+      <Field label="Nome">
+        <div className="mono" style={{ fontSize: 13, fontWeight: 600 }}>{ghost.name}</div>
+      </Field>
+      {ghost.description && (
+        <Field label="Descrição">
+          <div style={{ fontSize: 12, color: "var(--ink-2)", lineHeight: 1.5 }}>{ghost.description}</div>
+        </Field>
+      )}
+      <Field label="Tipo">
+        {isTerminal ? (
+          <span className="pill">terminal · responde direto ao usuário</span>
+        ) : (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <span className="pill">fan-out</span>
+            {ghost.agentType && <span className="pill" data-tone="muted">→ {ghost.agentType}</span>}
+            {ghost.needType && (
+              <span className="pill" data-tone="warn" style={{ fontFamily: "var(--font-mono)" }}>
+                need: {ghost.needType}
+              </span>
+            )}
+          </div>
+        )}
+      </Field>
+      <div className="field-hint" style={{ marginTop: 4 }}>
+        Esta é uma branch dinâmica — o planner LLM decide em runtime. Para editar
+        as actions, selecione o nó do planner.
+      </div>
+    </div>
+  );
+}
+
+export function Inspector({ tab, setTab, selectedAgent, selectedConn, selectedGhost, workflow, meta, profile, onMetaChange, onUpdateAgent, onRemoveAgent, onRemoveConnection }: InspectorProps) {
   return (
     <aside className="inspector">
       <div className="inspector-tabs">
@@ -607,6 +648,7 @@ export function Inspector({ tab, setTab, selectedAgent, selectedConn, workflow, 
       </div>
       <div className="inspector-body">
         {tab === "config" && (
+          selectedGhost ? <GhostActionInspector ghost={selectedGhost} /> :
           selectedAgent ? <AgentInspector agent={selectedAgent} onUpdate={(patch) => onUpdateAgent(selectedAgent.id, patch)} onRemove={() => onRemoveAgent(selectedAgent.id)} /> :
           selectedConn ? <ConnectionInspector conn={selectedConn} workflow={workflow} onRemove={() => onRemoveConnection(selectedConn.id)} /> :
           <WorkflowInspector workflow={workflow} meta={meta} onMetaChange={onMetaChange} />

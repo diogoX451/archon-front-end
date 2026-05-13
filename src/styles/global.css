@@ -458,6 +458,93 @@ input, textarea, select {
 
 .agent[data-density="compact"] { width: 180px; }
 
+/* Ghost action nodes: read-only representation of planner.config.actions
+   on the canvas. Visually muted + dashed so it's obvious they're
+   runtime branches, not static blueprint nodes. */
+.ghost-action {
+  position: absolute;
+  width: 200px;
+  background: var(--surface);
+  border: 1.5px dashed var(--line-2);
+  border-radius: var(--r-3);
+  padding: 7px 10px;
+  user-select: none;
+  cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms;
+  opacity: 0.92;
+}
+.ghost-action:hover {
+  border-color: var(--ink-4);
+  box-shadow: var(--shadow-1);
+}
+.ghost-action[data-selected="true"] {
+  border-color: var(--accent);
+  border-style: dashed;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  opacity: 1;
+}
+.ghost-action[data-tone="terminal"] {
+  background: var(--surface-2);
+}
+.ghost-action-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 4px;
+}
+.ghost-action-glyph {
+  width: 18px;
+  height: 18px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  flex: 0 0 18px;
+}
+.ghost-action-name {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ghost-action-meta {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.ghost-action-pill {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+}
+.ghost-action-pill.mono { font-family: var(--font-mono); }
+.ghost-action-pill[data-terminal="true"] {
+  background: var(--surface);
+  color: var(--ink-4);
+}
+
+/* Ghost edges: dashed bezier from planner.output to ghost-action.
+   Stroke color subdued so concrete connections still dominate. */
+.ghost-edge {
+  stroke: var(--ink-4);
+  stroke-width: 1.25;
+  stroke-dasharray: 5 5;
+  fill: none;
+  opacity: 0.65;
+}
+.ghost-edge[data-selected="true"] {
+  stroke: var(--accent);
+  opacity: 1;
+}
+
 .agent-header {
   display: flex;
   align-items: center;

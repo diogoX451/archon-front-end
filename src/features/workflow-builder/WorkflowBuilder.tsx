@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AGENT_TYPES, SAMPLE_WORKFLOW, SIMULATED_TRACE } from "./data";
 import { WorkflowData, SelectedEntity, AgentNodeData, ConnectionData } from "./types";
@@ -6,6 +6,7 @@ import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
 import { EventDrawer } from "./EventDrawer";
 import { AgentNode } from "./AgentNode";
+import { GhostActionNode, type GhostAction } from "./GhostActionNode";
 import { GLYPHS, GlyphPlanner, IconPlay, IconReset, IconValidate, IconCursor, IconHand, IconMinus, IconPlus } from "@shared/ui/icons/Icons";
 import { Rail } from "@shared/ui/Rail";
 import { useProfiles, useUpsertProfile } from "@shared/hooks/useProfiles";
@@ -322,6 +323,48 @@ export function WorkflowBuilder() {
     connectedPorts.add(c.to.port);
   }
 
+  // Ghost nodes: each planner.config.actions[] entry becomes a read-only
+  // node attached to its planner. Positioned automatically (fan-out to
+  // the right), never persisted, not draggable. Lets us visualize the
+  // runtime hub-and-spoke shape of single-planner profiles like
+  // archon-assistant without polluting the saved blueprint.
+  const ghostActions = useMemo<GhostAction[]>(() => {
+    const out: GhostAction[] = [];
+    const PLANNER_W = 220;
+    const GHOST_W = 200;
+    const GHOST_H = 64;
+    const GAP_X = 100;
+    const GAP_Y = 16;
+    for (const agent of workflow.agents) {
+      if (agent.type !== "planner") continue;
+      const actions = Array.isArray((agent.config as any)?.actions) ? (agent.config as any).actions : [];
+      const baseX = agent.x + PLANNER_W + GAP_X;
+      const total = actions.length;
+      // Stack vertically, vertically centered around the planner.
+      const stackH = total * GHOST_H + (total - 1) * GAP_Y;
+      const startY = agent.y + 36 - (stackH - GHOST_H) / 2;
+      actions.forEach((a: any, i: number) => {
+        if (!a || typeof a !== "object" || !a.name) return;
+        out.push({
+          id: `${agent.id}::${a.name}`,
+          plannerId: agent.id,
+          name: a.name,
+          description: a.description,
+          agentType: a.agent_type,
+          needType: a.need_type,
+          x: baseX,
+          y: startY + i * (GHOST_H + GAP_Y),
+        });
+      });
+      void GHOST_W; // reserved for future horizontal layouts
+    }
+    return out;
+  }, [workflow.agents]);
+
+  const selectedGhost = selected.kind === "ghost" && selected.id
+    ? ghostActions.find((g) => g.id === selected.id) || null
+    : null;
+
   return (
     <>
       <Rail />
@@ -479,6 +522,24 @@ export function WorkflowBuilder() {
               const b = { x: connDraft.x, y: connDraft.y };
               return <path d={bezierPath(a, b)} stroke="var(--accent)" strokeWidth="1.75" strokeDasharray="4 4" fill="none" />;
             })()}
+            {/* Ghost edges: planner.output → action.input. Dashed so the
+                user can see at a glance that these are runtime branches,
+                not static connections. */}
+            {ghostActions.map((g) => {
+              const planner = findAgent(g.plannerId);
+              if (!planner) return null;
+              const a = portCoords(planner, "output", "auxiliary");
+              const b = { x: g.x, y: g.y + 32 };
+              const sel = selected.kind === "ghost" && selected.id === g.id;
+              return (
+                <path
+                  key={`ghost-edge-${g.id}`}
+                  d={bezierPath(a, b)}
+                  className="ghost-edge"
+                  data-selected={sel}
+                />
+              );
+            })}
           </svg>
 
           <div
@@ -538,6 +599,14 @@ export function WorkflowBuilder() {
                 connectedPorts={connectedPorts}
               />
             ))}
+            {ghostActions.map((g) => (
+              <GhostActionNode
+                key={g.id}
+                action={g}
+                selected={selected.kind === "ghost" && selected.id === g.id}
+                onSelect={() => setSelected({ kind: "ghost", id: g.id })}
+              />
+            ))}
           </div>
 
           <div className="canvas-toolbar">
@@ -586,6 +655,7 @@ export function WorkflowBuilder() {
           setTab={setInspectorTab}
           selectedAgent={selectedAgent}
           selectedConn={selectedConn}
+          selectedGhost={selectedGhost}
           workflow={workflow}
           meta={meta}
           profile={loadedProfile}
