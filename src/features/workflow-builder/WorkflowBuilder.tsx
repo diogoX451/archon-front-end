@@ -14,6 +14,66 @@ import { canvasToProfile, profileToCanvas, emptyCanvas, type CanvasMeta } from "
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 
+// Bounding box of a regular agent node on the canvas — matches the CSS
+// rule .agent { width: 220px } and the actual rendered height (~92px
+// for the planner card with its header + body).
+const AGENT_W = 220;
+const AGENT_H = 92;
+
+function pointInAgent(stage: { x: number; y: number }, agent: AgentNodeData): boolean {
+  return (
+    stage.x >= agent.x &&
+    stage.x <= agent.x + AGENT_W &&
+    stage.y >= agent.y &&
+    stage.y <= agent.y + AGENT_H
+  );
+}
+
+// Map a palette agent-type into the shape of a planner action. Generic
+// bus types (event/interaction) carry the executor identity via
+// need_type; concrete types like http/transform are local-to-planner
+// fan-outs and use agent_type directly. Names are deduped against the
+// existing actions so dropping the same template twice yields
+// rag_query_2, rag_query_3, ...
+function paletteTypeToAction(
+  paletteType: string,
+  existingNames: string[],
+): { name: string; agent_type?: string; need_type?: string; description?: string; config?: Record<string, any> } | null {
+  const meta = AGENT_TYPES[paletteType];
+  if (!meta) return null;
+  const baseName = (paletteType.includes(".") ? paletteType.split(".").join("_") : paletteType).replace(/-/g, "_");
+  let name = baseName;
+  let n = 2;
+  while (existingNames.includes(name)) {
+    name = `${baseName}_${n++}`;
+  }
+  const description = meta.description;
+  // executor-backed (rag.*, graph.*, channel.*) → emit need via "event"
+  if (paletteType === "rag.query" || paletteType === "rag.ingest") {
+    return { name, description, agent_type: "event", need_type: paletteType };
+  }
+  if (paletteType === "graph.memory") {
+    return { name, description, agent_type: "event", need_type: "graph.memory.log" };
+  }
+  if (paletteType === "channel.delivery") {
+    return { name, description, agent_type: "event", need_type: "channel.delivery" };
+  }
+  if (paletteType === "http") {
+    return { name, description, agent_type: "http", config: { ...meta.defaultConfig } };
+  }
+  if (paletteType === "transform") {
+    return { name, description, agent_type: "transform", config: { ...meta.defaultConfig } };
+  }
+  if (paletteType === "interaction") {
+    return { name, description, agent_type: "interaction" };
+  }
+  if (paletteType === "event") {
+    return { name, description, agent_type: "event" };
+  }
+  // unknown — fall through with agent_type set
+  return { name, description, agent_type: paletteType };
+}
+
 const FALLBACK_PORTS = { principal: ["input"], auxiliary: ["output"] };
 
 function portCoords(agent: AgentNodeData, portName: string, kind: string) {
@@ -121,6 +181,10 @@ export function WorkflowBuilder() {
   const [agentDrag, setAgentDrag] = useState<{id: string, offsetX: number, offsetY: number} | null>(null);
   const [paletteDrag, setPaletteDrag] = useState<{type: string, x: number, y: number} | null>(null);
   const [connDraft, setConnDraft] = useState<{from: {agent: string, port: string, kind: string}, x: number, y: number} | null>(null);
+  // When a palette item is being dragged AND its cursor is over a
+  // planner, this holds that planner's id so the AgentNode can render
+  // a "drop target" outline. Cleared on drop/cancel.
+  const [dropTargetPlannerId, setDropTargetPlannerId] = useState<string | null>(null);
 
   const findAgent = (id: string) => workflow.agents.find((a) => a.id === id) || null;
   const updateAgent = (id: string, patch: any) => {
@@ -155,6 +219,12 @@ export function WorkflowBuilder() {
     const onMove = (e: MouseEvent) => {
       if (paletteDrag) {
         setPaletteDrag((p) => p ? ({ ...p, x: e.clientX, y: e.clientY }) : null);
+        // Recompute drop target every move so hover feedback tracks.
+        const stage = screenToStage(e.clientX, e.clientY);
+        const planner = workflow.agents.find(
+          (a) => a.type === "planner" && pointInAgent(stage, a),
+        );
+        setDropTargetPlannerId(planner?.id || null);
       }
       if (agentDrag) {
         const stage = screenToStage(e.clientX, e.clientY);
@@ -184,23 +254,53 @@ export function WorkflowBuilder() {
             e.clientY >= rect.top && e.clientY <= rect.bottom
           ) {
             const stage = screenToStage(e.clientX, e.clientY);
-            const newId = uid(paletteDrag.type.replace(/-/g, "_"));
-            const typeMeta = AGENT_TYPES[paletteDrag.type];
-            setWorkflow((w) => ({
-              ...w,
-              agents: [...w.agents, {
-                id: newId,
-                type: paletteDrag.type,
-                x: Math.round(stage.x - 110),
-                y: Math.round(stage.y - 30),
-                status: "idle",
-                config: { ...typeMeta.defaultConfig },
-              }],
-            }));
-            setSelected({ kind: "agent", id: newId });
+            // Hit-test against planners first. Dropping a palette item
+            // on top of a planner means "add this as one of its
+            // actions" instead of creating a top-level agent.
+            const targetPlanner = workflow.agents.find(
+              (a) => a.type === "planner" && pointInAgent(stage, a),
+            );
+            if (targetPlanner) {
+              const existing = Array.isArray((targetPlanner.config as any)?.actions)
+                ? (targetPlanner.config as any).actions
+                : [];
+              const newAction = paletteTypeToAction(paletteDrag.type, existing.map((a: any) => a?.name).filter(Boolean));
+              if (newAction) {
+                setWorkflow((w) => ({
+                  ...w,
+                  agents: w.agents.map((a) => a.id === targetPlanner.id
+                    ? {
+                        ...a,
+                        config: {
+                          ...(a.config || {}),
+                          actions: [...existing, newAction],
+                        },
+                      }
+                    : a,
+                  ),
+                }));
+                setSelected({ kind: "ghost", id: `${targetPlanner.id}::${newAction.name}` });
+              }
+            } else {
+              const newId = uid(paletteDrag.type.replace(/-/g, "_"));
+              const typeMeta = AGENT_TYPES[paletteDrag.type];
+              setWorkflow((w) => ({
+                ...w,
+                agents: [...w.agents, {
+                  id: newId,
+                  type: paletteDrag.type,
+                  x: Math.round(stage.x - 110),
+                  y: Math.round(stage.y - 30),
+                  status: "idle",
+                  config: { ...typeMeta.defaultConfig },
+                }],
+              }));
+              setSelected({ kind: "agent", id: newId });
+            }
           }
         }
         setPaletteDrag(null);
+        setDropTargetPlannerId(null);
       }
       if (agentDrag) setAgentDrag(null);
       if (connDraft) setConnDraft(null);
@@ -212,7 +312,7 @@ export function WorkflowBuilder() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [paletteDrag, agentDrag, connDraft, panState, screenToStage]);
+  }, [paletteDrag, agentDrag, connDraft, panState, screenToStage, workflow.agents]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -552,6 +652,7 @@ export function WorkflowBuilder() {
                 agent={agent}
                 density="comfortable"
                 selected={selected.kind === "agent" && selected.id === agent.id}
+                dropTarget={dropTargetPlannerId === agent.id}
                 onSelect={() => setSelected({ kind: "agent", id: agent.id })}
                 onStartDrag={(clientX, clientY, ax, ay) => {
                   const stage = screenToStage(clientX, clientY);

@@ -452,6 +452,11 @@ input, textarea, select {
   border-color: var(--running);
   box-shadow: 0 0 0 3px oklch(0.95 0.06 60), var(--shadow-2);
 }
+.agent[data-drop-target="true"] {
+  border-color: var(--accent);
+  border-style: dashed;
+  box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-2);
+}
 .agent[data-status="done"] {
   border-color: var(--ok);
 }

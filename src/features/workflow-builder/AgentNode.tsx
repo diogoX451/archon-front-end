@@ -7,6 +7,9 @@ type AgentNodeProps = {
   agent: AgentNodeData;
   density: string;
   selected: boolean;
+  /** True while a palette item is being dragged over this node — used
+   *  to render a "drop here" outline on planners (action target). */
+  dropTarget?: boolean;
   onSelect: () => void;
   onStartDrag: (clientX: number, clientY: number, ax: number, ay: number) => void;
   onRename: (newId: string) => void;
@@ -29,16 +32,17 @@ function summaryFor(agent: AgentNodeData) {
   return "—";
 }
 
-export function AgentNode({ 
-  agent, 
-  density, 
-  selected, 
-  onSelect, 
-  onStartDrag, 
-  onRename, 
-  onPortMouseDown, 
-  onPortMouseUp, 
-  connectedPorts 
+export function AgentNode({
+  agent,
+  density,
+  selected,
+  dropTarget = false,
+  onSelect,
+  onStartDrag,
+  onRename,
+  onPortMouseDown,
+  onPortMouseUp,
+  connectedPorts
 }: AgentNodeProps) {
   // Unknown agent type falls back to a neutral planner-like card so the
   // canvas still renders profiles authored against future/extended types.
@@ -59,6 +63,7 @@ export function AgentNode({
     <div
       className="agent"
       data-selected={selected}
+      data-drop-target={dropTarget}
       data-status={agent.status}
       data-density={density}
       style={{ left: agent.x, top: agent.y }}

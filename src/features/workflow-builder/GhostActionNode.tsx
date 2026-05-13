@@ -32,13 +32,30 @@ function actionTone(action: GhostAction): "terminal" | "fanout" {
 }
 
 function actionIcon(action: GhostAction) {
-  // Reuse the palette glyphs so the type identity is consistent across
-  // canvas + palette + inspector. Falls back to the planner icon for
-  // terminal actions (complete/ask_user) since they live inside the
-  // planner's own turn.
-  const targetType = action.agentType;
-  if (targetType && AGENT_TYPES[targetType]) {
-    return (GLYPHS as any)[AGENT_TYPES[targetType].glyph] || GlyphPlanner;
+  // The semantically meaningful identity of an action is its need_type
+  // (rag.query, channel.delivery, graph.memory.log, ...) — that's what
+  // the runtime executor actually does. agent_type is often the generic
+  // bus ("event"/"interaction") so it doesn't tell the user much. We
+  // try need_type first against AGENT_TYPES (where keys are need_type
+  // for executor-backed agents); fall back to agent_type; then planner.
+  if (action.needType) {
+    // exact match (rag.query, rag.ingest, channel.delivery, ...)
+    if (AGENT_TYPES[action.needType]) {
+      return (GLYPHS as any)[AGENT_TYPES[action.needType].glyph] || GlyphPlanner;
+    }
+    // prefix match for namespaced needs (graph.memory.log → graph.memory)
+    for (const key of Object.keys(AGENT_TYPES)) {
+      const meta = AGENT_TYPES[key];
+      if (meta.needType && action.needType.startsWith(meta.needType + ".")) {
+        return (GLYPHS as any)[meta.glyph] || GlyphPlanner;
+      }
+      if (key.includes(".") && action.needType.startsWith(key + ".")) {
+        return (GLYPHS as any)[meta.glyph] || GlyphPlanner;
+      }
+    }
+  }
+  if (action.agentType && AGENT_TYPES[action.agentType]) {
+    return (GLYPHS as any)[AGENT_TYPES[action.agentType].glyph] || GlyphPlanner;
   }
   return GlyphPlanner;
 }
