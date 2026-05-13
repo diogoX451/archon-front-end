@@ -89,10 +89,16 @@ export function GhostActionNode({ action, selected, onSelect, onStartDrag }: Pro
         ) : (
           <span className="ghost-action-pill" data-terminal="true">terminal</span>
         )}
-        {action.needType && (
-          <span className="ghost-action-pill mono">{action.needType}</span>
-        )}
       </div>
+      {action.needType && (
+        // need_type lives on its own row because the namespaced strings
+        // (user_interaction.whatsapp.buttons, channel.delivery, …) are
+        // too long for a pill — truncated with ellipsis and full value
+        // exposed via tooltip.
+        <div className="ghost-action-need" title={action.needType}>
+          need: {action.needType}
+        </div>
+      )}
     </div>
   );
 }

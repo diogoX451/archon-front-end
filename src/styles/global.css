@@ -525,6 +525,20 @@ input, textarea, select {
   gap: 4px;
   flex-wrap: wrap;
 }
+.ghost-action-need {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
 .ghost-action-pill {
   font-size: 10px;
   padding: 1px 6px;
