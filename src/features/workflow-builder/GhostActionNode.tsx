@@ -24,6 +24,7 @@ interface Props {
   action: GhostAction;
   selected: boolean;
   onSelect: () => void;
+  onStartDrag?: (clientX: number, clientY: number, ax: number, ay: number) => void;
 }
 
 function actionTone(action: GhostAction): "terminal" | "fanout" {
@@ -60,7 +61,7 @@ function actionIcon(action: GhostAction) {
   return GlyphPlanner;
 }
 
-export function GhostActionNode({ action, selected, onSelect }: Props) {
+export function GhostActionNode({ action, selected, onSelect, onStartDrag }: Props) {
   const Glyph = actionIcon(action);
   const tone = actionTone(action);
   return (
@@ -69,7 +70,13 @@ export function GhostActionNode({ action, selected, onSelect }: Props) {
       data-selected={selected}
       data-tone={tone}
       style={{ left: action.x, top: action.y }}
-      onMouseDown={(e) => { e.stopPropagation(); onSelect(); }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        onSelect();
+        // Forward drag intent — WorkflowBuilder handles move/release
+        // and clamps via the same effect that powers agent dragging.
+        if (onStartDrag) onStartDrag(e.clientX, e.clientY, action.x, action.y);
+      }}
       title={action.description || action.name}
     >
       <div className="ghost-action-head">

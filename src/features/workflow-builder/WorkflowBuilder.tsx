@@ -179,6 +179,7 @@ export function WorkflowBuilder() {
   const [panState, setPanState] = useState<{startX: number, startY: number, startVx: number, startVy: number} | null>(null);
 
   const [agentDrag, setAgentDrag] = useState<{id: string, offsetX: number, offsetY: number} | null>(null);
+  const [ghostDrag, setGhostDrag] = useState<{id: string, offsetX: number, offsetY: number} | null>(null);
   const [paletteDrag, setPaletteDrag] = useState<{type: string, x: number, y: number} | null>(null);
   const [connDraft, setConnDraft] = useState<{from: {agent: string, port: string, kind: string}, x: number, y: number} | null>(null);
   // When a palette item is being dragged AND its cursor is over a
@@ -232,6 +233,17 @@ export function WorkflowBuilder() {
           x: Math.round(stage.x - agentDrag.offsetX),
           y: Math.round(stage.y - agentDrag.offsetY),
         });
+      }
+      if (ghostDrag) {
+        const stage = screenToStage(e.clientX, e.clientY);
+        const next = {
+          x: Math.round(stage.x - ghostDrag.offsetX),
+          y: Math.round(stage.y - ghostDrag.offsetY),
+        };
+        setMeta((m) => ({
+          ...m,
+          ghost_positions: { ...(m.ghost_positions || {}), [ghostDrag.id]: next },
+        }));
       }
       if (connDraft) {
         const stage = screenToStage(e.clientX, e.clientY);
@@ -303,6 +315,7 @@ export function WorkflowBuilder() {
         setDropTargetPlannerId(null);
       }
       if (agentDrag) setAgentDrag(null);
+      if (ghostDrag) setGhostDrag(null);
       if (connDraft) setConnDraft(null);
       if (panState) setPanState(null);
     };
@@ -312,7 +325,7 @@ export function WorkflowBuilder() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [paletteDrag, agentDrag, connDraft, panState, screenToStage, workflow.agents]);
+  }, [paletteDrag, agentDrag, ghostDrag, connDraft, panState, screenToStage, workflow.agents]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -432,9 +445,10 @@ export function WorkflowBuilder() {
     const out: GhostAction[] = [];
     const PLANNER_W = 220;
     const GHOST_W = 200;
-    const GHOST_H = 64;
-    const GAP_X = 100;
-    const GAP_Y = 16;
+    const GHOST_H = 72;
+    const GAP_X = 120;
+    const GAP_Y = 28;
+    const overrides = meta.ghost_positions || {};
     for (const agent of workflow.agents) {
       if (agent.type !== "planner") continue;
       const actions = Array.isArray((agent.config as any)?.actions) ? (agent.config as any).actions : [];
@@ -445,21 +459,24 @@ export function WorkflowBuilder() {
       const startY = agent.y + 36 - (stackH - GHOST_H) / 2;
       actions.forEach((a: any, i: number) => {
         if (!a || typeof a !== "object" || !a.name) return;
+        const id = `${agent.id}::${a.name}`;
+        const auto = { x: baseX, y: startY + i * (GHOST_H + GAP_Y) };
+        const pos = overrides[id] || auto;
         out.push({
-          id: `${agent.id}::${a.name}`,
+          id,
           plannerId: agent.id,
           name: a.name,
           description: a.description,
           agentType: a.agent_type,
           needType: a.need_type,
-          x: baseX,
-          y: startY + i * (GHOST_H + GAP_Y),
+          x: pos.x,
+          y: pos.y,
         });
       });
-      void GHOST_W; // reserved for future horizontal layouts
+      void GHOST_W;
     }
     return out;
-  }, [workflow.agents]);
+  }, [workflow.agents, meta.ghost_positions]);
 
   const selectedGhost = selected.kind === "ghost" && selected.id
     ? ghostActions.find((g) => g.id === selected.id) || null
@@ -705,6 +722,10 @@ export function WorkflowBuilder() {
                 action={g}
                 selected={selected.kind === "ghost" && selected.id === g.id}
                 onSelect={() => setSelected({ kind: "ghost", id: g.id })}
+                onStartDrag={(clientX, clientY, ax, ay) => {
+                  const stage = screenToStage(clientX, clientY);
+                  setGhostDrag({ id: g.id, offsetX: stage.x - ax, offsetY: stage.y - ay });
+                }}
               />
             ))}
           </div>

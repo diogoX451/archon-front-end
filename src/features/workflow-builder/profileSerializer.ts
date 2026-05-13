@@ -16,6 +16,9 @@ type UiConnection = {
 
 type UiMetadata = {
   positions?: Record<string, { x: number; y: number }>;
+  /** User-overridden ghost positions keyed by "<plannerId>::<actionName>".
+   *  Falls back to auto-layout when entry is missing. */
+  ghost_positions?: Record<string, { x: number; y: number }>;
   name?: string;
   connections?: UiConnection[];
 };
@@ -42,6 +45,9 @@ export type CanvasMeta = {
   memory_hook_rules?: Array<{ relations: string[]; edge_type: string }>;
   input_defaults?: any;
   extra_metadata?: any;
+  /** User-overridden ghost-node positions. Survives reload via
+   *  metadata.ui.ghost_positions. */
+  ghost_positions?: Record<string, { x: number; y: number }>;
 };
 
 type PlannerAction = {
@@ -166,6 +172,9 @@ export function canvasToProfile(workflow: WorkflowData, meta: CanvasMeta): Profi
     positions,
     name: workflow.name,
     connections: uiConnections.length > 0 ? uiConnections : undefined,
+    ghost_positions: meta.ghost_positions && Object.keys(meta.ghost_positions).length > 0
+      ? meta.ghost_positions
+      : undefined,
   };
   const metadata: Record<string, any> = {
     ...(meta.extra_metadata && typeof meta.extra_metadata === "object" ? meta.extra_metadata : {}),
@@ -263,6 +272,7 @@ export function profileToCanvas(profile: ConversationProfileV2): { workflow: Wor
       memory_hook_rules: memoryHookRules,
       input_defaults: profile.input_defaults,
       extra_metadata: Object.keys(extraMetadata).length > 0 ? extraMetadata : undefined,
+      ghost_positions: ui.ghost_positions,
     },
   };
 }

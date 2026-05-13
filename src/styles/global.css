@@ -474,7 +474,7 @@ input, textarea, select {
   border-radius: var(--r-3);
   padding: 7px 10px;
   user-select: none;
-  cursor: pointer;
+  cursor: grab;
   transition: border-color 120ms, box-shadow 120ms;
   /* Solid background so the dashed bezier behind it can't show
      through. The dashed border + muted glyph colour already signal
@@ -485,6 +485,7 @@ input, textarea, select {
   border-color: var(--ink-4);
   box-shadow: var(--shadow-2);
 }
+.ghost-action:active { cursor: grabbing; }
 .ghost-action[data-selected="true"] {
   border-color: var(--accent);
   border-style: dashed;
