@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { IconPlus, IconTrash, GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
 import { AGENT_TYPES } from "@features/workflow-builder/data";
 import { useProfiles, useDeleteProfile } from "@shared/hooks/useProfiles";
-import { ProfileDetailDrawer } from "@shared/ui/ProfileDetailDrawer";
+import { useTenants } from "@shared/hooks/useTenants";
 import type { ConversationProfileV2 } from "@shared/api/profiles";
 
 function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: string }> {
@@ -15,9 +15,16 @@ function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: 
 export function TemplatesPage() {
   const [tab, setTab] = useState("profiles");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<ConversationProfileV2 | null>(null);
   const { data: profiles, isLoading, error } = useProfiles();
+  const { data: tenants } = useTenants();
   const deleteMutation = useDeleteProfile();
+  const navigate = useNavigate();
+
+  const tenantLabel = (tenantId?: string) => {
+    if (!tenantId) return "global";
+    const t = tenants?.find((x) => x.id === tenantId);
+    return t ? t.name : "—";
+  };
 
   const filtered = (profiles || []).filter((p) => {
     if (!search.trim()) return true;
@@ -124,8 +131,7 @@ export function TemplatesPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Profile ID</th>
-                    <th>Descrição</th>
+                    <th>Profile</th>
                     <th>Tenant</th>
                     <th className="num">Agentes</th>
                     <th>Atualizado</th>
@@ -134,36 +140,40 @@ export function TemplatesPage() {
                 </thead>
                 <tbody>
                   {filtered.map((p) => {
-                    const id = p.profile_id || p.id;
+                    const slug = p.profile_id || p.id;
                     const agents = agentsArray(p);
+                    // Route key is the backend UUID — the slug stays as
+                    // a display label so URLs don't leak template names
+                    // or tenant slugs to anyone browser-history-stalking.
+                    const target = `/workflows/builder/${encodeURIComponent(p.id)}`;
                     return (
-                      <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => setSelected(p)}>
-                        <td className="mono" style={{ fontSize: 12 }}>{id}</td>
-                        <td style={{ maxWidth: 320 }}>
-                          <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {p.description || <span className="muted">—</span>}
+                      <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => navigate(target)}>
+                        <td>
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 500 }}>
+                            {slug}
                           </div>
+                          {p.description && (
+                            <div style={{
+                              fontSize: 11.5, color: "var(--ink-3)", marginTop: 2,
+                              maxWidth: 380, overflow: "hidden",
+                              textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>{p.description}</div>
+                          )}
                         </td>
-                        <td className="muted mono" style={{ fontSize: 12 }}>{p.tenant_id || "global"}</td>
+                        <td>
+                          <span className="pill" data-tone="muted">{tenantLabel(p.tenant_id)}</span>
+                        </td>
                         <td className="num mono">{agents.length}</td>
                         <td className="muted" style={{ fontSize: 12 }}>
                           {p.updated_at ? new Date(p.updated_at).toLocaleString("pt-BR") : "—"}
                         </td>
-                        <td style={{ width: 220, textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
-                          <button
-                            className="btn ghost"
-                            onClick={() => setSelected(p)}
-                            style={{ marginRight: 6 }}
-                            title="Inspecionar profile completo"
-                          >
-                            Ver
-                          </button>
-                          <Link to={`/workflows/builder/${encodeURIComponent(id)}`} className="btn ghost" style={{ marginRight: 6 }}>
+                        <td style={{ width: 160, textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
+                          <Link to={target} className="btn ghost" style={{ marginRight: 6 }}>
                             Abrir
                           </Link>
                           <button
                             className="btn ghost"
-                            onClick={() => onDelete(id)}
+                            onClick={() => onDelete(slug)}
                             disabled={deleteMutation.isPending}
                             title="Excluir profile"
                           >
@@ -220,11 +230,6 @@ export function TemplatesPage() {
         )}
       </div>
 
-      <ProfileDetailDrawer
-        open={!!selected}
-        profile={selected}
-        onClose={() => setSelected(null)}
-      />
     </>
   );
 }

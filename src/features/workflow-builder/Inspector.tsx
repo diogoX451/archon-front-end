@@ -3,6 +3,8 @@ import { AGENT_TYPES, SAMPLE_WORKFLOW } from "./data";
 import { AgentNodeData, ConnectionData, WorkflowData } from "./types";
 import type { CanvasMeta } from "./profileSerializer";
 import { IconSliders, IconTerminal, IconShare, IconTrash, GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
+import type { ConversationProfileV2 } from "@shared/api/profiles";
+import { ProfileDetail, ProfileHeader } from "@shared/ui/ProfileDetail";
 
 function hashString(s: string) {
   let h = 0;
@@ -574,19 +576,27 @@ type InspectorProps = {
   selectedConn: ConnectionData | null;
   workflow: WorkflowData;
   meta?: CanvasMeta;
+  /** Backend profile object — when present enables the "Profile" tab
+   *  that mirrors the rich docs/profiles/*.json content. */
+  profile?: ConversationProfileV2 | null;
   onMetaChange?: (patch: Partial<CanvasMeta>) => void;
   onUpdateAgent: (id: string, patch: any) => void;
   onRemoveAgent: (id: string) => void;
   onRemoveConnection: (id: string) => void;
 };
 
-export function Inspector({ tab, setTab, selectedAgent, selectedConn, workflow, meta, onMetaChange, onUpdateAgent, onRemoveAgent, onRemoveConnection }: InspectorProps) {
+export function Inspector({ tab, setTab, selectedAgent, selectedConn, workflow, meta, profile, onMetaChange, onUpdateAgent, onRemoveAgent, onRemoveConnection }: InspectorProps) {
   return (
     <aside className="inspector">
       <div className="inspector-tabs">
         <button className="inspector-tab" data-active={tab === "config"} onClick={() => setTab("config")}>
           <IconSliders className="icon-sm" /> Inspetor
         </button>
+        {profile && (
+          <button className="inspector-tab" data-active={tab === "profile"} onClick={() => setTab("profile")}>
+            <IconSliders className="icon-sm" /> Profile
+          </button>
+        )}
         <button className="inspector-tab" data-active={tab === "input"} onClick={() => setTab("input")}>
           <IconTerminal className="icon-sm" /> Entrada
         </button>
@@ -600,6 +610,12 @@ export function Inspector({ tab, setTab, selectedAgent, selectedConn, workflow, 
           selectedAgent ? <AgentInspector agent={selectedAgent} onUpdate={(patch) => onUpdateAgent(selectedAgent.id, patch)} onRemove={() => onRemoveAgent(selectedAgent.id)} /> :
           selectedConn ? <ConnectionInspector conn={selectedConn} workflow={workflow} onRemove={() => onRemoveConnection(selectedConn.id)} /> :
           <WorkflowInspector workflow={workflow} meta={meta} onMetaChange={onMetaChange} />
+        )}
+        {tab === "profile" && profile && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <ProfileHeader profile={profile} />
+            <ProfileDetail profile={profile} />
+          </div>
         )}
         {tab === "input" && <InputTab workflow={workflow} />}
         {tab === "rules" && <RulesTab workflow={workflow} />}

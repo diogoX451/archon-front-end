@@ -44,6 +44,9 @@ export function WorkflowBuilder() {
 
   const { data: profilesList, isLoading: profilesLoading } = useProfiles();
   const upsertMutation = useUpsertProfile();
+  // Resolved backend profile (when editing an existing one). Powers the
+  // Inspector "Profile" tab with the rich docs/profiles/*.json view.
+  const [loadedProfile, setLoadedProfile] = useState<any>(null);
 
   const [meta, setMeta] = useState<CanvasMeta>(() => ({
     id: isNew ? "" : routeId || "demo-workflow",
@@ -61,15 +64,18 @@ export function WorkflowBuilder() {
     };
   });
 
-  // Hydrate canvas from backend when route carries a profile id
+  // Hydrate canvas from backend when route carries a profile id.
+  // routeId can be either the backend UUID (preferred, stable, no slug
+  // leak in the URL) or the legacy profile_id slug — both resolve.
   useEffect(() => {
     if (!hasRouteId || loadedFromBackend) return;
     if (!profilesList) return;
-    const match = profilesList.find((p) => (p.profile_id || p.id) === routeId);
+    const match = profilesList.find((p) => p.id === routeId || p.profile_id === routeId);
     if (!match) return;
     const { workflow: loadedWorkflow, meta: loadedMeta } = profileToCanvas(match);
     setWorkflow(loadedWorkflow);
     setMeta(loadedMeta);
+    setLoadedProfile(match);
     setLoadedFromBackend(true);
   }, [profilesList, hasRouteId, routeId, loadedFromBackend]);
 
@@ -104,7 +110,7 @@ export function WorkflowBuilder() {
   const [eventLog, setEventLog] = useState<any[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(true);
-  const [inspectorTab, setInspectorTab] = useState("config");
+  const [inspectorTab, setInspectorTab] = useState(hasRouteId ? "profile" : "config");
 
   const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -582,6 +588,7 @@ export function WorkflowBuilder() {
           selectedConn={selectedConn}
           workflow={workflow}
           meta={meta}
+          profile={loadedProfile}
           onMetaChange={(patch) => setMeta((m) => ({ ...m, ...patch }))}
           onUpdateAgent={updateAgent}
           onRemoveAgent={removeAgent}
