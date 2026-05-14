@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@app/auth-context";
 import { useConfirm } from "@shared/ui/feedback";
+import { canAny } from "@shared/authz";
 import {
   IconOverview,
   IconConversation,
@@ -55,18 +56,19 @@ type RailLink = {
   icon: (p: IconProps) => JSX.Element;
   exact?: boolean;
   superOnly?: boolean;
+  perms?: string[];
 };
 
 const links: RailLink[] = [
   { to: "/", label: "Overview", icon: IconOverview, exact: true },
   { to: "/conversation", label: "Conversation", icon: IconConversation },
-  { to: "/workflows", label: "Workflows", icon: IconWorkflows },
-  { to: "/templates", label: "Agentes", icon: IconAgents },
-  { to: "/events", label: "Execuções", icon: IconExecutions },
-  { to: "/rag", label: "Bases RAG", icon: IconRAG },
-  { to: "/profiles", label: "Usuários", icon: IconProfiles },
-  { to: "/roles", label: "Papéis", icon: IconRoles },
-  { to: "/permissions", label: "Permissões", icon: IconPermissions, superOnly: true },
+  { to: "/workflows", label: "Workflows", icon: IconWorkflows, perms: ["workflow_list"] },
+  { to: "/templates", label: "Agentes", icon: IconAgents, perms: ["conversation_profile_list"] },
+  { to: "/events", label: "Execuções", icon: IconExecutions, perms: ["workflow_list"] },
+  { to: "/rag", label: "Bases RAG", icon: IconRAG, perms: ["rag_read", "rag_query", "rag_ingest"] },
+  { to: "/profiles", label: "Usuários", icon: IconProfiles, perms: ["user_list"] },
+  { to: "/roles", label: "Papéis", icon: IconRoles, perms: ["role_list"] },
+  { to: "/permissions", label: "Permissões", icon: IconPermissions, superOnly: true, perms: ["permission_list"] },
   { to: "/tenants", label: "Tenants", icon: IconTenants, superOnly: true },
 ];
 
@@ -86,7 +88,7 @@ function initialsFromUser(name?: string, email?: string): string {
 
 export function Rail() {
   const location = useLocation();
-  const { user, isSuper, logout } = useAuth();
+  const { user, isSuper, hasPermission, logout } = useAuth();
   const confirm = useConfirm();
 
   const isActive = (link: RailLink) => {
@@ -94,7 +96,11 @@ export function Rail() {
     return location.pathname === link.to || location.pathname.startsWith(link.to + "/");
   };
 
-  const visibleLinks = links.filter((link) => !link.superOnly || isSuper);
+  const visibleLinks = links.filter((link) => {
+    if (link.superOnly && !isSuper) return false;
+    if (!link.perms || link.perms.length === 0) return true;
+    return canAny({ isSuper, hasPermission }, link.perms);
+  });
 
   return (
     <aside className="rail">

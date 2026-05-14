@@ -16,6 +16,8 @@ import {
 import type { ConversationTurnRow } from "@shared/api/conversationsHistory";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useConfirm } from "@shared/ui/feedback";
+import { useAuth } from "@app/auth-context";
+import { canAny } from "@shared/authz";
 
 function extractAssistantText(output: any): string {
   if (output == null) return "";
@@ -75,6 +77,8 @@ function TurnResolver({
 }
 
 export function ConversationPage() {
+  const { isSuper, hasPermission } = useAuth();
+  const canUseConversation = canAny({ isSuper, hasPermission }, ["conversation_turn"]);
   const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
   const presetProfile = searchParams.get("profile") || "";
@@ -272,7 +276,7 @@ export function ConversationPage() {
             <option key={p.id} value={p.id}>{p.id}</option>
           ))}
         </select>
-        <button className="btn primary" onClick={startConversation}>
+        <button className="btn primary" onClick={startConversation} disabled={!canUseConversation}>
           <IconPlus size={14} /> Nova conversa
         </button>
       </div>
@@ -419,12 +423,12 @@ export function ConversationPage() {
                     sendMessage();
                   }
                 }}
-                disabled={!selectedProfile || createTurn.isPending}
+                disabled={!selectedProfile || createTurn.isPending || !canUseConversation}
               />
               <button
                 className="btn primary"
                 onClick={sendMessage}
-                disabled={!selectedProfile || !draft.trim() || createTurn.isPending}
+                disabled={!selectedProfile || !draft.trim() || createTurn.isPending || !canUseConversation}
               >
                 {createTurn.isPending ? "Enviando…" : "Enviar"}
               </button>

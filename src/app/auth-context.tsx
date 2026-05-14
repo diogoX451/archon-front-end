@@ -5,7 +5,7 @@ import { login as apiLogin, me as apiMe, type AuthUser, type MeResponse } from "
 import { setUnauthorizedHandler } from "@shared/api/client";
 import { clearAuth, getActiveTenantSlug, getToken, setActiveTenantSlug, setToken } from "@shared/api/token";
 
-interface AuthContextValue {
+export interface AuthContextValue {
   user: AuthUser | null;
   permissions: Set<string>;
   isSuper: boolean;
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const hasPermission = useCallback(
     (key: string) => {
       if (!user) return false;
-      if (user.is_super || user.is_tenant_admin) return true;
+      if (user.is_super) return true;
       return permissions.has(key);
     },
     [user, permissions],

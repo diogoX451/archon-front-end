@@ -16,6 +16,7 @@ import { usePermissionsCatalogue } from "@shared/hooks/usePermissions";
 import { useRoleTemplates } from "@shared/hooks/useRoleTemplates";
 import { useConfirm, useToast } from "@shared/ui/feedback";
 import type { Role } from "@shared/api/roles";
+import { canAny } from "@shared/authz";
 
 // Tenant-facing role editor:
 //   - Managed roles (auto-cloned from a template) are shown with the
@@ -26,7 +27,12 @@ import type { Role } from "@shared/api/roles";
 //     tenants only see what their template ancestor authorises.
 
 export function RolesPage() {
-  const { isSuper, activeTenantSlug } = useAuth();
+  const { isSuper, activeTenantSlug, hasPermission } = useAuth();
+  const canList = canAny({ isSuper, hasPermission }, ["role_list"]);
+  const canCreate = canAny({ isSuper, hasPermission }, ["role_create"]);
+  const canUpdate = canAny({ isSuper, hasPermission }, ["role_update"]);
+  const canDelete = canAny({ isSuper, hasPermission }, ["role_delete"]);
+  const canAssociate = canAny({ isSuper, hasPermission }, ["role_associate"]);
   // Super-admins viewing this page act on the active tenant slug;
   // tenant-admins see only their own automatically (the backend filters).
   const tenantSlug = activeTenantSlug || undefined;
@@ -170,12 +176,17 @@ export function RolesPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary" onClick={() => setShowCreate(true)} disabled={templateOptions.length === 0}>
+        <button className="btn primary" onClick={() => setShowCreate(true)} disabled={templateOptions.length === 0 || !canCreate}>
           <IconPlus size={14} /> Novo papel
         </button>
       </div>
 
       <div className="page-body">
+        {!canList && (
+          <div className="card" style={{ borderColor: "var(--err)", color: "var(--err)", marginBottom: 16 }}>
+            Você não tem permissão para listar papéis.
+          </div>
+        )}
         <h1 className="page-h1">Papéis e permissões</h1>
         <p className="muted" style={{ marginTop: -8, marginBottom: 16 }}>
           {isSuper
@@ -256,11 +267,11 @@ export function RolesPage() {
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button className="btn" onClick={() => openEdit(selectedRole)}>Editar</button>
+                  <button className="btn" onClick={() => openEdit(selectedRole)} disabled={!canUpdate}>Editar</button>
                   <button
                     className="btn"
                     onClick={() => void handleDelete(selectedRole)}
-                    disabled={selectedRole.is_managed || deleteRole.isPending}
+                    disabled={selectedRole.is_managed || deleteRole.isPending || !canDelete}
                     title={selectedRole.is_managed ? "Papéis gerenciados são vinculados a um template" : undefined}
                   >
                     Excluir
@@ -281,7 +292,7 @@ export function RolesPage() {
                   byKey={byKey}
                   allowed={allowed}
                   onToggle={togglePermission}
-                  busy={associate.isPending || dissociate.isPending}
+                  busy={associate.isPending || dissociate.isPending || !canAssociate}
                 />
               )}
             </div>
@@ -293,7 +304,7 @@ export function RolesPage() {
         </div>
       </div>
 
-      {showCreate && (
+      {showCreate && canCreate && (
         <div style={overlayStyle} onClick={() => setShowCreate(false)}>
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Novo papel personalizado</div>
@@ -324,7 +335,7 @@ export function RolesPage() {
         </div>
       )}
 
-      {editing && (
+      {editing && canUpdate && (
         <div style={overlayStyle} onClick={() => setEditing(null)}>
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Editar papel</div>

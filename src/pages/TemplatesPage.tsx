@@ -8,6 +8,7 @@ import type { ConversationProfileV2 } from "@shared/api/profiles";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useConfirm, useToast } from "@shared/ui/feedback";
 import { useAuth } from "@app/auth-context";
+import { canAny } from "@shared/authz";
 
 function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: string }> {
   const raw = profile.agents as any;
@@ -16,7 +17,9 @@ function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: 
 }
 
 export function TemplatesPage() {
-  const { activeTenantSlug } = useAuth();
+  const { activeTenantSlug, isSuper, hasPermission } = useAuth();
+  const canList = canAny({ isSuper, hasPermission }, ["conversation_profile_list"]);
+  const canWrite = canAny({ isSuper, hasPermission }, ["workflow_update", "workflow_create"]);
   const [tab, setTab] = useState("profiles");
   const [search, setSearch] = useState("");
   const { data: profiles, isLoading, error } = useProfiles();
@@ -68,13 +71,18 @@ export function TemplatesPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <Link to="/workflows/builder/new" className="btn primary">
+        <Link to="/workflows/builder/new" className="btn primary" style={{ pointerEvents: canWrite ? "auto" : "none", opacity: canWrite ? 1 : 0.5 }}>
           <IconPlus size={14} />
           Novo agente
         </Link>
       </div>
 
       <div className="page-body">
+        {!canList && (
+          <div className="card" style={{ borderColor: "var(--err)", color: "var(--err)", marginBottom: 16 }}>
+            Você não tem permissão para listar agentes.
+          </div>
+        )}
         <h1 className="page-h1">Agentes</h1>
 
         <div className="stat-grid">
@@ -196,7 +204,7 @@ export function TemplatesPage() {
                           <button
                             className="btn ghost"
                             onClick={() => onDelete(slug)}
-                            disabled={deleteMutation.isPending}
+                            disabled={deleteMutation.isPending || !canWrite}
                             title="Excluir profile"
                           >
                             <IconTrash size={14} />

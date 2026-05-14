@@ -10,6 +10,8 @@ import { GhostActionNode, type GhostAction } from "./GhostActionNode";
 import { GLYPHS, GlyphPlanner, IconPlay, IconReset, IconValidate, IconCursor, IconHand, IconMinus, IconPlus } from "@shared/ui/icons/Icons";
 import { Rail } from "@shared/ui/Rail";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useAuth } from "@app/auth-context";
+import { canAny } from "@shared/authz";
 import { useProfiles, useUpsertProfile } from "@shared/hooks/useProfiles";
 import { canvasToProfile, profileToCanvas, emptyCanvas, type CanvasMeta } from "./profileSerializer";
 import { useCreateConversationTurn } from "@shared/hooks/useConversation";
@@ -139,6 +141,8 @@ function bezierPath(a: {x: number, y: number}, b: {x: number, y: number}) {
 }
 
 export function WorkflowBuilder() {
+  const { isSuper, hasPermission } = useAuth();
+  const canSaveProfile = canAny({ isSuper, hasPermission }, ["workflow_update", "workflow_create"]);
   const { id: routeId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isNew = routeId === "new";
@@ -745,7 +749,7 @@ export function WorkflowBuilder() {
           <button
             className="btn primary"
             onClick={handleSave}
-            disabled={upsertMutation.isPending}
+            disabled={upsertMutation.isPending || !canSaveProfile}
             title="Persistir profile no backend (POST /api/v1/profiles)"
           >
             <span>{upsertMutation.isPending ? "Salvando…" : "Salvar"}</span>

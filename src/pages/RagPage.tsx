@@ -11,6 +11,7 @@ import { useTenants } from "@shared/hooks/useTenants";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useConfirm, useToast } from "@shared/ui/feedback";
 import { useAuth } from "@app/auth-context";
+import { canAny } from "@shared/authz";
 
 function slugifyKBID(name: string): string {
   return name
@@ -38,7 +39,9 @@ function statusTone(status?: string): "ok" | "warn" | "err" {
 export function RagPage() {
   const toast = useToast();
   const confirm = useConfirm();
-  const { isSuper, activeTenantSlug } = useAuth();
+  const { isSuper, activeTenantSlug, hasPermission } = useAuth();
+  const canRead = canAny({ isSuper, hasPermission }, ["rag_read"]);
+  const canIngest = canAny({ isSuper, hasPermission }, ["rag_ingest"]);
   const { data: tenants } = useTenants();
   // Tenant-admins are pinned to their tenant; super-admins can switch
   // via the selector below.
@@ -171,12 +174,17 @@ export function RagPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary" onClick={() => setShowCreateKBModal(true)} disabled={!effectiveTenantSlug}>
+        <button className="btn primary" onClick={() => setShowCreateKBModal(true)} disabled={!effectiveTenantSlug || !canIngest}>
           <IconPlus size={14} /> Nova Base de Conhecimento
         </button>
       </div>
 
       <div className="page-body">
+        {!canRead && (
+          <div className="card" style={{ borderColor: "var(--err)", color: "var(--err)", marginBottom: 12 }}>
+            Você não tem permissão para visualizar dados de RAG.
+          </div>
+        )}
         {isSuper && (
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <select className="field-select" style={{ width: 320 }} value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)}>
@@ -216,7 +224,7 @@ export function RagPage() {
                 <button className="btn" onClick={() => setSelectedKBID(kb.kb_id)}>
                   {selectedKBID === kb.kb_id ? "Base aberta" : "Abrir documentos da base"}
                 </button>
-                <button className="btn ghost" onClick={() => onDeleteKB(kb.kb_id)} disabled={deleteKB.isPending}><IconTrash size={14} /> Excluir</button>
+                <button className="btn ghost" onClick={() => onDeleteKB(kb.kb_id)} disabled={deleteKB.isPending || !canIngest}><IconTrash size={14} /> Excluir</button>
               </div>
             </div>
           ))}
@@ -227,7 +235,7 @@ export function RagPage() {
             <div className="section-head" style={{ marginTop: 28 }}>
               <h2>Documentos da KB: <span className="mono">{selectedKBID}</span></h2>
               <div style={{ flex: 1 }}></div>
-              <button className="btn primary" onClick={() => setShowIngestModal(true)}>Adicionar Documento</button>
+              <button className="btn primary" onClick={() => setShowIngestModal(true)} disabled={!canIngest}>Adicionar Documento</button>
             </div>
 
             <div className="card" style={{ marginBottom: 12 }}>
@@ -273,7 +281,7 @@ export function RagPage() {
         )}
       </div>
 
-      {showCreateKBModal && (
+      {showCreateKBModal && canIngest && (
         <div style={overlayStyle} onClick={() => setShowCreateKBModal(false)}>
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Nova Base de Conhecimento</div>
@@ -297,7 +305,7 @@ export function RagPage() {
         </div>
       )}
 
-      {showIngestModal && (
+      {showIngestModal && canIngest && (
         <div style={overlayStyle} onClick={() => setShowIngestModal(false)}>
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Adicionar Documento</div>

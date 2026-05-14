@@ -15,9 +15,14 @@ import type { Role } from "@shared/api/roles";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useToast } from "@shared/ui/feedback";
 import { useAuth } from "@app/auth-context";
+import { canAny } from "@shared/authz";
 
 export function ProfilesPage() {
-  const { isSuper, activeTenantSlug } = useAuth();
+  const { isSuper, activeTenantSlug, hasPermission } = useAuth();
+  const canList = canAny({ isSuper, hasPermission }, ["user_list"]);
+  const canCreate = canAny({ isSuper, hasPermission }, ["user_create"]);
+  const canUpdate = canAny({ isSuper, hasPermission }, ["user_update"]);
+  const canAssociateRoles = canAny({ isSuper, hasPermission }, ["role_associate"]);
   const { data: users, isLoading, error } = useUsers();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
@@ -108,7 +113,7 @@ export function ProfilesPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary" onClick={() => setShowCreate(true)}>
+        <button className="btn primary" onClick={() => setShowCreate(true)} disabled={!canCreate}>
           <IconPlus size={14} /> Novo usuário
         </button>
       </div>
@@ -127,6 +132,11 @@ export function ProfilesPage() {
           </div>
         )}
 
+        {!canList ? (
+          <div className="card" style={{ borderColor: "var(--err)", color: "var(--err)" }}>
+            Você não tem permissão para listar usuários.
+          </div>
+        ) : (
         <table className="table">
           <thead>
             <tr>
@@ -152,13 +162,13 @@ export function ProfilesPage() {
                 </td>
                 <td>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button className="btn" onClick={() => openEdit(u)}>
+                    <button className="btn" onClick={() => openEdit(u)} disabled={!canUpdate}>
                       Editar
                     </button>
-                    <button className="btn" onClick={() => setRolesUser(u)} disabled={u.is_super}>
+                    <button className="btn" onClick={() => setRolesUser(u)} disabled={u.is_super || !canAssociateRoles}>
                       Papéis
                     </button>
-                    <button className="btn" onClick={() => void handleToggleStatus(u)} disabled={updateUserStatus.isPending}>
+                    <button className="btn" onClick={() => void handleToggleStatus(u)} disabled={updateUserStatus.isPending || !canUpdate}>
                       {u.is_active ? "Inativar" : "Ativar"}
                     </button>
                   </div>
@@ -167,9 +177,10 @@ export function ProfilesPage() {
             ))}
           </tbody>
         </table>
+        )}
       </div>
 
-      {showCreate && (
+      {showCreate && canCreate && (
         <div style={overlayStyle} onClick={() => setShowCreate(false)}>
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Cadastrar usuário</div>
@@ -195,11 +206,11 @@ export function ProfilesPage() {
         </div>
       )}
 
-      {rolesUser && (
+      {rolesUser && canAssociateRoles && (
         <UserRolesModal user={rolesUser} onClose={() => setRolesUser(null)} />
       )}
 
-      {editingUser && (
+      {editingUser && canUpdate && (
         <div style={overlayStyle} onClick={() => setEditingUser(null)}>
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Editar usuário</div>
