@@ -21,7 +21,33 @@ export const IconTenants = (p: IconProps) => (
   </svg>
 );
 
-const links = [
+// Roles icon (shield-check)
+export const IconRoles = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" />
+    <path d="M9 12l2 2 4-4" />
+  </svg>
+);
+
+// Permissions icon (key)
+export const IconPermissions = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="8" cy="15" r="4" />
+    <path d="M11 12l9-9" />
+    <path d="M17 6l3 3" />
+    <path d="M15 8l3 3" />
+  </svg>
+);
+
+type RailLink = {
+  to: string;
+  label: string;
+  icon: (p: IconProps) => JSX.Element;
+  exact?: boolean;
+  superOnly?: boolean;
+};
+
+const links: RailLink[] = [
   { to: "/", label: "Overview", icon: IconOverview, exact: true },
   { to: "/conversation", label: "Conversation", icon: IconConversation },
   { to: "/workflows", label: "Workflows", icon: IconWorkflows },
@@ -29,7 +55,9 @@ const links = [
   { to: "/events", label: "Execuções", icon: IconExecutions },
   { to: "/rag", label: "Bases RAG", icon: IconRAG },
   { to: "/profiles", label: "Usuários", icon: IconProfiles },
-  { to: "/tenants", label: "Tenants", icon: IconTenants },
+  { to: "/roles", label: "Papéis", icon: IconRoles },
+  { to: "/permissions", label: "Permissões", icon: IconPermissions, superOnly: true },
+  { to: "/tenants", label: "Tenants", icon: IconTenants, superOnly: true },
 ];
 
 function initialsFromUser(name?: string, email?: string): string {
@@ -48,18 +76,20 @@ function initialsFromUser(name?: string, email?: string): string {
 
 export function Rail() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isSuper } = useAuth();
 
-  const isActive = (link: typeof links[0]) => {
+  const isActive = (link: RailLink) => {
     if (link.exact) return location.pathname === link.to;
     return location.pathname === link.to || location.pathname.startsWith(link.to + "/");
   };
+
+  const visibleLinks = links.filter((link) => !link.superOnly || isSuper);
 
   return (
     <aside className="rail">
       <div className="rail-brand" aria-hidden="true"></div>
       <nav className="rail-nav">
-        {links.map((link) => (
+        {visibleLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}

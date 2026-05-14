@@ -9,6 +9,8 @@ import { TenantsPage } from "@pages/TenantsPage";
 import { RagPage } from "@pages/RagPage";
 import { EventsPage } from "@pages/EventsPage";
 import { TemplatesPage } from "@pages/TemplatesPage";
+import { RolesPage } from "@pages/RolesPage";
+import { PermissionsPage } from "@pages/PermissionsPage";
 import { LoginPage } from "@pages/LoginPage";
 import { WorkflowBuilder } from "@features/workflow-builder";
 import { AuthProvider } from "./auth-context";
@@ -51,6 +53,8 @@ export function AppRouter() {
                     <Route path="/rag" element={<RagPage />} />
                     <Route path="/events" element={<EventsPage />} />
                     <Route path="/templates" element={<TemplatesPage />} />
+                    <Route path="/roles" element={<RolesPage />} />
+                    <Route path="/permissions" element={<PermissionsPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </AppShell>
