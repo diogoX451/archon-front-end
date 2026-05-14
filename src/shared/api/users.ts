@@ -1,4 +1,5 @@
 import { fetchClient } from "./client";
+import type { Role } from "./roles";
 
 export interface User {
   id: string;
@@ -53,3 +54,9 @@ export const updateUserStatus = (id: string, input: UpdateUserStatusInput) =>
     method: "PATCH",
     body: JSON.stringify(input),
   });
+
+// Roles directly assigned to a user (no parent expansion). The user
+// inherits permissions transitively from each role's parent chain
+// server-side, so the UI just needs the direct memberships.
+export const listUserRoles = (userId: string) =>
+  fetchClient<Role[]>(`/api/v1/users/${encodeURIComponent(userId)}/roles`);

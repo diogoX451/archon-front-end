@@ -1,7 +1,17 @@
 import { useMemo, useState } from "react";
 import { IconPlus } from "@shared/ui/icons/Icons";
-import { useCreateUser, useUpdateUser, useUpdateUserStatus, useUsers } from "@shared/hooks/useUsers";
+import {
+  useAssociateRoleWithUser,
+  useCreateUser,
+  useDissociateRoleWithUser,
+  useUpdateUser,
+  useUpdateUserStatus,
+  useUserRoles,
+  useUsers,
+} from "@shared/hooks/useUsers";
+import { useRoles } from "@shared/hooks/useRoles";
 import type { User } from "@shared/api/users";
+import type { Role } from "@shared/api/roles";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 export function ProfilesPage() {
@@ -20,6 +30,7 @@ export function ProfilesPage() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editIsTenantAdmin, setEditIsTenantAdmin] = useState(false);
+  const [rolesUser, setRolesUser] = useState<User | null>(null);
 
   const activeCount = useMemo(() => (users || []).filter((u) => u.is_active).length, [users]);
 
@@ -134,6 +145,9 @@ export function ProfilesPage() {
                     <button className="btn" onClick={() => openEdit(u)}>
                       Editar
                     </button>
+                    <button className="btn" onClick={() => setRolesUser(u)} disabled={u.is_super}>
+                      Papéis
+                    </button>
                     <button className="btn" onClick={() => void handleToggleStatus(u)} disabled={updateUserStatus.isPending}>
                       {u.is_active ? "Inativar" : "Ativar"}
                     </button>
@@ -169,6 +183,10 @@ export function ProfilesPage() {
         </div>
       )}
 
+      {rolesUser && (
+        <UserRolesModal user={rolesUser} onClose={() => setRolesUser(null)} />
+      )}
+
       {editingUser && (
         <div style={overlayStyle} onClick={() => setEditingUser(null)}>
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
@@ -192,6 +210,108 @@ export function ProfilesPage() {
         </div>
       )}
     </>
+  );
+}
+
+// Modal that lets an admin attach or detach roles from a single user.
+// Roles are scoped to the user's tenant (the /roles endpoint filters
+// by tenant slug); inherited permissions still resolve transitively
+// at login time via the parent_role_id chain on the backend.
+function UserRolesModal({ user, onClose }: { user: User; onClose: () => void }) {
+  const tenantSlug = user.tenant_slug || undefined;
+  const rolesQuery = useRoles(tenantSlug);
+  const userRolesQuery = useUserRoles(user.id);
+  const associate = useAssociateRoleWithUser();
+  const dissociate = useDissociateRoleWithUser();
+
+  const tenantRoles = useMemo(
+    () => (rolesQuery.data || []).filter((r: Role) => !r.is_template),
+    [rolesQuery.data],
+  );
+  const assigned = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of userRolesQuery.data || []) s.add(r.id);
+    return s;
+  }, [userRolesQuery.data]);
+
+  const toggle = async (role: Role) => {
+    try {
+      if (assigned.has(role.id)) {
+        await dissociate.mutateAsync({ userId: user.id, roleId: role.id });
+      } else {
+        await associate.mutateAsync({ userId: user.id, roleId: role.id });
+      }
+    } catch (err: any) {
+      window.alert(`Erro ao atualizar papel: ${err?.message || err}`);
+    }
+  };
+
+  const busy = associate.isPending || dissociate.isPending;
+  const loading = rolesQuery.isLoading || userRolesQuery.isLoading;
+
+  return (
+    <div style={overlayStyle} onClick={onClose}>
+      <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Papéis de {user.name}</div>
+        <div className="muted" style={{ fontSize: 12, marginBottom: 14 }}>
+          {user.email} · tenant <span className="mono">{user.tenant_slug}</span>
+        </div>
+
+        {loading ? (
+          <div className="muted">Carregando…</div>
+        ) : tenantRoles.length === 0 ? (
+          <div className="muted">Nenhum papel disponível neste tenant.</div>
+        ) : (
+          <div style={{ display: "grid", gap: 6, maxHeight: 380, overflowY: "auto" }}>
+            {tenantRoles.map((role) => {
+              const checked = assigned.has(role.id);
+              return (
+                <label
+                  key={role.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 10,
+                    padding: "8px 10px",
+                    border: "1px solid var(--border)",
+                    borderRadius: 6,
+                    cursor: busy ? "wait" : "pointer",
+                    background: checked ? "rgb(34 197 94 / 0.06)" : "transparent",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => void toggle(role)}
+                    disabled={busy}
+                    style={{ marginTop: 2 }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className="mono" style={{ fontSize: 13, fontWeight: 500 }}>{role.name}</span>
+                      {role.is_managed && (
+                        <span className="pill" data-tone="ok" style={{ fontSize: 10 }}>
+                          <span className="dot"></span>gerenciado
+                        </span>
+                      )}
+                    </div>
+                    {role.description && (
+                      <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                        {role.description}
+                      </div>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+          <button className="btn" onClick={onClose}>Fechar</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
