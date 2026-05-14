@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import * as api from '../api/conversation';
 import type { ConversationTurnRequest, ConversationProfile, ConversationTurnResponse } from '../api/types';
+import { getActiveTenantSlug } from "../api/token";
 
 export const conversationKeys = {
   profiles: ['profiles'] as const,
@@ -24,7 +25,10 @@ export const useGetConversationProfile = (id: string, options?: { enabled?: bool
 
 export const useCreateConversationTurn = () => {
   return useMutation({
-    mutationFn: (data: ConversationTurnRequest) =>
-      api.createConversationTurn(data) as Promise<ConversationTurnResponse>,
+    mutationFn: (data: ConversationTurnRequest) => {
+      const tenant = (data.tenant_id || getActiveTenantSlug() || "").trim();
+      const payload: ConversationTurnRequest = tenant ? { ...data, tenant_id: tenant } : data;
+      return api.createConversationTurn(payload) as Promise<ConversationTurnResponse>;
+    },
   });
 };

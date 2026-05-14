@@ -9,7 +9,7 @@ let memoryTenant: string | null = null;
 
 function safeStorage(): Storage | null {
   try {
-    return typeof window === "undefined" ? null : window.localStorage;
+    return typeof window === "undefined" ? null : window.sessionStorage;
   } catch {
     return null;
   }
