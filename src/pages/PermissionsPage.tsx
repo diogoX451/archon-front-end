@@ -162,30 +162,37 @@ export function PermissionsPage() {
               Templates ({templatesQuery.isLoading ? "…" : templates.length})
             </div>
             <div>
-              {templates.map((tpl) => (
-                <button
-                  key={tpl.id}
-                  onClick={() => setSelectedId(tpl.id)}
-                  className="rail-link"
-                  data-active={effectiveId === tpl.id ? "true" : undefined}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "12px 16px",
-                    background: "transparent",
-                    border: "none",
-                    borderBottom: "1px solid var(--border)",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div style={{ fontWeight: 500 }}>{tpl.name}</div>
-                  {tpl.description && (
-                    <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-                      {tpl.description}
+              {templates.map((tpl) => {
+                const active = effectiveId === tpl.id;
+                return (
+                  <button
+                    key={tpl.id}
+                    onClick={() => setSelectedId(tpl.id)}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "12px 16px",
+                      background: active ? "var(--surface-2)" : "transparent",
+                      border: "none",
+                      borderLeft: active ? "3px solid var(--ink)" : "3px solid transparent",
+                      borderBottom: "1px solid var(--border)",
+                      cursor: "pointer",
+                      color: "inherit",
+                      font: "inherit",
+                    }}
+                  >
+                    <div className="mono" style={{ fontWeight: 500, fontSize: 13 }}>
+                      {tpl.name}
                     </div>
-                  )}
-                </button>
-              ))}
+                    {tpl.description && (
+                      <div className="muted" style={{ fontSize: 12, marginTop: 4, lineHeight: 1.35 }}>
+                        {tpl.description}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
               {templates.length === 0 && !templatesQuery.isLoading && (
                 <div className="muted" style={{ padding: 16 }}>
                   Nenhum template ainda — crie o primeiro.

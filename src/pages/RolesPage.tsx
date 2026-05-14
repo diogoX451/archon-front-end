@@ -183,28 +183,28 @@ export function RolesPage() {
               Papéis do tenant ({rolesQuery.isLoading ? "…" : tenantRoles.length})
             </div>
             <div>
-              {tenantRoles.map((role) => (
-                <button
-                  key={role.id}
-                  onClick={() => setSelectedId(role.id)}
-                  className="rail-link"
-                  data-active={effectiveId === role.id ? "true" : undefined}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "12px 16px",
-                    background: "transparent",
-                    border: "none",
-                    borderBottom: "1px solid var(--border)",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 500, display: "flex", gap: 8, alignItems: "center" }}>
-                      <span>{role.name}</span>
+              {tenantRoles.map((role) => {
+                const active = effectiveId === role.id;
+                return (
+                  <button
+                    key={role.id}
+                    onClick={() => setSelectedId(role.id)}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "12px 16px",
+                      background: active ? "var(--surface-2)" : "transparent",
+                      border: "none",
+                      borderLeft: active ? "3px solid var(--ink)" : "3px solid transparent",
+                      borderBottom: "1px solid var(--border)",
+                      cursor: "pointer",
+                      color: "inherit",
+                      font: "inherit",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span className="mono" style={{ fontWeight: 500, fontSize: 13 }}>{role.name}</span>
                       {role.is_managed && (
                         <span className="pill" data-tone="ok" style={{ fontSize: 10 }}>
                           <span className="dot"></span>gerenciado
@@ -212,11 +212,13 @@ export function RolesPage() {
                       )}
                     </div>
                     {role.description && (
-                      <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>{role.description}</div>
+                      <div className="muted" style={{ fontSize: 12, marginTop: 4, lineHeight: 1.35 }}>
+                        {role.description}
+                      </div>
                     )}
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
               {tenantRoles.length === 0 && !rolesQuery.isLoading && (
                 <div className="muted" style={{ padding: 16 }}>
                   Nenhum papel ainda. Os templates serão clonados automaticamente.
