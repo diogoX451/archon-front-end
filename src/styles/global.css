@@ -1398,3 +1398,111 @@ input, textarea, select {
 .grow { flex: 1; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ─── Feedback: toast stack ────────────────────────────────────────── */
+.toaster {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 100;
+  max-width: min(420px, calc(100vw - 40px));
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ink-3);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+  font-size: 13px;
+  line-height: 1.4;
+  animation: toast-in 180ms ease-out;
+}
+.toast[data-kind="success"] { border-left-color: var(--ok); }
+.toast[data-kind="warning"] { border-left-color: var(--warn); }
+.toast[data-kind="error"]   { border-left-color: var(--err); }
+
+.toast-body { flex: 1; min-width: 0; }
+.toast-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: var(--ink);
+}
+.toast-message { color: var(--ink-2); word-wrap: break-word; }
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--ink-3);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  margin: -2px -2px 0 0;
+}
+.toast-close:hover { color: var(--ink); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Feedback: confirm dialog ─────────────────────────────────────── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(10 12 16 / 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 90;
+  padding: 20px;
+  animation: confirm-fade 120ms ease-out;
+}
+.confirm-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 20px;
+  animation: confirm-pop 140ms ease-out;
+}
+.confirm-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+.confirm-message {
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@keyframes confirm-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes confirm-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* danger variant of .btn — used by destructive confirm */
+.btn.danger {
+  background: var(--err);
+  color: white;
+  border-color: var(--err);
+}
+.btn.danger:hover { filter: brightness(0.95); }
+

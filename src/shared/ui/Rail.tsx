@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@app/auth-context";
+import { useConfirm } from "@shared/ui/feedback";
 import {
   IconOverview,
   IconConversation,
@@ -86,6 +87,7 @@ function initialsFromUser(name?: string, email?: string): string {
 export function Rail() {
   const location = useLocation();
   const { user, isSuper, logout } = useAuth();
+  const confirm = useConfirm();
 
   const isActive = (link: RailLink) => {
     if (link.exact) return location.pathname === link.to;
@@ -121,8 +123,13 @@ export function Rail() {
       <button
         type="button"
         className="rail-link"
-        onClick={() => {
-          if (window.confirm("Sair da conta?")) logout();
+        onClick={async () => {
+          const ok = await confirm({
+            title: "Sair da conta",
+            message: "Você precisará fazer login novamente para acessar o app.",
+            confirmLabel: "Sair",
+          });
+          if (ok) logout();
         }}
         aria-label="Sair"
         style={{ background: "transparent", border: "none", marginTop: 8, cursor: "pointer" }}

@@ -14,6 +14,7 @@ import {
 } from "@shared/hooks/useRoles";
 import { usePermissionsCatalogue } from "@shared/hooks/usePermissions";
 import { useRoleTemplates } from "@shared/hooks/useRoleTemplates";
+import { useConfirm, useToast } from "@shared/ui/feedback";
 import type { Role } from "@shared/api/roles";
 
 // Tenant-facing role editor:
@@ -48,6 +49,8 @@ export function RolesPage() {
   const deleteRole = useDeleteRole();
   const associate = useAssociateRolePermission();
   const dissociate = useDissociateRolePermission();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   // Filter out templates from the tenant view — those live in /permissions.
   const tenantRoles = useMemo(
@@ -91,8 +94,9 @@ export function RolesPage() {
       setNewDescription("");
       setNewParent("");
       setShowCreate(false);
+      toast.success("Papel criado.");
     } catch (err: any) {
-      window.alert(`Erro ao criar papel: ${err?.message || err}`);
+      toast.error(`Erro ao criar papel: ${err?.message || err}`);
     }
   };
 
@@ -114,22 +118,30 @@ export function RolesPage() {
         resource_id: editing.resource_id,
       });
       setEditing(null);
+      toast.success("Papel atualizado.");
     } catch (err: any) {
-      window.alert(`Erro ao salvar papel: ${err?.message || err}`);
+      toast.error(`Erro ao salvar papel: ${err?.message || err}`);
     }
   };
 
   const handleDelete = async (role: Role) => {
     if (role.is_managed) {
-      window.alert("Papéis gerenciados não podem ser excluídos — peça ao super-admin para remover o template correspondente.");
+      toast.warning("Papéis gerenciados não podem ser excluídos — peça ao super-admin para remover o template correspondente.");
       return;
     }
-    if (!window.confirm(`Excluir o papel "${role.name}"?`)) return;
+    const ok = await confirm({
+      title: "Excluir papel",
+      message: `Tem certeza que quer excluir o papel "${role.name}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteRole.mutateAsync(role.id);
       if (selectedId === role.id) setSelectedId(null);
+      toast.success("Papel excluído.");
     } catch (err: any) {
-      window.alert(`Erro ao excluir: ${err?.message || err}`);
+      toast.error(`Erro ao excluir: ${err?.message || err}`);
     }
   };
 
@@ -144,7 +156,7 @@ export function RolesPage() {
         await associate.mutateAsync({ roleId: selectedRole.id, key });
       }
     } catch (err: any) {
-      window.alert(`Erro ao atualizar permissão: ${err?.message || err}`);
+      toast.error(`Erro ao atualizar permissão: ${err?.message || err}`);
     }
   };
 

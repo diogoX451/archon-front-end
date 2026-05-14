@@ -15,6 +15,7 @@ import {
 } from "@shared/hooks/useConversationsHistory";
 import type { ConversationTurnRow } from "@shared/api/conversationsHistory";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useConfirm } from "@shared/ui/feedback";
 
 function extractAssistantText(output: any): string {
   if (output == null) return "";
@@ -74,6 +75,7 @@ function TurnResolver({
 }
 
 export function ConversationPage() {
+  const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
   const presetProfile = searchParams.get("profile") || "";
   const initialConvId = searchParams.get("conv") || "";
@@ -198,8 +200,13 @@ export function ConversationPage() {
     });
   };
 
-  const handleRegenerate = (turn: ConversationTurnRow) => {
-    if (!window.confirm("Regenerar resposta? O turno atual será reprocessado.")) return;
+  const handleRegenerate = async (turn: ConversationTurnRow) => {
+    const ok = await confirm({
+      title: "Regenerar resposta",
+      message: "O turno atual será reprocessado a partir do mesmo prompt. O conteúdo anterior será sobrescrito.",
+      confirmLabel: "Regenerar",
+    });
+    if (!ok) return;
     regenerateTurn.mutate({
       conversationId: activeConvId,
       turnId: turn.id,
@@ -207,8 +214,14 @@ export function ConversationPage() {
     });
   };
 
-  const handleDelete = (convId: string) => {
-    if (!window.confirm("Excluir esta conversa?")) return;
+  const handleDelete = async (convId: string) => {
+    const ok = await confirm({
+      title: "Excluir conversa",
+      message: "Tem certeza que quer excluir esta conversa? Todos os turnos serão removidos.",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!ok) return;
     deleteConv.mutate(
       { id: convId },
       {

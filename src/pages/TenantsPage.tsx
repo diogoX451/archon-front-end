@@ -3,12 +3,14 @@ import { IconPlus } from "@shared/ui/icons/Icons";
 import { useCreateTenant, useTenants, useUpdateTenant, useUpdateTenantStatus } from "@shared/hooks/useTenants";
 import type { Tenant } from "@shared/api/tenants";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useToast } from "@shared/ui/feedback";
 
 export function TenantsPage() {
   const { data: tenants, isLoading, error } = useTenants();
   const createTenant = useCreateTenant();
   const updateTenant = useUpdateTenant();
   const updateTenantStatus = useUpdateTenantStatus();
+  const toast = useToast();
 
   const [showCreate, setShowCreate] = useState(false);
   const [slug, setSlug] = useState("");
@@ -32,8 +34,9 @@ export function TenantsPage() {
       setName("");
       setDocument("");
       setShowCreate(false);
+      toast.success("Tenant criado.");
     } catch (err: any) {
-      window.alert(`Erro ao criar tenant: ${err?.message || err}`);
+      toast.error(`Erro ao criar tenant: ${err?.message || err}`);
     }
   };
 
@@ -56,8 +59,9 @@ export function TenantsPage() {
       setEditingTenant(null);
       setEditName("");
       setEditDocument("");
+      toast.success("Tenant atualizado.");
     } catch (err: any) {
-      window.alert(`Erro ao editar tenant: ${err?.message || err}`);
+      toast.error(`Erro ao editar tenant: ${err?.message || err}`);
     }
   };
 
@@ -68,8 +72,9 @@ export function TenantsPage() {
         id: tenant.id,
         input: { active: nextActive },
       });
+      toast.success(nextActive ? "Tenant ativado." : "Tenant inativado.");
     } catch (err: any) {
-      window.alert(`Erro ao ${nextActive ? "ativar" : "inativar"} tenant: ${err?.message || err}`);
+      toast.error(`Erro ao ${nextActive ? "ativar" : "inativar"} tenant: ${err?.message || err}`);
     }
   };
 

@@ -9,6 +9,7 @@ import {
 import { useCreateKB, useDeleteKB, useKBs } from "@shared/hooks/useKBs";
 import { useTenants } from "@shared/hooks/useTenants";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useConfirm, useToast } from "@shared/ui/feedback";
 
 function slugifyKBID(name: string): string {
   return name
@@ -34,6 +35,8 @@ function statusTone(status?: string): "ok" | "warn" | "err" {
 }
 
 export function RagPage() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const { data: tenants } = useTenants();
   const [tenantSlug, setTenantSlug] = useState("");
   const effectiveTenantSlug = tenantSlug.trim();
@@ -103,18 +106,26 @@ export function RagPage() {
       setNewKBID("");
       setNewKBDescription("");
       setNewKBScope("tenant");
+      toast.success("Base RAG criada.");
     } catch (err: any) {
-      window.alert(`Erro ao criar base: ${err?.message || err}`);
+      toast.error(`Erro ao criar base: ${err?.message || err}`);
     }
   };
 
   const onDeleteKB = async (kbID: string) => {
-    if (!window.confirm(`Excluir base ${kbID}?`)) return;
+    const ok = await confirm({
+      title: "Excluir base RAG",
+      message: `Tem certeza que quer excluir a base "${kbID}"? Todos os documentos ingeridos serão removidos.`,
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteKB.mutateAsync(kbID);
       if (selectedKBID === kbID) setSelectedKBID("");
+      toast.success("Base excluída.");
     } catch (err: any) {
-      window.alert(`Erro ao excluir base: ${err?.message || err}`);
+      toast.error(`Erro ao excluir base: ${err?.message || err}`);
     }
   };
 
@@ -143,8 +154,9 @@ export function RagPage() {
       setDocumentID("");
       setPollingDocs(true);
       docsQuery.refetch();
+      toast.success("Upload iniciado. Aguardando processamento.");
     } catch (err: any) {
-      window.alert(`Erro no upload: ${err?.message || err}`);
+      toast.error(`Erro no upload: ${err?.message || err}`);
     }
   };
 

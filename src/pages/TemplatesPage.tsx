@@ -6,6 +6,7 @@ import { useProfiles, useDeleteProfile } from "@shared/hooks/useProfiles";
 import { useTenants } from "@shared/hooks/useTenants";
 import type { ConversationProfileV2 } from "@shared/api/profiles";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useConfirm, useToast } from "@shared/ui/feedback";
 
 function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: string }> {
   const raw = profile.agents as any;
@@ -20,6 +21,8 @@ export function TemplatesPage() {
   const { data: tenants } = useTenants();
   const deleteMutation = useDeleteProfile();
   const navigate = useNavigate();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   const tenantLabel = (tenantId?: string) => {
     if (!tenantId) return "global";
@@ -36,11 +39,18 @@ export function TemplatesPage() {
   });
 
   const onDelete = async (id: string) => {
-    if (!window.confirm(`Excluir profile "${id}"? Esta ação é irreversível.`)) return;
+    const ok = await confirm({
+      title: "Excluir agente",
+      message: `Tem certeza que quer excluir o profile "${id}"? Esta ação é irreversível.`,
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteMutation.mutateAsync({ id });
+      toast.success("Agente excluído.");
     } catch (err: any) {
-      window.alert(`Erro ao excluir: ${err?.message || err}`);
+      toast.error(`Erro ao excluir: ${err?.message || err}`);
     }
   };
 

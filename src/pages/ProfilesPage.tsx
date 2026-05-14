@@ -13,12 +13,14 @@ import { useRoles } from "@shared/hooks/useRoles";
 import type { User } from "@shared/api/users";
 import type { Role } from "@shared/api/roles";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useToast } from "@shared/ui/feedback";
 
 export function ProfilesPage() {
   const { data: users, isLoading, error } = useUsers();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const updateUserStatus = useUpdateUserStatus();
+  const toast = useToast();
 
   const [showCreate, setShowCreate] = useState(false);
   const [tenantSlug, setTenantSlug] = useState("");
@@ -49,8 +51,9 @@ export function ProfilesPage() {
       setPassword("");
       setIsTenantAdmin(false);
       setShowCreate(false);
+      toast.success("Usuário criado.");
     } catch (err: any) {
-      window.alert(`Erro ao criar usuário: ${err?.message || err}`);
+      toast.error(`Erro ao criar usuário: ${err?.message || err}`);
     }
   };
 
@@ -76,8 +79,9 @@ export function ProfilesPage() {
       setEditName("");
       setEditEmail("");
       setEditIsTenantAdmin(false);
+      toast.success("Usuário atualizado.");
     } catch (err: any) {
-      window.alert(`Erro ao editar usuário: ${err?.message || err}`);
+      toast.error(`Erro ao editar usuário: ${err?.message || err}`);
     }
   };
 
@@ -88,8 +92,9 @@ export function ProfilesPage() {
         id: user.id,
         input: { is_active: nextActive },
       });
+      toast.success(nextActive ? "Usuário ativado." : "Usuário inativado.");
     } catch (err: any) {
-      window.alert(`Erro ao ${nextActive ? "ativar" : "inativar"} usuário: ${err?.message || err}`);
+      toast.error(`Erro ao ${nextActive ? "ativar" : "inativar"} usuário: ${err?.message || err}`);
     }
   };
 
@@ -223,6 +228,7 @@ function UserRolesModal({ user, onClose }: { user: User; onClose: () => void }) 
   const userRolesQuery = useUserRoles(user.id);
   const associate = useAssociateRoleWithUser();
   const dissociate = useDissociateRoleWithUser();
+  const toast = useToast();
 
   const tenantRoles = useMemo(
     () => (rolesQuery.data || []).filter((r: Role) => !r.is_template),
@@ -242,7 +248,7 @@ function UserRolesModal({ user, onClose }: { user: User; onClose: () => void }) 
         await associate.mutateAsync({ userId: user.id, roleId: role.id });
       }
     } catch (err: any) {
-      window.alert(`Erro ao atualizar papel: ${err?.message || err}`);
+      toast.error(`Erro ao atualizar papel: ${err?.message || err}`);
     }
   };
 

@@ -14,6 +14,7 @@ import {
   useRoleEffectivePermissions,
 } from "@shared/hooks/useRoles";
 import { usePermissionsCatalogue } from "@shared/hooks/usePermissions";
+import { useConfirm, useToast } from "@shared/ui/feedback";
 import type { Role } from "@shared/api/roles";
 import type { Permission } from "@shared/api/permissions";
 
@@ -40,6 +41,8 @@ export function PermissionsPage() {
   const deleteTemplate = useDeleteRoleTemplate();
   const associate = useAssociateRolePermission();
   const dissociate = useDissociateRolePermission();
+  const toast = useToast();
+  const confirm = useConfirm();
 
   const templates = templatesQuery.data || [];
   const catalogue = catalogueQuery.data || [];
@@ -82,8 +85,9 @@ export function PermissionsPage() {
       setNewName("");
       setNewDescription("");
       setShowCreate(false);
+      toast.success("Template criado.");
     } catch (err: any) {
-      window.alert(`Erro ao criar template: ${err?.message || err}`);
+      toast.error(`Erro ao criar template: ${err?.message || err}`);
     }
   };
 
@@ -104,18 +108,26 @@ export function PermissionsPage() {
         },
       });
       setEditing(null);
+      toast.success("Template salvo.");
     } catch (err: any) {
-      window.alert(`Erro ao salvar template: ${err?.message || err}`);
+      toast.error(`Erro ao salvar template: ${err?.message || err}`);
     }
   };
 
   const handleDelete = async (tpl: Role) => {
-    if (!window.confirm(`Excluir template "${tpl.name}"? As clones gerenciadas dos tenants serão desvinculadas.`)) return;
+    const ok = await confirm({
+      title: "Excluir template",
+      message: `Tem certeza que quer excluir o template "${tpl.name}"? As clones gerenciadas em todos os tenants serão desvinculadas e os usuários perderão as permissões herdadas.`,
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await deleteTemplate.mutateAsync(tpl.id);
       if (effectiveId === tpl.id) setSelectedId(null);
+      toast.success("Template excluído.");
     } catch (err: any) {
-      window.alert(`Erro ao excluir: ${err?.message || err}`);
+      toast.error(`Erro ao excluir: ${err?.message || err}`);
     }
   };
 
@@ -129,7 +141,7 @@ export function PermissionsPage() {
         await associate.mutateAsync({ roleId: selectedTemplate.id, key: perm.key });
       }
     } catch (err: any) {
-      window.alert(`Erro ao atualizar permissão: ${err?.message || err}`);
+      toast.error(`Erro ao atualizar permissão: ${err?.message || err}`);
     }
   };
 

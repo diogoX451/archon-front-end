@@ -15,11 +15,13 @@ import { LoginPage } from "@pages/LoginPage";
 import { WorkflowBuilder } from "@features/workflow-builder";
 import { AuthProvider } from "./auth-context";
 import { ProtectedRoute } from "./protected-route";
+import { FeedbackProvider } from "@shared/ui/feedback";
 
 export function AppRouter() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AuthProvider>
+      <FeedbackProvider>
+        <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
@@ -62,7 +64,8 @@ export function AppRouter() {
             }
           />
         </Routes>
-      </AuthProvider>
+        </AuthProvider>
+      </FeedbackProvider>
     </BrowserRouter>
   );
 }
