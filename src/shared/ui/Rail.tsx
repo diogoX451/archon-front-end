@@ -41,6 +41,25 @@ export const IconPermissions = (p: IconProps) => (
   </svg>
 );
 
+// Channels icon (signal / antenna)
+export const IconChannels = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12.5a7 7 0 0 1 14 0" />
+    <path d="M2 9a11 11 0 0 1 20 0" />
+    <circle cx="12" cy="17" r="1.5" fill="currentColor" stroke="none" />
+    <line x1="12" y1="18.5" x2="12" y2="22" />
+  </svg>
+);
+
+// Audit icon (clock with list)
+export const IconAudit = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18" />
+    <path d="M8 14h2M8 18h5" />
+  </svg>
+);
+
 // Logout icon (arrow-out-of-box)
 export const IconLogout = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -70,6 +89,8 @@ const links: RailLink[] = [
   { to: "/roles", label: "Papéis", icon: IconRoles, perms: ["role_list"] },
   { to: "/permissions", label: "Permissões", icon: IconPermissions, superOnly: true, perms: ["permission_list"] },
   { to: "/tenants", label: "Tenants", icon: IconTenants, superOnly: true },
+  { to: "/channels", label: "Canais", icon: IconChannels, perms: ["channel_manage"] },
+  { to: "/admin-audit", label: "Audit Log", icon: IconAudit, superOnly: true },
 ];
 
 function initialsFromUser(name?: string, email?: string): string {
