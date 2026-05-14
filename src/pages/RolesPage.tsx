@@ -333,7 +333,7 @@ export function RolesPage() {
               <input className="search-input" placeholder="descrição" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
               {editing.is_managed && (
                 <div className="muted" style={{ fontSize: 12 }}>
-                  Este papel é gerenciado. Apenas nome e descrição podem ser alterados; o template-pai está fixo.
+                  Este papel é gerenciado. Apenas nome e descrição podem ser alterados; 
                 </div>
               )}
             </div>

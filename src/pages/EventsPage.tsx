@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { getEventsTimeline } from "@shared/api/events";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useAuth } from "@app/auth-context";
 
 const STATUS_TONE: Record<string, string> = { completed: "ok", running: "run", waiting: "warn", failed: "err", spawning: "run" };
 
@@ -42,8 +43,13 @@ function durationMs(wf: WorkflowState): string | null {
 }
 
 export function EventsPage() {
+  const { isSuper, activeTenantSlug } = useAuth();
   const { data: workflows, isLoading, error, refetch } = useListWorkflows();
-  const [tenantFilter, setTenantFilter] = useState("");
+  // Non-super principals are pinned to their tenant by the backend
+  // anyway; the input is only useful for super-admins comparing
+  // tenants. Initialize from the JWT slug so the audit query targets
+  // the right scope without an extra click.
+  const [tenantFilter, setTenantFilter] = useState(isSuper ? "" : activeTenantSlug || "");
   const tenant = tenantFilter.trim();
   const { data: recentEvents, isLoading: eventsLoading, refetch: refetchEvents } = useQuery({
     queryKey: ["events-timeline", tenant || "all"],
@@ -113,18 +119,20 @@ export function EventsPage() {
           </span>
         </div>
 
-        <div className="toolbar" style={{ marginTop: 10 }}>
-          <input
-            className="search-input"
-            placeholder="Filtrar eventos por tenant (vazio = sistema todo)"
-            value={tenantFilter}
-            onChange={(e) => setTenantFilter(e.target.value)}
-          />
-          <div className="grow"></div>
-          <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
-            {eventsLoading ? "eventos carregando…" : `${recentEvents?.length || 0} eventos`}
-          </span>
-        </div>
+        {isSuper && (
+          <div className="toolbar" style={{ marginTop: 10 }}>
+            <input
+              className="search-input"
+              placeholder="Filtrar eventos por tenant (vazio = sistema todo)"
+              value={tenantFilter}
+              onChange={(e) => setTenantFilter(e.target.value)}
+            />
+            <div className="grow"></div>
+            <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
+              {eventsLoading ? "eventos carregando…" : `${recentEvents?.length || 0} eventos`}
+            </span>
+          </div>
+        )}
 
         {error && (
           <div className="card" style={{ padding: 16, borderColor: "var(--err)", marginBottom: 16 }}>

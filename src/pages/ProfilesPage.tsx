@@ -14,8 +14,10 @@ import type { User } from "@shared/api/users";
 import type { Role } from "@shared/api/roles";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useToast } from "@shared/ui/feedback";
+import { useAuth } from "@app/auth-context";
 
 export function ProfilesPage() {
+  const { isSuper, activeTenantSlug } = useAuth();
   const { data: users, isLoading, error } = useUsers();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
@@ -23,7 +25,10 @@ export function ProfilesPage() {
   const toast = useToast();
 
   const [showCreate, setShowCreate] = useState(false);
-  const [tenantSlug, setTenantSlug] = useState("");
+  // Tenant-admins create users inside their own tenant; the field is
+  // hidden in the modal and pinned to their JWT slug. Super-admins may
+  // override and aim at any tenant.
+  const [tenantSlug, setTenantSlug] = useState(isSuper ? "" : activeTenantSlug || "");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -169,7 +174,9 @@ export function ProfilesPage() {
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Cadastrar usuário</div>
             <div style={{ display: "grid", gap: 10 }}>
-              <input className="search-input" placeholder="tenant_slug" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
+              {isSuper && (
+                <input className="search-input" placeholder="tenant_slug" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
+              )}
               <input className="search-input" placeholder="nome" value={name} onChange={(e) => setName(e.target.value)} />
               <input className="search-input" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               <input className="search-input" placeholder="senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />

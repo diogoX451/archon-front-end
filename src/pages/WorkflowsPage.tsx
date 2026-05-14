@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getEventsTimeline } from "@shared/api/events";
 import type { WorkflowState } from "@shared/api/types";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useAuth } from "@app/auth-context";
 
 const STATUS_TONE: Record<string, string> = { running: "run", completed: "ok", waiting: "warn", failed: "err", spawning: "run" };
 const STATUS_LABEL: Record<string, string> = { running: "executando", completed: "concluído", waiting: "aguardando", failed: "falhou", spawning: "iniciando" };
@@ -36,10 +37,14 @@ function timeAgo(dateStr?: string): string {
 }
 
 export function WorkflowsPage() {
+  const { isSuper, user } = useAuth();
   const [view, setView] = useState("list");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [tenantFilter, setTenantFilter] = useState("");
+  // Tenant filter only matters for super-admins (cross-tenant view).
+  // For everyone else the audit/list endpoints already scope to the
+  // JWT tenant server-side, and surfacing the picker only confuses.
+  const [tenantFilter, setTenantFilter] = useState(isSuper ? "" : user?.tenant_id || "");
   const { data: workflows, isLoading, error } = useListWorkflows();
   const { events: liveEvents, status: streamStatus } = useEventStream({
     bufferSize: 50,
@@ -168,13 +173,15 @@ export function WorkflowsPage() {
             <option value="failed">falhou</option>
             <option value="spawning">iniciando</option>
           </select>
-          <input
-            className="search-input"
-            placeholder="tenant exato (opcional)"
-            value={tenantFilter}
-            onChange={(e) => setTenantFilter(e.target.value)}
-            style={{ maxWidth: 220 }}
-          />
+          {isSuper && (
+            <input
+              className="search-input"
+              placeholder="tenant exato (opcional)"
+              value={tenantFilter}
+              onChange={(e) => setTenantFilter(e.target.value)}
+              style={{ maxWidth: 220 }}
+            />
+          )}
           <div className="grow"></div>
           <span
             title={`SSE ${streamStatus} · ${liveEvents.length} eventos no buffer`}

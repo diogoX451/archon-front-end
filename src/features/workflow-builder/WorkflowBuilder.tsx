@@ -19,6 +19,20 @@ import type { WorkflowEvent } from "@shared/api/events";
 
 const uid = (prefix = "id") => `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 
+// slugifyProfileId derives a backend-friendly profile_id from the
+// human-typed agent name. Matches the backend regex (a-z, 0-9, _, -)
+// and trims separators from both ends. Used so users don't have to
+// fill the id field manually for new profiles.
+function slugifyProfileId(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+}
+
 // Bounding box of a regular agent node on the canvas — matches the CSS
 // rule .agent { width: 220px } and the actual rendered height (~92px
 // for the planner card with its header + body).
@@ -153,6 +167,12 @@ export function WorkflowBuilder() {
   const [loadedFromBackend, setLoadedFromBackend] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState<string | null>(null);
+  // Tracks whether the user has edited the profile_id manually. While
+  // false (the default for a fresh agent), the id auto-mirrors the
+  // workflow name through slugifyProfileId. The flag flips to true the
+  // first time the user types in the id field directly, freezing the
+  // value so renaming the agent later doesn't surprise-rename the id.
+  const [idManuallyEdited, setIdManuallyEdited] = useState(false);
 
   const [workflow, setWorkflow] = useState<WorkflowData>(() => {
     if (isNew || hasRouteId) return emptyCanvas("Novo agente");
@@ -177,6 +197,13 @@ export function WorkflowBuilder() {
     setLoadedProfile(match);
     setLoadedFromBackend(true);
   }, [profilesList, hasRouteId, routeId, loadedFromBackend]);
+
+  useEffect(() => {
+    if (idManuallyEdited) return;
+    if (hasRouteId && loadedFromBackend) return;
+    const suggested = slugifyProfileId(workflow.name || "");
+    setMeta((m) => (m.id === suggested ? m : { ...m, id: suggested }));
+  }, [workflow.name, idManuallyEdited, hasRouteId, loadedFromBackend]);
 
   const handleSave = async () => {
     setSaveError(null);
@@ -660,7 +687,10 @@ export function WorkflowBuilder() {
           <input
             className="workflow-name"
             value={meta.id}
-            onChange={(e) => setMeta((m) => ({ ...m, id: e.target.value }))}
+            onChange={(e) => {
+              setIdManuallyEdited(true);
+              setMeta((m) => ({ ...m, id: e.target.value }));
+            }}
             placeholder="id-do-profile"
             style={{ fontFamily: "var(--font-mono)", fontSize: 12, maxWidth: 200 }}
             readOnly={hasRouteId && loadedFromBackend}

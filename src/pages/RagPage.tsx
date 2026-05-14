@@ -10,6 +10,7 @@ import { useCreateKB, useDeleteKB, useKBs } from "@shared/hooks/useKBs";
 import { useTenants } from "@shared/hooks/useTenants";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useConfirm, useToast } from "@shared/ui/feedback";
+import { useAuth } from "@app/auth-context";
 
 function slugifyKBID(name: string): string {
   return name
@@ -37,8 +38,11 @@ function statusTone(status?: string): "ok" | "warn" | "err" {
 export function RagPage() {
   const toast = useToast();
   const confirm = useConfirm();
+  const { isSuper, activeTenantSlug } = useAuth();
   const { data: tenants } = useTenants();
-  const [tenantSlug, setTenantSlug] = useState("");
+  // Tenant-admins are pinned to their tenant; super-admins can switch
+  // via the selector below.
+  const [tenantSlug, setTenantSlug] = useState(isSuper ? "" : activeTenantSlug || "");
   const effectiveTenantSlug = tenantSlug.trim();
 
   const [showCreateKBModal, setShowCreateKBModal] = useState(false);
@@ -173,15 +177,17 @@ export function RagPage() {
       </div>
 
       <div className="page-body">
-        <div className="toolbar" style={{ marginBottom: 12 }}>
-          <select className="field-select" style={{ width: 320 }} value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)}>
-            <option value="">Selecione um tenant</option>
-            {(tenants || []).map((t) => (
-              <option key={t.id} value={t.slug}>{t.slug} ({t.name})</option>
-            ))}
-          </select>
-          <input className="search-input" style={{ width: 260 }} placeholder="ou digite tenant_slug" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
-        </div>
+        {isSuper && (
+          <div className="toolbar" style={{ marginBottom: 12 }}>
+            <select className="field-select" style={{ width: 320 }} value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)}>
+              <option value="">Selecione um tenant</option>
+              {(tenants || []).map((t) => (
+                <option key={t.id} value={t.slug}>{t.slug} ({t.name})</option>
+              ))}
+            </select>
+            <input className="search-input" style={{ width: 260 }} placeholder="ou digite tenant_slug" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
+          </div>
+        )}
 
         <div className="stat-grid">
           <div className="stat"><div className="label">Knowledge Bases</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.knowledge_bases_total ?? "…") : "—"}</div></div>

@@ -7,6 +7,7 @@ import { useTenants } from "@shared/hooks/useTenants";
 import type { ConversationProfileV2 } from "@shared/api/profiles";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useConfirm, useToast } from "@shared/ui/feedback";
+import { useAuth } from "@app/auth-context";
 
 function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: string }> {
   const raw = profile.agents as any;
@@ -15,6 +16,7 @@ function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: 
 }
 
 export function TemplatesPage() {
+  const { activeTenantSlug } = useAuth();
   const [tab, setTab] = useState("profiles");
   const [search, setSearch] = useState("");
   const { data: profiles, isLoading, error } = useProfiles();
@@ -25,17 +27,24 @@ export function TemplatesPage() {
   const confirm = useConfirm();
 
   const tenantLabel = (tenantId?: string) => {
-    if (!tenantId) return "global";
+    if (!tenantId) return activeTenantSlug || "global";
     const t = tenants?.find((x) => x.id === tenantId);
-    return t ? t.name : "—";
+    return t ? `${t.name} (${t.slug})` : (activeTenantSlug || tenantId);
+  };
+
+  const profileName = (p: ConversationProfileV2) => {
+    const meta = (p.metadata || {}) as any;
+    const uiName = typeof meta?.ui?.name === "string" ? meta.ui.name.trim() : "";
+    return uiName || p.profile_id || p.id;
   };
 
   const filtered = (profiles || []).filter((p) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
+    const name = profileName(p).toLowerCase();
     const id = (p.profile_id || p.id || "").toLowerCase();
     const desc = (p.description || "").toLowerCase();
-    return id.includes(q) || desc.includes(q);
+    return name.includes(q) || id.includes(q) || desc.includes(q);
   });
 
   const onDelete = async (id: string) => {
@@ -150,6 +159,7 @@ export function TemplatesPage() {
                 <tbody>
                   {filtered.map((p) => {
                     const slug = p.profile_id || p.id;
+                    const name = profileName(p);
                     const agents = agentsArray(p);
                     // Route key is the backend UUID — the slug stays as
                     // a display label so URLs don't leak template names
@@ -158,7 +168,10 @@ export function TemplatesPage() {
                     return (
                       <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => navigate(target)}>
                         <td>
-                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, fontWeight: 500 }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 600 }}>
+                            {name}
+                          </div>
+                          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>
                             {slug}
                           </div>
                           {p.description && (
