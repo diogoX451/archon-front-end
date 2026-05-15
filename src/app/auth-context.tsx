@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { useNavigate } from "react-router-dom";
-import { login as apiLogin, me as apiMe, type AuthUser, type MeResponse } from "@shared/api/auth";
-import { setUnauthorizedHandler } from "@shared/api/client";
+import { login as apiLogin, logout as apiLogout, me as apiMe, type AuthUser, type MeResponse } from "@shared/api/auth";
+import { AUTH_MODE, setUnauthorizedHandler } from "@shared/api/client";
 import { clearAuth, getActiveTenantSlug, getToken, setActiveTenantSlug, setToken } from "@shared/api/token";
 
 export interface AuthContextValue {
@@ -31,14 +31,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const [activeTenant, setActiveTenant] = useState<string>(() => getActiveTenantSlug() || "");
-  const [loading, setLoading] = useState<boolean>(() => !!getToken());
+  // In cookie mode we don't know whether a session is present until /auth/me
+  // answers — the httpOnly cookie is invisible to JS. Always hit /auth/me on
+  // boot. In bearer mode we still gate on getToken() to avoid pointless 401s.
+  const [loading, setLoading] = useState<boolean>(() => AUTH_MODE === "cookie" || !!getToken());
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
 
-  // Hydrate session from a still-valid token on first paint.
+  // Hydrate session on first paint. Cookie mode: hit /auth/me unconditionally
+  // — the httpOnly cookie is invisible to JS, so the server is the source of
+  // truth. Bearer mode: skip the round trip when no token is stashed locally.
   useEffect(() => {
     let cancelled = false;
-    if (!getToken()) {
+    if (AUTH_MODE !== "cookie" && !getToken()) {
       setLoading(false);
       return;
     }
@@ -86,7 +91,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const login = useCallback(async (email: string, password: string) => {
     const out = await apiLogin(email, password);
-    setToken(out.token);
+    // In bearer mode the JWT lives in sessionStorage and is sent as
+    // Authorization: Bearer. In cookie mode the server already set
+    // archon_session (httpOnly) + archon_csrf (readable) — JS must not
+    // persist the token to keep it XSS-resistant.
+    if (AUTH_MODE !== "cookie") {
+      setToken(out.token);
+    }
     setUser(out.user);
     const slug = out.user.tenant_slug;
     setActiveTenantSlug(slug);
@@ -96,6 +107,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const logout = useCallback(() => {
+    // Cookie mode: ask the server to clear the cookies first; ignore
+    // errors so we never block the local cleanup.
+    if (AUTH_MODE === "cookie") {
+      void apiLogout().catch(() => {});
+    }
     clearAuth();
     setUser(null);
     setPermissions(new Set());

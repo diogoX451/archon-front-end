@@ -8,6 +8,30 @@ function normalizeApiBaseUrl(value?: string): string {
 
 export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_ARCHON_API_URL || import.meta.env.VITE_API_URL);
 
+// Auth transport. "cookie" tells the client to rely on the httpOnly
+// session cookie set by /auth/login and echo the CSRF token in the
+// X-CSRF-Token header for mutating verbs. "bearer" (default) keeps the
+// pre-Phase-B behaviour (Authorization: Bearer <token>).
+//
+// Set VITE_ARCHON_AUTH_MODE=cookie in the prod build. Both ends must
+// match the backend's ARCHON_AUTH_COOKIE_MODE: cookie pairs with
+// dual/cookie-only; bearer pairs with off/dual.
+export const AUTH_MODE: "bearer" | "cookie" =
+  import.meta.env.VITE_ARCHON_AUTH_MODE === "cookie" ? "cookie" : "bearer";
+
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const CSRF_COOKIE = "archon_csrf";
+
+function readCookie(name: string): string {
+  if (typeof document === "undefined") return "";
+  const prefix = name + "=";
+  const parts = document.cookie ? document.cookie.split("; ") : [];
+  for (const part of parts) {
+    if (part.startsWith(prefix)) return decodeURIComponent(part.slice(prefix.length));
+  }
+  return "";
+}
+
 export function withApiBase(endpoint: string): string {
   if (!endpoint.startsWith("/")) {
     return API_BASE_URL ? `${API_BASE_URL}/${endpoint}` : `/${endpoint}`;
@@ -39,14 +63,26 @@ export async function fetchClient<T>(endpoint: string, options: RequestInit = {}
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
-  const token = getToken();
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
+
+  if (AUTH_MODE === "cookie") {
+    const method = (options.method || "GET").toUpperCase();
+    if (MUTATING_METHODS.has(method) && !headers.has("X-CSRF-Token")) {
+      const csrf = readCookie(CSRF_COOKIE);
+      if (csrf) headers.set("X-CSRF-Token", csrf);
+    }
+  } else {
+    const token = getToken();
+    if (token && !headers.has("Authorization")) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
   }
 
   const response = await fetch(url, {
     ...options,
     headers,
+    // Always send cookies — even in bearer mode the cost is negligible
+    // and lets the same client run against a cookie-mode backend.
+    credentials: "include",
   });
 
   if (response.status === 401) {
