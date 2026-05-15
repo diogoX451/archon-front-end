@@ -1,9 +1,27 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import type { CSSProperties, PropsWithChildren } from "react";
+import { createPortal } from "react-dom";
+import type { CSSProperties, MouseEvent, PropsWithChildren } from "react";
 import { useDocumentMeta } from "@shared/hooks/useDocumentMeta";
+import { Menu, X } from "lucide-react";
 
 const WHATSAPP_URL =
   "https://wa.me/5562999722708?text=Ol%C3%A1%21%20Quero%20conhecer%20o%20Archon.";
+
+const SECTION_LINKS = [
+  { id: "beneficios", label: "Benefícios" },
+  { id: "como", label: "Como funciona" },
+  { id: "casos", label: "Pra quem é" },
+  { id: "faq", label: "Dúvidas" },
+];
+
+function scrollToSection(event: MouseEvent<HTMLAnchorElement>, sectionId: string) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+  event.preventDefault();
+  section.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.history.replaceState(null, "", `#${sectionId}`);
+}
 
 export function LandingPage() {
   useDocumentMeta({
@@ -13,7 +31,8 @@ export function LandingPage() {
     canonical: "https://archon.almexa.com.br/",
   });
   return (
-    <div style={page}>
+    <div id="landing-page" style={page}>
+      <style>{css}</style>
       <Header />
       <Hero />
       <Marquee />
@@ -29,25 +48,121 @@ export function LandingPage() {
 }
 
 function Header() {
-  return (
-    <header style={header}>
-      <div style={headerInner}>
-        <Link to="/" style={brand}>
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const pageEl = document.getElementById("landing-page");
+    const previousPageOverflow = pageEl?.style.overflow ?? "";
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    if (pageEl) {
+      pageEl.style.overflow = "hidden";
+    }
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      if (pageEl) pageEl.style.overflow = previousPageOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [open]);
+
+  const handleSectionClick = (event: MouseEvent<HTMLAnchorElement>, sectionId: string) => {
+    scrollToSection(event, sectionId);
+    setOpen(false);
+  };
+
+  const links = (
+    <>
+      {SECTION_LINKS.map((item) => (
+        <a
+          key={item.id}
+          href={`#${item.id}`}
+          style={navLink}
+          onClick={(event) => handleSectionClick(event, item.id)}
+        >
+          {item.label}
+        </a>
+      ))}
+      <Link to="/login" style={navLink} onClick={() => setOpen(false)}>Entrar</Link>
+      <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={ctaSmall} onClick={() => setOpen(false)}>
+        WhatsApp →
+      </a>
+    </>
+  );
+
+  const mobileMenuOverlay = (
+    <div className="lp-nav-mobile" style={mobileMenu} id="lp-mobile-menu" role="dialog" aria-modal="true">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+        <Link to="/" style={brand} onClick={() => setOpen(false)}>
           <span style={brandDot} />
           Almexa <span style={brandDim}>· Archon</span>
         </Link>
-        <nav style={nav}>
-          <a href="#beneficios" style={navLink}>Benefícios</a>
-          <a href="#como" style={navLink}>Como funciona</a>
-          <a href="#casos" style={navLink}>Pra quem é</a>
-          <a href="#faq" style={navLink}>Dúvidas</a>
-          <Link to="/login" style={navLink}>Entrar</Link>
-          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={ctaSmall}>
-            WhatsApp →
-          </a>
-        </nav>
+        <button onClick={() => setOpen(false)} style={burger} aria-label="Fechar menu">
+          <X size={26} />
+        </button>
       </div>
-    </header>
+      <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {SECTION_LINKS.map((item) => (
+          <a
+            key={item.id}
+            href={`#${item.id}`}
+            style={mobileNavLink}
+            onClick={(event) => handleSectionClick(event, item.id)}
+          >
+            {item.label}
+          </a>
+        ))}
+        <Link to="/login" style={{ ...mobileNavLink, marginTop: 8 }} onClick={() => setOpen(false)}>
+          Entrar
+        </Link>
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noreferrer"
+          style={{ ...ctaSmall, marginTop: 16, textAlign: "center", display: "block" }}
+          onClick={() => setOpen(false)}
+        >
+          Falar no WhatsApp →
+        </a>
+      </nav>
+    </div>
+  );
+
+  return (
+    <>
+      <header style={header}>
+        <div style={headerInner}>
+          <Link to="/" style={brand}>
+            <span style={brandDot} />
+            Almexa <span style={brandDim}>· Archon</span>
+          </Link>
+
+          {/* Desktop nav */}
+          <nav className="lp-nav-desktop" style={nav}>
+            {links}
+          </nav>
+
+          {/* Hamburger button — visible only on mobile */}
+          <button
+            className="lp-burger"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? "Fechar menu" : "Abrir menu"}
+            aria-expanded={open}
+            aria-controls="lp-mobile-menu"
+            style={burger}
+          >
+            {open ? <X size={26} /> : <Menu size={26} />}
+          </button>
+        </div>
+      </header>
+      {open ? createPortal(mobileMenuOverlay, document.body) : null}
+    </>
   );
 }
 
@@ -56,7 +171,7 @@ function Hero() {
     <section style={hero}>
       <div style={heroBg} aria-hidden />
       <div style={heroInner}>
-        <div style={heroLeft}>
+        <div className="lp-hero-left" style={heroLeft}>
           <span style={pill}>
             <span style={pillPulse} /> Atendendo agora, em algum WhatsApp
           </span>
@@ -73,14 +188,14 @@ function Hero() {
             <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={ctaPrimary}>
               Quero ver funcionando →
             </a>
-            <a href="#como" style={ctaGhost}>Como funciona</a>
+            <a href="#como" style={ctaGhost} onClick={(event) => scrollToSection(event, "como")}>Como funciona</a>
           </div>
           <div style={miniProof}>
             <span style={miniDot} />
             <span>Implantação em dias · sem dor de cabeça técnica</span>
           </div>
         </div>
-        <div style={heroRight} aria-hidden>
+        <div className="lp-hero-right" style={heroRight} aria-hidden>
           <ChatPreview />
         </div>
       </div>
@@ -195,14 +310,14 @@ const BENEFITS = [
 
 function Benefits() {
   return (
-    <section id="beneficios" style={section}>
+    <section id="beneficios" className="lp-section" style={section}>
       <div style={sectionInner}>
         <Eyebrow>O que muda</Eyebrow>
         <h2 style={h2}>
           Atendimento que <em style={emAccent}>trabalha por você</em> — sem drama.
         </h2>
         <p style={sub}>Sem promessa de coach. Resultado prático.</p>
-        <div style={grid3}>
+        <div className="lp-grid3" style={grid3}>
           {BENEFITS.map((b) => (
             <article key={b.n} style={benefitCard}>
               <span style={benefitN}>{b.n}</span>
@@ -225,16 +340,16 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <section id="como" style={sectionAlt}>
+    <section id="como" className="lp-section" style={sectionAlt}>
       <div style={sectionInner}>
         <Eyebrow>Em quatro passos</Eyebrow>
         <h2 style={h2}>Da primeira conversa ao primeiro cliente atendido.</h2>
-        <div style={stepsLine}>
+        <div className="lp-steps" style={stepsLine}>
           {STEPS.map((s, i) => (
-            <div key={s.n} style={stepWrap}>
+            <div key={s.n} className="lp-step" style={stepWrap}>
               <div style={stepHead}>
                 <span style={stepBadge}>{s.n}</span>
-                {i < STEPS.length - 1 && <span style={stepLine} />}
+                {i < STEPS.length - 1 && <span className="lp-step-connector" style={stepLine} />}
               </div>
               <h3 style={{ ...cardTitle, marginTop: 14 }}>{s.title}</h3>
               <p style={cardBody}>{s.body}</p>
@@ -255,11 +370,11 @@ const USES = [
 
 function UseCases() {
   return (
-    <section id="casos" style={section}>
+    <section id="casos" className="lp-section" style={section}>
       <div style={sectionInner}>
         <Eyebrow>Pra quem é</Eyebrow>
         <h2 style={h2}>Já rodando em negócios de verdade.</h2>
-        <div style={grid2}>
+        <div className="lp-grid2" style={grid2}>
           {USES.map((u) => (
             <article key={u.tag} style={useCard}>
               <span style={useTag}>{u.tag}</span>
@@ -286,14 +401,14 @@ function Comparison() {
     "Atendimento não para",
   ];
   return (
-    <section style={sectionAlt}>
+    <section className="lp-section" style={sectionAlt}>
       <div style={sectionInner}>
         <Eyebrow>Antes e depois</Eyebrow>
         <h2 style={h2}>
           Sai de <em style={emMuted}>perdendo cliente</em> pra{" "}
           <em style={emAccent}>fechando dormindo.</em>
         </h2>
-        <div style={grid2}>
+        <div className="lp-grid2" style={grid2}>
           <article style={compareBefore}>
             <h3 style={compareTitle}>Hoje</h3>
             <ul style={ul}>
@@ -326,7 +441,7 @@ const FAQS = [
 
 function Faq() {
   return (
-    <section id="faq" style={section}>
+    <section id="faq" className="lp-section" style={section}>
       <div style={{ ...sectionInner, maxWidth: 820 }}>
         <Eyebrow>Dúvidas frequentes</Eyebrow>
         <h2 style={h2}>Vai com tudo. A gente já respondeu isso aqui.</h2>
@@ -391,7 +506,6 @@ function Footer() {
         </nav>
       </div>
       <div style={footerBottom}>© {new Date().getFullYear()} Almexa LTDA · CNPJ 48.803.245/0001-83 · Curitiba/PR</div>
-      <style>{keyframes}</style>
     </footer>
   );
 }
@@ -405,7 +519,9 @@ function Eyebrow({ children }: PropsWithChildren) {
   );
 }
 
-const keyframes = `
+// ─── styles ───────────────────────────────────────────────────────────────────
+
+const css = `
 @keyframes bubbleIn {
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0)   scale(1); }
@@ -422,20 +538,56 @@ const keyframes = `
   from { transform: translateX(0); }
   to   { transform: translateX(-33.333%); }
 }
+@keyframes menuFade {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.lp-nav-mobile {
+  animation: menuFade 0.2s ease-out forwards;
+}
 details[open] summary .faq-plus { transform: rotate(45deg); }
 .faq-plus { transition: transform .2s ease; }
+
+/* Desktop: hide burger, show nav */
+@media (min-width: 768px) {
+  .lp-burger { display: none !important; }
+  .lp-nav-mobile { display: none !important; }
+}
+
+/* Mobile: hide desktop nav, show burger */
+@media (max-width: 767px) {
+  .lp-nav-desktop { display: none !important; }
+  .lp-burger { display: flex !important; }
+
+  /* Hero: hide chat preview, full-width text */
+  .lp-hero-right { display: none !important; }
+  .lp-hero-left { flex: 1 1 100% !important; max-width: 100% !important; }
+
+  /* Sections: less vertical padding */
+  .lp-section { padding: 56px 20px !important; }
+
+  /* Steps: single column, hide horizontal connector */
+  .lp-steps { grid-template-columns: 1fr !important; gap: 32px !important; }
+  .lp-step-connector { display: none !important; }
+
+  /* Grids: single column below 520px */
+  .lp-grid2 { grid-template-columns: 1fr !important; }
+  .lp-grid3 { grid-template-columns: 1fr !important; }
+}
 `;
 
-// --- styles ---
 const page: CSSProperties = { minHeight: "100vh", width: "100%", height: "100%", overflowY: "auto", background: "var(--bg)", color: "var(--ink)" };
 const header: CSSProperties = { position: "sticky", top: 0, zIndex: 20, background: "color-mix(in oklab, var(--bg) 85%, transparent)", backdropFilter: "saturate(140%) blur(10px)", borderBottom: "1px solid var(--line)" };
 const headerInner: CSSProperties = { maxWidth: 1200, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 };
 const brand: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 10, color: "var(--ink)", textDecoration: "none", fontWeight: 600, letterSpacing: "-0.01em" };
 const brandDim: CSSProperties = { color: "var(--ink-3)", fontWeight: 500 };
 const brandDot: CSSProperties = { width: 10, height: 10, borderRadius: 999, background: "var(--accent)", display: "inline-block", boxShadow: "0 0 0 3px var(--accent-soft)" };
-const nav: CSSProperties = { display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" };
+const nav: CSSProperties = { display: "flex", alignItems: "center", gap: 18 };
 const navLink: CSSProperties = { color: "var(--ink-2)", textDecoration: "none", fontSize: 14 };
 const ctaSmall: CSSProperties = { background: "var(--ink)", color: "var(--surface)", padding: "9px 16px", borderRadius: 999, textDecoration: "none", fontSize: 14, fontWeight: 500 };
+const burger: CSSProperties = { background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center", padding: "4px 8px", marginRight: -8, borderRadius: 6 };
+const mobileMenu: CSSProperties = { position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)", padding: "20px 24px 32px", overflowY: "auto" };
+const mobileNavLink: CSSProperties = { display: "block", color: "var(--ink)", textDecoration: "none", fontSize: 20, fontWeight: 500, padding: "14px 0", borderBottom: "1px solid var(--line)" };
 
 const hero: CSSProperties = { position: "relative", padding: "88px 24px 64px", overflow: "hidden" };
 const heroBg: CSSProperties = { position: "absolute", inset: 0, background: "radial-gradient(60% 50% at 85% 15%, var(--accent-soft) 0%, transparent 60%), radial-gradient(50% 40% at 10% 95%, color-mix(in oklab, var(--accent) 10%, transparent) 0%, transparent 70%)", pointerEvents: "none", zIndex: 0 };
@@ -444,11 +596,11 @@ const heroLeft: CSSProperties = { flex: "1 1 520px", maxWidth: 680 };
 const heroRight: CSSProperties = { flex: "1 1 340px", display: "flex", justifyContent: "center" };
 const pill: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, padding: "6px 12px 6px 10px", background: "var(--accent-soft)", color: "var(--accent-ink)", borderRadius: 999, marginBottom: 22, fontWeight: 500 };
 const pillPulse: CSSProperties = { width: 8, height: 8, borderRadius: 999, background: "var(--ok)", display: "inline-block", animation: "pulseDot 1.6s infinite" };
-const h1: CSSProperties = { fontSize: "clamp(40px, 5.4vw, 64px)", lineHeight: 1.02, letterSpacing: "-0.035em", fontWeight: 600, margin: "0 0 22px" };
+const h1: CSSProperties = { fontSize: "clamp(36px, 5.4vw, 64px)", lineHeight: 1.05, letterSpacing: "-0.035em", fontWeight: 600, margin: "0 0 22px" };
 const emAccent: CSSProperties = { color: "var(--accent-ink)", fontStyle: "normal" };
 const emAccentLight: CSSProperties = { color: "var(--accent-soft)", fontStyle: "normal" };
 const emMuted: CSSProperties = { color: "var(--ink-3)", fontStyle: "normal" };
-const lead: CSSProperties = { fontSize: 20, lineHeight: 1.5, color: "var(--ink-2)", margin: "0 0 32px", maxWidth: 560 };
+const lead: CSSProperties = { fontSize: 18, lineHeight: 1.55, color: "var(--ink-2)", margin: "0 0 32px", maxWidth: 560 };
 const ctaRow: CSSProperties = { display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" };
 const ctaPrimary: CSSProperties = { background: "var(--ink)", color: "var(--surface)", padding: "14px 22px", borderRadius: 999, textDecoration: "none", fontWeight: 600, fontSize: 16, boxShadow: "var(--shadow-2)" };
 const ctaPrimaryLight: CSSProperties = { background: "var(--surface)", color: "var(--ink)", padding: "14px 22px", borderRadius: 999, textDecoration: "none", fontWeight: 600, fontSize: 16, boxShadow: "var(--shadow-2)" };
@@ -471,13 +623,13 @@ const sectionAlt: CSSProperties = { ...section, background: "var(--surface)" };
 const sectionInner: CSSProperties = { maxWidth: 1200, margin: "0 auto" };
 const eyebrow: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 10, fontSize: 12, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--accent-ink)", marginBottom: 14 };
 const eyebrowBar: CSSProperties = { width: 24, height: 1, background: "var(--accent)", display: "inline-block" };
-const h2: CSSProperties = { fontSize: "clamp(30px, 3.6vw, 46px)", letterSpacing: "-0.025em", fontWeight: 600, margin: "0 0 12px", lineHeight: 1.1, maxWidth: 820 };
-const sub: CSSProperties = { color: "var(--ink-3)", fontSize: 18, margin: "0 0 32px" };
+const h2: CSSProperties = { fontSize: "clamp(26px, 3.6vw, 46px)", letterSpacing: "-0.025em", fontWeight: 600, margin: "0 0 12px", lineHeight: 1.1, maxWidth: 820 };
+const sub: CSSProperties = { color: "var(--ink-3)", fontSize: 17, margin: "0 0 32px" };
 
 const grid2: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginTop: 24 };
 const grid3: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginTop: 28 };
 
-const cardTitle: CSSProperties = { margin: "0 0 8px", fontSize: 19, fontWeight: 600 };
+const cardTitle: CSSProperties = { margin: "0 0 8px", fontSize: 18, fontWeight: 600 };
 const cardBody: CSSProperties = { margin: 0, color: "var(--ink-2)", fontSize: 15, lineHeight: 1.55 };
 
 const benefitCard: CSSProperties = { position: "relative", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 16, padding: "26px 22px 22px", boxShadow: "var(--shadow-1)" };
@@ -486,7 +638,7 @@ const benefitN: CSSProperties = { fontFamily: "var(--font-mono)", fontSize: 12, 
 const stepsLine: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 24, marginTop: 32 };
 const stepWrap: CSSProperties = { position: "relative" };
 const stepHead: CSSProperties = { display: "flex", alignItems: "center", gap: 10 };
-const stepBadge: CSSProperties = { fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "var(--surface)", background: "var(--ink)", padding: "5px 10px", borderRadius: 999 };
+const stepBadge: CSSProperties = { fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "var(--surface)", background: "var(--ink)", padding: "5px 10px", borderRadius: 999, flexShrink: 0 };
 const stepLine: CSSProperties = { flex: 1, height: 1, background: "linear-gradient(90deg, var(--line-strong), color-mix(in oklab, var(--accent) 35%, transparent))" };
 
 const useCard: CSSProperties = { background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 16, padding: "22px 22px 24px", boxShadow: "var(--shadow-1)" };
@@ -503,12 +655,12 @@ const check: CSSProperties = { color: "var(--accent-ink)", fontWeight: 700 };
 
 const faqItem: CSSProperties = { background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 12, padding: "16px 20px" };
 const faqSummary: CSSProperties = { cursor: "pointer", fontWeight: 600, fontSize: 16, listStyle: "none", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 };
-const faqPlus: CSSProperties = { fontSize: 22, color: "var(--accent-ink)", lineHeight: 1 };
+const faqPlus: CSSProperties = { fontSize: 22, color: "var(--accent-ink)", lineHeight: 1, flexShrink: 0 };
 const faqAnswer: CSSProperties = { margin: "12px 0 0", color: "var(--ink-2)", fontSize: 15, lineHeight: 1.6 };
 
 const ctaSection: CSSProperties = { position: "relative", padding: "96px 24px", background: "var(--ink)", color: "var(--surface)", borderTop: "1px solid var(--line)", overflow: "hidden" };
 const ctaBg: CSSProperties = { position: "absolute", inset: 0, background: "radial-gradient(50% 60% at 50% 0%, color-mix(in oklab, var(--accent) 35%, transparent) 0%, transparent 70%)", pointerEvents: "none" };
-const ctaH2: CSSProperties = { fontSize: "clamp(32px, 4vw, 52px)", letterSpacing: "-0.025em", fontWeight: 600, margin: "12px 0 14px", lineHeight: 1.05 };
+const ctaH2: CSSProperties = { fontSize: "clamp(28px, 4vw, 52px)", letterSpacing: "-0.025em", fontWeight: 600, margin: "12px 0 14px", lineHeight: 1.05 };
 const ctaSub: CSSProperties = { color: "color-mix(in oklab, white 75%, transparent)", fontSize: 18, margin: 0 };
 
 const footer: CSSProperties = { borderTop: "1px solid var(--line)", background: "var(--surface)", padding: "32px 24px 28px" };
