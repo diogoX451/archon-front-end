@@ -68,6 +68,15 @@ export const IconAudit = (p: IconProps) => (
   </svg>
 );
 
+// Privacy icon (shield + user) — link to /account/privacy.
+export const IconPrivacy = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" />
+    <circle cx="12" cy="11" r="2" />
+    <path d="M9.5 16c.5-1.5 1.5-2 2.5-2s2 .5 2.5 2" />
+  </svg>
+);
+
 // Logout icon (arrow-out-of-box)
 export const IconLogout = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -100,6 +109,8 @@ const links: RailLink[] = [
   { to: "/channels", label: "Canais", icon: IconChannels, perms: ["channel_manage"] },
   { to: "/llm-config", label: "LLM Config", icon: IconLLMConfig, perms: ["channel_manage"] },
   { to: "/admin-audit", label: "Audit Log", icon: IconAudit, superOnly: true },
+  // Visible to every authenticated user — LGPD Art. 18 self-service.
+  { to: "/account/privacy", label: "Minha Privacidade", icon: IconPrivacy },
 ];
 
 function initialsFromUser(name?: string, email?: string): string {

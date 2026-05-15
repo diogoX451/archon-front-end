@@ -2,6 +2,10 @@ import { useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@app/auth-context";
 import { ApiError } from "@shared/api/client";
+import { ConsentCheckbox } from "@shared/ui/ConsentCheckbox";
+import { LegalFooter } from "@shared/ui/LegalFooter";
+
+const CONSENT_KEY = "archon-login-consent-v1";
 
 export function LoginPage() {
   const { login, user, loading } = useAuth();
@@ -11,6 +15,11 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Consent persists across logins on the same device. Cleared if the
+  // user revokes it via /account/privacy in a future iteration.
+  const [consent, setConsent] = useState<boolean>(() =>
+    typeof window !== "undefined" && localStorage.getItem(CONSENT_KEY) === "1"
+  );
 
   if (loading) {
     return (
@@ -26,6 +35,11 @@ export function LoginPage() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!consent) {
+      setError("Aceite a Política de Privacidade e os Termos de Uso para continuar.");
+      return;
+    }
+    localStorage.setItem(CONSENT_KEY, "1");
     setError(null);
     setSubmitting(true);
     try {
@@ -145,9 +159,11 @@ export function LoginPage() {
           </div>
         )}
 
-        <button 
-          type="submit" 
-          disabled={submitting} 
+        <ConsentCheckbox checked={consent} onChange={setConsent} />
+
+        <button
+          type="submit"
+          disabled={submitting || !consent}
           style={{ 
             marginTop: 8,
             background: submitting ? "var(--ink-3)" : "var(--ink)",
@@ -164,6 +180,8 @@ export function LoginPage() {
         >
           {submitting ? "Autenticando…" : "Entrar no sistema"}
         </button>
+
+        <LegalFooter />
       </form>
     </div>
   );

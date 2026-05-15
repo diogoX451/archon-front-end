@@ -15,10 +15,15 @@ import { ChannelsPage } from "@pages/ChannelsPage";
 import { AdminAuditPage } from "@pages/AdminAuditPage";
 import { LLMConfigPage } from "@pages/LLMConfigPage";
 import { LoginPage } from "@pages/LoginPage";
+import { AccountPrivacyPage } from "@pages/AccountPrivacyPage";
+import { PrivacyPolicyPage } from "@pages/legal/PrivacyPolicyPage";
+import { TermsPage } from "@pages/legal/TermsPage";
+import { DpoPage } from "@pages/legal/DpoPage";
 import { WorkflowBuilder } from "@features/workflow-builder";
 import { AuthProvider } from "./auth-context";
 import { ProtectedRoute } from "./protected-route";
 import { FeedbackProvider } from "@shared/ui/feedback";
+import { CookieBanner } from "@shared/ui/CookieBanner";
 
 export function AppRouter() {
   return (
@@ -27,6 +32,10 @@ export function AppRouter() {
         <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Public legal pages (LGPD: must remain accessible without auth). */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/dpo" element={<DpoPage />} />
           <Route
             path="/workflows/builder"
             element={
@@ -63,6 +72,7 @@ export function AppRouter() {
                     <Route path="/channels" element={<ChannelsPage />} />
                     <Route path="/admin-audit" element={<AdminAuditPage />} />
                     <Route path="/llm-config" element={<LLMConfigPage />} />
+                    <Route path="/account/privacy" element={<AccountPrivacyPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </AppShell>
@@ -70,6 +80,7 @@ export function AppRouter() {
             }
           />
         </Routes>
+        <CookieBanner />
         </AuthProvider>
       </FeedbackProvider>
     </BrowserRouter>
