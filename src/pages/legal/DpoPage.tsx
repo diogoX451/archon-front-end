@@ -1,6 +1,12 @@
 import { LegalPageLayout, Section } from "./LegalPageLayout";
+import { useDocumentMeta } from "@shared/hooks/useDocumentMeta";
 
 export function DpoPage() {
+  useDocumentMeta({
+    title: "Encarregado pelo Tratamento (DPO) — Almexa",
+    description: "Canal direto com o encarregado pela proteção de dados da Almexa LTDA, em conformidade com a LGPD.",
+    canonical: "https://archon.almexa.com.br/dpo",
+  });
   return (
     <LegalPageLayout
       title="Encarregado pelo Tratamento (DPO)"

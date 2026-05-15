@@ -1,6 +1,12 @@
 import { LegalPageLayout, Section } from "./LegalPageLayout";
+import { useDocumentMeta } from "@shared/hooks/useDocumentMeta";
 
 export function PrivacyPolicyPage() {
+  useDocumentMeta({
+    title: "Política de Privacidade — Almexa · Archon",
+    description: "Como a Almexa LTDA trata seus dados pessoais no produto Archon, em conformidade com a LGPD.",
+    canonical: "https://archon.almexa.com.br/privacy",
+  });
   return (
     <LegalPageLayout
       title="Política de Privacidade"
@@ -11,7 +17,7 @@ export function PrivacyPolicyPage() {
         <p>
           A Almexa LTDA, sediada em Curitiba/PR e inscrita no CNPJ sob o nº
           48.803.245/0001-83, é a controladora dos dados pessoais dos administradores
-          cadastrados na plataforma Archon (almexa.com.br). Quando o cliente (tenant)
+          cadastrados na plataforma Archon (archon.almexa.com.br). Quando o cliente (tenant)
           utiliza a plataforma para se comunicar com seus próprios usuários finais, o
           cliente é o controlador desses dados e a Almexa atua como operadora, na forma
           do art. 5º da LGPD.

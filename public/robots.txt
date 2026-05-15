@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+Allow: /privacy
+Allow: /terms
+Allow: /dpo
+
+# Áreas autenticadas / sem valor pra indexação
+Disallow: /login
+Disallow: /dashboard
+Disallow: /conversation
+Disallow: /workflows
+Disallow: /profiles
+Disallow: /tenants
+Disallow: /rag
+Disallow: /events
+Disallow: /templates
+Disallow: /roles
+Disallow: /permissions
+Disallow: /channels
+Disallow: /admin-audit
+Disallow: /llm-config
+Disallow: /account
+
+Sitemap: https://archon.almexa.com.br/sitemap.xml

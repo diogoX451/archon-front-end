@@ -1,10 +1,17 @@
 import { Link } from "react-router-dom";
 import type { CSSProperties, PropsWithChildren } from "react";
+import { useDocumentMeta } from "@shared/hooks/useDocumentMeta";
 
 const WHATSAPP_URL =
   "https://wa.me/5562999722708?text=Ol%C3%A1%21%20Quero%20conhecer%20o%20Archon.";
 
 export function LandingPage() {
+  useDocumentMeta({
+    title: "Archon — Atendimento no WhatsApp 24h, sem perder cliente | Almexa",
+    description:
+      "Um assistente que atende seus clientes no WhatsApp na hora, 24h por dia, no tom da sua empresa. Implantação em dias. Fale com a Almexa.",
+    canonical: "https://archon.almexa.com.br/",
+  });
   return (
     <div style={page}>
       <Header />

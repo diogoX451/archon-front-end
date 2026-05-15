@@ -1,6 +1,12 @@
 import { LegalPageLayout, Section } from "./LegalPageLayout";
+import { useDocumentMeta } from "@shared/hooks/useDocumentMeta";
 
 export function TermsPage() {
+  useDocumentMeta({
+    title: "Termos de Uso — Almexa · Archon",
+    description: "Condições gerais para uso da plataforma Archon, fornecida pela Almexa LTDA.",
+    canonical: "https://archon.almexa.com.br/terms",
+  });
   return (
     <LegalPageLayout
       title="Termos de Uso"

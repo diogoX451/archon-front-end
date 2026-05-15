@@ -3,12 +3,142 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Archon Front-End Console</title>
+
+    <!-- Primary Meta Tags -->
+    <title>Archon — Atendimento no WhatsApp 24h, sem perder cliente | Almexa</title>
+    <meta
+      name="description"
+      content="Um assistente que atende seus clientes no WhatsApp na hora, 24h por dia, no tom da sua empresa. Implantação em dias. Fale com a Almexa."
+    />
+    <meta name="author" content="Almexa LTDA" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#f6f5f1" />
+    <link rel="canonical" href="https://archon.almexa.com.br/" />
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="Almexa · Archon" />
+    <meta property="og:url" content="https://archon.almexa.com.br/" />
+    <meta property="og:title" content="Archon — Atendimento no WhatsApp 24h, sem perder cliente" />
+    <meta
+      property="og:description"
+      content="Seu negócio falando com cliente na hora, mesmo às 3 da manhã. Atende, responde dúvida e fecha venda no tom da sua empresa."
+    />
+    <meta property="og:image" content="https://archon.almexa.com.br/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Archon — atendimento inteligente no WhatsApp" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Archon — Atendimento no WhatsApp 24h" />
+    <meta
+      name="twitter:description"
+      content="Seu negócio falando com cliente na hora, mesmo às 3 da manhã."
+    />
+    <meta name="twitter:image" content="https://archon.almexa.com.br/og-image.png" />
+
+    <!-- Favicons (gere os arquivos depois) -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
     <!-- Fontes Geist/Geist Mono são empacotadas via @fontsource em
          src/main.tsx; sem requisições a fonts.googleapis.com (LGPD). -->
+
+    <!-- JSON-LD: Organization -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Almexa LTDA",
+        "alternateName": "Almexa",
+        "url": "https://archon.almexa.com.br",
+        "logo": "https://archon.almexa.com.br/og-image.png",
+        "email": "info@almexa.com.br",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Curitiba",
+          "addressRegion": "PR",
+          "addressCountry": "BR"
+        },
+        "taxID": "48.803.245/0001-83",
+        "contactPoint": [{
+          "@type": "ContactPoint",
+          "contactType": "customer service",
+          "email": "info@almexa.com.br",
+          "telephone": "+55-62-99972-2708",
+          "availableLanguage": ["Portuguese"]
+        }]
+      }
+    </script>
+
+    <!-- JSON-LD: Product -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "Archon",
+        "description": "Assistente de atendimento que responde clientes no WhatsApp, no site e em outros canais, no tom da sua empresa, 24h por dia.",
+        "brand": { "@type": "Brand", "name": "Almexa" },
+        "url": "https://archon.almexa.com.br/",
+        "image": "https://archon.almexa.com.br/og-image.png",
+        "offers": {
+          "@type": "Offer",
+          "availability": "https://schema.org/InStock",
+          "priceCurrency": "BRL",
+          "price": "0",
+          "url": "https://archon.almexa.com.br/",
+          "priceSpecification": {
+            "@type": "PriceSpecification",
+            "description": "Sob consulta. Solicite orçamento via WhatsApp."
+          }
+        }
+      }
+    </script>
+
+    <!-- JSON-LD: FAQ (espelha o FAQ da LP — habilita rich result no Google) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Preciso entender de tecnologia?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Não. A Almexa cuida da parte técnica. Você só fala como sua empresa atende." }
+          },
+          {
+            "@type": "Question",
+            "name": "Funciona no meu WhatsApp atual?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Sim. Pode usar o número que você já tem ou um novo — a Almexa orienta a melhor opção." }
+          },
+          {
+            "@type": "Question",
+            "name": "Em quanto tempo fica pronto?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Poucos dias depois da primeira conversa." }
+          },
+          {
+            "@type": "Question",
+            "name": "E se o assistente não souber responder?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Passa para um humano do seu time, sem deixar o cliente sem resposta." }
+          },
+          {
+            "@type": "Question",
+            "name": "Quanto custa?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Depende do tamanho do negócio. Fale com a Almexa pelo WhatsApp para um orçamento rápido." }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      Para uma experiência completa do Archon, ative o JavaScript no seu navegador.
+      Você também pode falar com a Almexa pelo WhatsApp em
+      <a href="https://wa.me/5562999722708">+55 62 99972-2708</a>.
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
