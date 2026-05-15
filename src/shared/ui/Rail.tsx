@@ -51,6 +51,14 @@ export const IconChannels = (p: IconProps) => (
   </svg>
 );
 
+// LLM Config icon (cpu chip)
+export const IconLLMConfig = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="7" y="7" width="10" height="10" rx="1" />
+    <path d="M7 9H5M7 12H5M7 15H5M17 9h2M17 12h2M17 15h2M9 7V5M12 7V5M15 7V5M9 17v2M12 17v2M15 17v2" />
+  </svg>
+);
+
 // Audit icon (clock with list)
 export const IconAudit = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -90,6 +98,7 @@ const links: RailLink[] = [
   { to: "/permissions", label: "Permissões", icon: IconPermissions, superOnly: true, perms: ["permission_list"] },
   { to: "/tenants", label: "Tenants", icon: IconTenants, superOnly: true },
   { to: "/channels", label: "Canais", icon: IconChannels, perms: ["channel_manage"] },
+  { to: "/llm-config", label: "LLM Config", icon: IconLLMConfig, perms: ["channel_manage"] },
   { to: "/admin-audit", label: "Audit Log", icon: IconAudit, superOnly: true },
 ];
 

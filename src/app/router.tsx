@@ -13,6 +13,7 @@ import { RolesPage } from "@pages/RolesPage";
 import { PermissionsPage } from "@pages/PermissionsPage";
 import { ChannelsPage } from "@pages/ChannelsPage";
 import { AdminAuditPage } from "@pages/AdminAuditPage";
+import { LLMConfigPage } from "@pages/LLMConfigPage";
 import { LoginPage } from "@pages/LoginPage";
 import { WorkflowBuilder } from "@features/workflow-builder";
 import { AuthProvider } from "./auth-context";
@@ -61,6 +62,7 @@ export function AppRouter() {
                     <Route path="/permissions" element={<PermissionsPage />} />
                     <Route path="/channels" element={<ChannelsPage />} />
                     <Route path="/admin-audit" element={<AdminAuditPage />} />
+                    <Route path="/llm-config" element={<LLMConfigPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </AppShell>

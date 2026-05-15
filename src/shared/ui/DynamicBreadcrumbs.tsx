@@ -46,6 +46,8 @@ function buildCrumbs(pathname: string, search: string): string[] {
   if (pathname.startsWith("/rag")) return ["RAG", "Bases"];
   if (pathname.startsWith("/profiles")) return ["Usuários", "Gestão"];
   if (pathname.startsWith("/tenants")) return ["Tenants", "Organizações"];
+  if (pathname.startsWith("/admin-audit")) return ["Admin", "Audit Log"];
+  if (pathname.startsWith("/llm-config")) return ["Admin", "Configuração LLM"];
   const segments = pathname.split("/").filter(Boolean);
   return segments.map(titleize);
 }
