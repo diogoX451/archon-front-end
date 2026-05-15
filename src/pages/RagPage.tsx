@@ -13,6 +13,20 @@ import { useConfirm, useToast } from "@shared/ui/feedback";
 import { useAuth } from "@app/auth-context";
 import { canAny } from "@shared/authz";
 
+// Upload validation (LGPD: minimização — só aceitar formatos esperados e
+// recusar arquivos absurdamente grandes antes de transitarem). O backend
+// ainda valida por extensão e content-type, isso aqui é apenas o
+// primeiro portão para o usuário.
+const ALLOWED_RAG_EXTENSIONS = new Set([
+  "pdf", "docx", "txt", "md", "csv", "json", "xml", "yaml", "yml", "html",
+]);
+const MAX_RAG_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB
+
+function isAllowedRAGFile(file: File): boolean {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  return ALLOWED_RAG_EXTENSIONS.has(ext);
+}
+
 function slugifyKBID(name: string): string {
   return name
     .normalize("NFD")
@@ -137,8 +151,22 @@ export function RagPage() {
   };
 
   const onPickFile = (next: File | null) => {
+    if (!next) {
+      setFile(null);
+      return;
+    }
+    if (!isAllowedRAGFile(next)) {
+      toast.error(
+        "Tipo de arquivo não permitido. Aceito: PDF, DOCX, TXT, MD, CSV, JSON, XML, YAML/YML, HTML."
+      );
+      return;
+    }
+    if (next.size > MAX_RAG_UPLOAD_BYTES) {
+      const mb = Math.round((MAX_RAG_UPLOAD_BYTES / (1024 * 1024)) * 10) / 10;
+      toast.error(`Arquivo excede o tamanho máximo de ${mb} MB.`);
+      return;
+    }
     setFile(next);
-    if (!next) return;
     const title = next.name.replace(/\.[^.]+$/, "");
     setDocTitle(title);
     setDocumentID(globalThis.crypto?.randomUUID?.() || `${Date.now()}`);
@@ -309,6 +337,24 @@ export function RagPage() {
         <div style={overlayStyle} onClick={() => setShowIngestModal(false)}>
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Adicionar Documento</div>
+            <div
+              role="note"
+              style={{
+                fontSize: 12,
+                color: "var(--ink-3)",
+                background: "color-mix(in oklab, var(--ink) 4%, transparent)",
+                border: "1px solid var(--line)",
+                borderRadius: 8,
+                padding: "8px 10px",
+                marginBottom: 10,
+                lineHeight: 1.45,
+              }}
+            >
+              Ao enviar você confirma ter base legal para tratar o conteúdo. Não envie dados
+              pessoais sensíveis (Art. 5º, II da LGPD) sem consentimento específico do
+              titular. Formatos aceitos: PDF, DOCX, TXT, MD, CSV, JSON, XML, YAML, HTML —
+              tamanho máximo 25 MB.
+            </div>
             <div style={{ display: "grid", gap: 10 }}>
               <input type="file" accept=".pdf,.docx,.txt,.md,.csv,.json,.xml,.yaml,.yml,.html" onChange={(e) => onPickFile(e.target.files?.[0] || null)} />
               <input className="search-input" placeholder="Título" value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
