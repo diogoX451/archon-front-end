@@ -9,11 +9,12 @@ export function PrivacyPolicyPage() {
     >
       <Section title="1. Quem é o controlador">
         <p>
-          A Almexa, com sede em [endereço a definir] e CNPJ [a definir], é a controladora
-          dos dados pessoais dos administradores cadastrados na plataforma Archon
-          (almexa.com.br). Quando o cliente (tenant) utiliza a plataforma para se comunicar
-          com seus próprios usuários finais, o cliente é o controlador desses dados e a
-          Almexa atua como operadora, na forma do art. 5º da LGPD.
+          A Almexa LTDA, sediada em Curitiba/PR e inscrita no CNPJ sob o nº
+          48.803.245/0001-83, é a controladora dos dados pessoais dos administradores
+          cadastrados na plataforma Archon (almexa.com.br). Quando o cliente (tenant)
+          utiliza a plataforma para se comunicar com seus próprios usuários finais, o
+          cliente é o controlador desses dados e a Almexa atua como operadora, na forma
+          do art. 5º da LGPD.
         </p>
       </Section>
 
@@ -61,8 +62,8 @@ export function PrivacyPolicyPage() {
             está desativado nas contas que utilizamos.
           </li>
           <li>
-            <strong>Provedor de hospedagem (a definir):</strong> processamento e armazenamento
-            dos dados em ambiente isolado.
+            <strong>DigitalOcean:</strong> provedor de hospedagem responsável pelo
+            processamento e armazenamento dos dados em ambiente isolado.
           </li>
           <li>
             <strong>Let's Encrypt:</strong> apenas o endereço de e-mail operacional, para fins
@@ -109,7 +110,7 @@ export function PrivacyPolicyPage() {
         </ul>
         <p>
           Pedidos por escrito podem ser endereçados ao encarregado em{" "}
-          <a href="mailto:dpo@almexa.com.br" style={{ color: "var(--ink)" }}>dpo@almexa.com.br</a>.
+          <a href="mailto:info@almexa.com.br" style={{ color: "var(--ink)" }}>info@almexa.com.br</a>.
         </p>
       </Section>
 

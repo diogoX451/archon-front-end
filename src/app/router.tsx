@@ -15,6 +15,7 @@ import { ChannelsPage } from "@pages/ChannelsPage";
 import { AdminAuditPage } from "@pages/AdminAuditPage";
 import { LLMConfigPage } from "@pages/LLMConfigPage";
 import { LoginPage } from "@pages/LoginPage";
+import { LandingPage } from "@pages/LandingPage";
 import { AccountPrivacyPage } from "@pages/AccountPrivacyPage";
 import { PrivacyPolicyPage } from "@pages/legal/PrivacyPolicyPage";
 import { TermsPage } from "@pages/legal/TermsPage";
@@ -32,6 +33,8 @@ export function AppRouter() {
         <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Public marketing landing page. */}
+          <Route path="/" element={<LandingPage />} />
           {/* Public legal pages (LGPD: must remain accessible without auth). */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsPage />} />
@@ -58,7 +61,7 @@ export function AppRouter() {
               <ProtectedRoute>
                 <AppShell>
                   <Routes>
-                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/conversation" element={<ConversationPage />} />
                     <Route path="/workflows" element={<WorkflowsPage />} />
                     <Route path="/workflows/result" element={<WorkflowResultPage />} />
@@ -73,7 +76,7 @@ export function AppRouter() {
                     <Route path="/admin-audit" element={<AdminAuditPage />} />
                     <Route path="/llm-config" element={<LLMConfigPage />} />
                     <Route path="/account/privacy" element={<AccountPrivacyPage />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </AppShell>
               </ProtectedRoute>

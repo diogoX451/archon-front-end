@@ -88,7 +88,7 @@ export function TermsPage() {
       <Section title="10. Foro e lei aplicável">
         <p>
           Estes Termos são regidos pelas leis brasileiras. Fica eleito o foro da comarca de
-          [a definir] para dirimir controvérsias, com renúncia a qualquer outro.
+          Goiânia/GO para dirimir controvérsias, com renúncia a qualquer outro.
         </p>
       </Section>
     </LegalPageLayout>

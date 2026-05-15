@@ -15,10 +15,10 @@ export function DpoPage() {
         </p>
         <p>
           <strong>E-mail:</strong>{" "}
-          <a href="mailto:dpo@almexa.com.br" style={{ color: "var(--ink)" }}>dpo@almexa.com.br</a>
+          <a href="mailto:info@almexa.com.br" style={{ color: "var(--ink)" }}>info@almexa.com.br</a>
         </p>
         <p>
-          <strong>Nome do encarregado:</strong> [a definir — pendente de nomeação formal].
+          <strong>Nome do encarregado:</strong> Diogo Almeida.
         </p>
       </Section>
 

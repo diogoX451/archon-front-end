@@ -211,7 +211,7 @@ export function AccountPrivacyPage() {
           <p style={{ margin: 0, fontSize: 14, color: "var(--ink-3)" }}>
             Super-administradores não podem se auto-excluir pelo painel. Para sair da
             plataforma, transfira o papel para outro administrador e contate o DPO em{" "}
-            <a href="mailto:dpo@almexa.com.br" style={{ color: "var(--ink)" }}>dpo@almexa.com.br</a>.
+            <a href="mailto:info@almexa.com.br" style={{ color: "var(--ink)" }}>info@almexa.com.br</a>.
           </p>
         </section>
       )}

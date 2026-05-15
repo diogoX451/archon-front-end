@@ -36,23 +36,6 @@ export function LegalPageLayout({ title, subtitle, lastUpdated, children }: Prop
       </header>
 
       <main style={{ maxWidth: 760, margin: "0 auto", padding: "32px 24px 96px", fontSize: 15, lineHeight: 1.65 }}>
-        <div
-          role="note"
-          style={{
-            background: "color-mix(in oklab, oklch(0.7 0.15 80) 12%, transparent)",
-            border: "1px solid color-mix(in oklab, oklch(0.7 0.15 80) 35%, transparent)",
-            padding: "12px 16px",
-            borderRadius: 8,
-            fontSize: 13,
-            marginBottom: 28,
-          }}
-        >
-          <strong>Minuta — aguardando revisão jurídica.</strong> Este documento foi gerado a partir
-          do RIPD interno (Archon · docs/lgpd/RIPD.md). Antes do lançamento público em produção,
-          deve ser revisto e aprovado pelo encarregado de proteção de dados (DPO) e pela área
-          jurídica da Almexa. Não use como texto definitivo.
-        </div>
-
         <h1 style={{ fontSize: 32, margin: "0 0 8px", fontWeight: 600, letterSpacing: "-0.02em" }}>{title}</h1>
         {subtitle && <p style={{ color: "var(--ink-3)", margin: "0 0 8px" }}>{subtitle}</p>}
         <p style={{ color: "var(--ink-3)", fontSize: 13, marginBottom: 32 }}>
@@ -63,7 +46,9 @@ export function LegalPageLayout({ title, subtitle, lastUpdated, children }: Prop
       </main>
 
       <footer style={{ borderTop: "1px solid var(--line)", padding: "20px 32px", color: "var(--ink-3)", fontSize: 13 }}>
-        © {new Date().getFullYear()} Almexa · Contato do encarregado: <a href="mailto:dpo@almexa.com.br" style={{ color: "var(--ink)" }}>dpo@almexa.com.br</a>
+        © {new Date().getFullYear()} Almexa LTDA · CNPJ 48.803.245/0001-83 · Curitiba/PR ·{" "}
+        Contato do encarregado:{" "}
+        <a href="mailto:info@almexa.com.br" style={{ color: "var(--ink)" }}>info@almexa.com.br</a>
       </footer>
     </div>
   );
