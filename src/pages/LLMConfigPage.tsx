@@ -101,6 +101,56 @@ export function LLMConfigPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [fetchedModels, setFetchedModels] = useState<string[]>([]);
+  const [fetchingModels, setFetchingModels] = useState(false);
+
+  const handleFetchModels = async () => {
+    const key = form.api_key.trim();
+    if (form.provider !== "ollama" && !key) {
+      toast.error("Informe a API Key antes de buscar modelos.");
+      return;
+    }
+    setFetchingModels(true);
+    try {
+      let ids: string[] = [];
+      if (form.provider === "openai") {
+        const res = await fetch("https://api.openai.com/v1/models", {
+          headers: { Authorization: `Bearer ${key}` },
+        });
+        if (!res.ok) throw new Error(`OpenAI ${res.status}`);
+        const data = await res.json();
+        ids = (data.data as { id: string }[])
+          .map((m) => m.id)
+          .filter((id) => /^(gpt-|o1|o3|chatgpt)/.test(id))
+          .sort();
+      } else if (form.provider === "gemini") {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
+        );
+        if (!res.ok) throw new Error(`Gemini ${res.status}`);
+        const data = await res.json();
+        ids = ((data.models || []) as { name: string; supportedGenerationMethods?: string[] }[])
+          .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+          .map((m) => m.name.replace("models/", ""))
+          .sort();
+      } else if (form.provider === "ollama") {
+        const base = (form.base_url.trim() || "http://localhost:11434").replace(/\/$/, "");
+        const res = await fetch(`${base}/api/tags`);
+        if (!res.ok) throw new Error(`Ollama ${res.status}`);
+        const data = await res.json();
+        ids = ((data.models || []) as { name: string }[]).map((m) => m.name).sort();
+      }
+      setFetchedModels(ids);
+      if (ids.length > 0 && !ids.includes(form.model)) {
+        setForm((f) => ({ ...f, model: ids[0] }));
+      }
+      toast.success(`${ids.length} modelo(s) carregado(s).`);
+    } catch (err: unknown) {
+      toast.error(`Erro ao buscar modelos: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setFetchingModels(false);
+    }
+  };
 
   const [selectedTenant, setSelectedTenant] = useState<string>("");
   const { data: tenants } = useTenants();
@@ -217,6 +267,7 @@ export function LLMConfigPage() {
                     onChange={(e) => {
                       const p = e.target.value;
                       setForm((f) => ({ ...f, provider: p, model: DEFAULT_MODELS[p] || "" }));
+                      setFetchedModels([]);
                     }}
                   >
                     {PROVIDERS.map((p) => (
@@ -228,20 +279,46 @@ export function LLMConfigPage() {
                 </label>
 
                 <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <span className="field-label">Model</span>
-                  <input
-                    className="field-input"
-                    value={form.model}
-                    onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
-                    placeholder="Ex: gpt-4o-mini"
-                    list="model-options"
-                    required
-                  />
-                  <datalist id="model-options">
-                    {(MODEL_OPTIONS[form.provider] || []).map((m) => (
-                      <option key={m} value={m} />
-                    ))}
-                  </datalist>
+                  <span className="field-label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    Model
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{ fontSize: 12, padding: "2px 8px", height: "auto" }}
+                      onClick={handleFetchModels}
+                      disabled={fetchingModels}
+                    >
+                      {fetchingModels ? "Buscando…" : "Buscar modelos"}
+                    </button>
+                  </span>
+                  {fetchedModels.length > 0 ? (
+                    <select
+                      className="field-select"
+                      value={form.model}
+                      onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+                      required
+                    >
+                      {fetchedModels.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <>
+                      <input
+                        className="field-input"
+                        value={form.model}
+                        onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+                        placeholder="Ex: gpt-4o-mini"
+                        list="model-options"
+                        required
+                      />
+                      <datalist id="model-options">
+                        {(MODEL_OPTIONS[form.provider] || []).map((m) => (
+                          <option key={m} value={m} />
+                        ))}
+                      </datalist>
+                    </>
+                  )}
                 </label>
 
                 <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
