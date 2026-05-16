@@ -6,6 +6,7 @@ import { listLLMConfigs, upsertLLMConfig, deleteLLMConfig } from "@shared/api/ll
 import type { LLMConfig, UpsertLLMConfigInput } from "@shared/api/llmConfig";
 import { IconPlus } from "@shared/ui/icons/Icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTenants } from "@shared/hooks/useTenants";
 
 const PROVIDERS = ["openai", "gemini", "ollama"];
 
@@ -102,6 +103,7 @@ export function LLMConfigPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const [selectedTenant, setSelectedTenant] = useState<string>("");
+  const { data: tenants } = useTenants();
   const effectiveTenant = isSuper ? selectedTenant || undefined : activeTenantSlug || undefined;
 
   const { data: configs = [], isLoading } = useQuery({
@@ -165,13 +167,17 @@ export function LLMConfigPage() {
         <DynamicBreadcrumbs />
         <div className="grow" />
         {isSuper && (
-          <input
-            className="search-input"
-            placeholder="Tenant slug (super-admin)"
+          <select
+            className="field-select"
             value={selectedTenant}
             onChange={(e) => setSelectedTenant(e.target.value)}
             style={{ width: 220 }}
-          />
+          >
+            <option value="">Selecione um tenant</option>
+            {(tenants || []).map((t) => (
+              <option key={t.id} value={t.slug}>{t.name} ({t.slug})</option>
+            ))}
+          </select>
         )}
         <button className="btn primary" onClick={() => setShowForm(!showForm)}>
           <IconPlus size={14} />

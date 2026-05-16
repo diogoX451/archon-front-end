@@ -10,6 +10,7 @@ import {
   useUsers,
 } from "@shared/hooks/useUsers";
 import { useRoles } from "@shared/hooks/useRoles";
+import { useTenants } from "@shared/hooks/useTenants";
 import type { User } from "@shared/api/users";
 import type { Role } from "@shared/api/roles";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
@@ -24,6 +25,7 @@ export function ProfilesPage() {
   const canUpdate = canAny({ isSuper, hasPermission }, ["user_update"]);
   const canAssociateRoles = canAny({ isSuper, hasPermission }, ["role_associate"]);
   const { data: users, isLoading, error } = useUsers();
+  const { data: tenants } = useTenants();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const updateUserStatus = useUpdateUserStatus();
@@ -186,7 +188,12 @@ export function ProfilesPage() {
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Cadastrar usuário</div>
             <div style={{ display: "grid", gap: 10 }}>
               {isSuper && (
-                <input className="search-input" placeholder="tenant_slug" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
+                <select className="field-select" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)}>
+                  <option value="">Selecione um tenant</option>
+                  {(tenants || []).map((t) => (
+                    <option key={t.id} value={t.slug}>{t.name} ({t.slug})</option>
+                  ))}
+                </select>
               )}
               <input className="search-input" placeholder="nome" value={name} onChange={(e) => setName(e.target.value)} />
               <input className="search-input" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />

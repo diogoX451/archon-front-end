@@ -221,7 +221,6 @@ export function RagPage() {
                 <option key={t.id} value={t.slug}>{t.slug} ({t.name})</option>
               ))}
             </select>
-            <input className="search-input" style={{ width: 260 }} placeholder="ou digite tenant_slug" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
           </div>
         )}
 
