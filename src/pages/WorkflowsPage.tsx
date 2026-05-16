@@ -105,8 +105,7 @@ export function WorkflowsPage() {
       <div className="page-body">
         <h1 className="page-h1">Execuções de Workflow</h1>
         <p style={{ color: "var(--ink-3)", fontSize: 13, marginBottom: 24 }}>
-          Cada execução é uma instância de um workflow consumindo eventos do bus NATS. Status segue o
-          lifecycle <code>spawning → running → blocked → completed</code>.
+          Cada execução é uma instância de um workflow consumindo eventos.
         </p>
 
         <div className="stat-grid">
@@ -301,8 +300,8 @@ export function WorkflowsPage() {
                       streamStatus === "open"
                         ? "oklch(0.65 0.18 145)"
                         : streamStatus === "error"
-                        ? "oklch(0.55 0.18 25)"
-                        : "oklch(0.65 0.15 80)",
+                          ? "oklch(0.55 0.18 25)"
+                          : "oklch(0.65 0.15 80)",
                   }}
                 />
                 {streamStatus === "open" ? "ao vivo" : streamStatus === "error" ? "desconectado" : "conectando…"}
