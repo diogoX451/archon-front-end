@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { getEventsTimeline } from "@shared/api/events";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useAuth } from "@app/auth-context";
+import { useTenants } from "@shared/hooks/useTenants";
 
 const STATUS_TONE: Record<string, string> = { completed: "ok", running: "run", waiting: "warn", failed: "err", spawning: "run" };
 
@@ -44,6 +45,7 @@ function durationMs(wf: WorkflowState): string | null {
 
 export function EventsPage() {
   const { isSuper, activeTenantSlug } = useAuth();
+  const { data: tenants } = useTenants();
   const { data: workflows, isLoading, error, refetch } = useListWorkflows();
   // Non-super principals are pinned to their tenant by the backend
   // anyway; the input is only useful for super-admins comparing
@@ -88,7 +90,7 @@ export function EventsPage() {
       <div className="page-body">
         <h1 className="page-h1">Execuções de Workflow</h1>
         <p className="page-lead">
-          Cada execução é uma instância de um workflow consumindo eventos .
+          Cada execução é uma instância de um workflow consumindo eventos.
         </p>
 
         <div className="stat-grid">
@@ -112,32 +114,32 @@ export function EventsPage() {
         </div>
 
         <div className="toolbar">
-          <input className="search-input" placeholder="Buscar por workflow_id, user…" />
+          {isSuper && (
+            <select
+              className="field-select"
+              value={tenantFilter}
+              onChange={(e) => setTenantFilter(e.target.value)}
+              style={{ width: 260 }}
+            >
+              <option value="">Todos os tenants</option>
+              {(tenants || []).map((t) => (
+                <option key={t.id} value={t.slug}>{t.name} ({t.slug})</option>
+              ))}
+            </select>
+          )}
           <div className="grow"></div>
           <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
             {isLoading ? "carregando…" : `${total} execuções`}
           </span>
+          <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
+            {eventsLoading ? "eventos carregando…" : `${recentEvents?.length || 0} eventos`}
+          </span>
         </div>
-
-        {isSuper && (
-          <div className="toolbar" style={{ marginTop: 10 }}>
-            <input
-              className="search-input"
-              placeholder="Filtrar eventos por tenant (vazio = sistema todo)"
-              value={tenantFilter}
-              onChange={(e) => setTenantFilter(e.target.value)}
-            />
-            <div className="grow"></div>
-            <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
-              {eventsLoading ? "eventos carregando…" : `${recentEvents?.length || 0} eventos`}
-            </span>
-          </div>
-        )}
 
         {error && (
           <div className="card" style={{ padding: 16, borderColor: "var(--err)", marginBottom: 16 }}>
             <span style={{ color: "var(--err)", fontSize: 13 }}>
-              Erro ao carregar execuções: {error.message}
+              Erro ao carregar execuções.
             </span>
           </div>
         )}
