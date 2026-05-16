@@ -11,7 +11,7 @@ export type AgentTypeMetadata = {
   defaultConfig: Record<string, any>;
 };
 
-// AGENT_TYPES espelha internal/core/catalog/seed.go (DefaultAgentTemplates)
+// AGENT_TYPES mirrors the backend agent catalog defaults.
 // do backend, que é a fonte de verdade. Tipos só existem aqui se houver
 // um executor real escutando o subject NATS correspondente. Para mudar
 // a lista, edite o seed e re-execute `go run ./cmd/seed-profiles` ou

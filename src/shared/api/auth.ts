@@ -1,7 +1,6 @@
 import { fetchClient } from "./client";
 
-// AuthUser is the principal payload returned by /auth/login and
-// /api/v1/auth/me. Mirror of internal/core/auth.User on the backend.
+// AuthUser is the principal payload returned by /auth/login and /api/v1/auth/me.
 export interface AuthUser {
   id: string;
   tenant_id: string;

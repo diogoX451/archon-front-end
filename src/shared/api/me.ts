@@ -1,5 +1,4 @@
-// LGPD data-subject endpoints (see archon/docs/lgpd/RIPD.md §10).
-// Each function maps to /api/v1/me/* in the backend (handlers_me.go).
+// LGPD data-subject endpoints — /api/v1/me/*.
 
 import { fetchClient, withApiBase } from "./client";
 import { getToken } from "./token";

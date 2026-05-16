@@ -1,4 +1,4 @@
-// Types mapped from backend DTOs (internal/api/dto)
+// Shared API types
 
 export interface GenericObject {
   [key: string]: any;

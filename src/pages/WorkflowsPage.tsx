@@ -221,7 +221,7 @@ export function WorkflowsPage() {
         {error && (
           <div className="card" style={{ padding: 16, borderColor: "var(--err)", marginBottom: 16 }}>
             <span style={{ color: "var(--err)", fontSize: 13 }}>
-              Erro ao carregar workflows: {error.message}
+              Erro ao carregar workflows.
             </span>
           </div>
         )}

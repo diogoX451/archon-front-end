@@ -232,8 +232,8 @@ export function RagPage() {
           <div className="stat"><div className="label">Ingests 24h</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.ingests_24h ?? "…") : "—"}</div></div>
         </div>
 
-        {dashboardQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Dashboard API: {(dashboardQuery.error as Error).message}</div>}
-        {kbsQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>KBs API: {(kbsQuery.error as Error).message}</div>}
+        {dashboardQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Erro ao carregar dados do dashboard.</div>}
+        {kbsQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Erro ao carregar bases de conhecimento.</div>}
 
         <div className="section-head" style={{ marginTop: 18 }}><h2>Bases de Conhecimento</h2></div>
         <div className="card-grid">
@@ -275,8 +275,8 @@ export function RagPage() {
               </div>
             </div>
 
-            {docsQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Documents API: {(docsQuery.error as Error).message}</div>}
-            {coverageQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Coverage API: {(coverageQuery.error as Error).message}</div>}
+            {docsQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Erro ao carregar documentos.</div>}
+            {coverageQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Erro ao carregar cobertura.</div>}
 
             <table className="table">
               <thead>

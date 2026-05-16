@@ -227,13 +227,7 @@ export function WorkflowBuilder() {
     }
     try {
       const payload = canvasToProfile(workflow, { ...meta, id });
-      // Tracing for support — drops a copy of the payload to the
-      // browser console so a stuck "Salvar" can be diagnosed quickly.
-      // eslint-disable-next-line no-console
-      console.log("[workflow-builder] saving profile:", payload);
       const saved = await upsertMutation.mutateAsync(payload);
-      // eslint-disable-next-line no-console
-      console.log("[workflow-builder] saved:", saved);
       setLoadedProfile(saved as any);
       setSaveOk(`Salvo: ${id}`);
       window.setTimeout(() => setSaveOk(null), 3500);
@@ -244,8 +238,6 @@ export function WorkflowBuilder() {
         navigate(`/workflows/builder/${encodeURIComponent(canonicalId)}`, { replace: true });
       }
     } catch (err: any) {
-      // eslint-disable-next-line no-console
-      console.error("[workflow-builder] save failed:", err);
       setSaveError(err?.message || "Falha ao salvar profile.");
     }
   };
@@ -541,8 +533,6 @@ export function WorkflowBuilder() {
       });
       setSimulationWorkflowId((resp as any).workflow_id);
     } catch (err: any) {
-      // eslint-disable-next-line no-console
-      console.error("[workflow-builder] simulation failed:", err);
       setSimulationError(err?.message || "Falha ao spawnar workflow");
       setRunState("error");
     }
