@@ -43,6 +43,7 @@ export const getEventsTimeline = (params?: { tenant?: string; limit?: number }) 
 export interface WorkflowSummary {
   workflow_id: string;
   tenant_id?: string;
+  status?: string;
   started_at: string;
   last_event_at: string;
   event_count: number;

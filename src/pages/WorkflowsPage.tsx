@@ -9,9 +9,12 @@ import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useAuth } from "@app/auth-context";
 import { useTenants } from "@shared/hooks/useTenants";
 
+const TERMINAL_EVENT_TYPES = new Set(["result", "rag_ingest", "conversation_turn", "response"]);
+
 function deriveStatus(summary: WorkflowSummary): string {
+  if (summary.status) return summary.status;
   const types = new Set(summary.event_types ?? []);
-  if (types.has("result")) return "completed";
+  if ([...types].some((t) => TERMINAL_EVENT_TYPES.has(t))) return "completed";
   if (types.has("need")) return "waiting";
   if (types.has("command")) return "running";
   return "spawning";
