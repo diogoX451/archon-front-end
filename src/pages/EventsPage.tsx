@@ -88,7 +88,7 @@ export function EventsPage() {
       <div className="page-body">
         <h1 className="page-h1">Execuções de Workflow</h1>
         <p className="page-lead">
-          Cada execução é uma instância de um workflow consumindo eventos do bus NATS. Status segue o lifecycle <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-2)" }}>spawning → running → blocked → completed</span>.
+          Cada execução é uma instância de um workflow consumindo eventos .
         </p>
 
         <div className="stat-grid">
