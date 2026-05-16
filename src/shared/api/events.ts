@@ -39,3 +39,19 @@ export const getEventsTimeline = (params?: { tenant?: string; limit?: number }) 
   q.set("limit", String(params?.limit ?? 200));
   return fetchClient<WorkflowEvent[]>(`/api/v1/events/timeline?${q.toString()}`);
 };
+
+export interface WorkflowSummary {
+  workflow_id: string;
+  tenant_id?: string;
+  started_at: string;
+  last_event_at: string;
+  event_count: number;
+  event_types: string[];
+}
+
+export const getWorkflowSummaries = (params?: { tenant?: string; limit?: number }) => {
+  const q = new URLSearchParams();
+  if (params?.tenant) q.set("tenant", params.tenant);
+  q.set("limit", String(params?.limit ?? 200));
+  return fetchClient<WorkflowSummary[]>(`/api/v1/events/workflows?${q.toString()}`);
+};
