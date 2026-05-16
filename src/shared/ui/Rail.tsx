@@ -96,7 +96,7 @@ type RailLink = {
 };
 
 const links: RailLink[] = [
-  { to: "/", label: "Overview", icon: IconOverview, exact: true },
+  { to: "/dashboard", label: "Overview", icon: IconOverview },
   { to: "/conversation", label: "Conversation", icon: IconConversation },
   { to: "/workflows", label: "Workflows", icon: IconWorkflows, perms: ["workflow_list"] },
   { to: "/templates", label: "Agentes", icon: IconAgents, perms: ["conversation_profile_list"] },
