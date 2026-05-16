@@ -8,25 +8,65 @@ import { IconPlus } from "@shared/ui/icons/Icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTenants } from "@shared/hooks/useTenants";
 
-const PROVIDERS = ["openai", "gemini", "ollama"];
+interface ProviderConfig {
+  tone: string;
+  defaultModel: string;
+  staticModels: string[];
+  requiresKey: boolean;
+  fetchModels?: (apiKey: string, baseUrl: string) => Promise<string[]>;
+}
 
-const DEFAULT_MODELS: Record<string, string> = {
-  openai: "gpt-4o-mini",
-  gemini: "gemini-2.0-flash-lite",
-  ollama: "qwen2.5:7b",
+const PROVIDER_REGISTRY: Record<string, ProviderConfig> = {
+  openai: {
+    tone: "",
+    defaultModel: "gpt-4o-mini",
+    staticModels: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1-mini", "o3-mini"],
+    requiresKey: true,
+    fetchModels: async (apiKey) => {
+      const res = await fetch("https://api.openai.com/v1/models", {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!res.ok) throw new Error(`OpenAI ${res.status}`);
+      const data = await res.json();
+      return (data.data as { id: string }[])
+        .map((m) => m.id)
+        .filter((id) => /^(gpt-|o1|o3|chatgpt)/.test(id))
+        .sort();
+    },
+  },
+  gemini: {
+    tone: "ok",
+    defaultModel: "gemini-2.0-flash-lite",
+    staticModels: ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.5-flash"],
+    requiresKey: true,
+    fetchModels: async (apiKey) => {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+      );
+      if (!res.ok) throw new Error(`Gemini ${res.status}`);
+      const data = await res.json();
+      return ((data.models || []) as { name: string; supportedGenerationMethods?: string[] }[])
+        .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+        .map((m) => m.name.replace("models/", ""))
+        .sort();
+    },
+  },
+  ollama: {
+    tone: "warn",
+    defaultModel: "qwen2.5:7b",
+    staticModels: ["qwen2.5:7b", "llama3:8b", "mistral:7b", "phi3:mini", "gemma3:4b"],
+    requiresKey: false,
+    fetchModels: async (_, baseUrl) => {
+      const base = (baseUrl || "http://localhost:11434").replace(/\/$/, "");
+      const res = await fetch(`${base}/api/tags`);
+      if (!res.ok) throw new Error(`Ollama ${res.status}`);
+      const data = await res.json();
+      return ((data.models || []) as { name: string }[]).map((m) => m.name).sort();
+    },
+  },
 };
 
-const MODEL_OPTIONS: Record<string, string[]> = {
-  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o1-mini", "o3-mini"],
-  gemini: ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-1.5-flash"],
-  ollama: ["qwen2.5:7b", "llama3:8b", "mistral:7b", "phi3:mini", "gemma3:4b"],
-};
-
-const PROVIDER_TONE: Record<string, string> = {
-  openai: "",
-  gemini: "ok",
-  ollama: "warn",
-};
+const PROVIDERS = Object.keys(PROVIDER_REGISTRY);
 
 interface FormState {
   provider: string;
@@ -37,14 +77,14 @@ interface FormState {
 
 const emptyForm = (): FormState => ({
   provider: "openai",
-  model: DEFAULT_MODELS["openai"],
+  model: PROVIDER_REGISTRY["openai"].defaultModel,
   api_key: "",
   base_url: "",
 });
 
 function ProviderPill({ provider }: { provider: string }) {
   return (
-    <span className="pill" data-tone={PROVIDER_TONE[provider] ?? ""}>
+    <span className="pill" data-tone={PROVIDER_REGISTRY[provider]?.tone ?? ""}>
       {provider}
     </span>
   );
@@ -105,41 +145,19 @@ export function LLMConfigPage() {
   const [fetchingModels, setFetchingModels] = useState(false);
 
   const handleFetchModels = async () => {
+    const cfg = PROVIDER_REGISTRY[form.provider];
+    if (!cfg?.fetchModels) {
+      toast.error("Provider sem suporte a busca de modelos.");
+      return;
+    }
     const key = form.api_key.trim();
-    if (form.provider !== "ollama" && !key) {
+    if (cfg.requiresKey && !key) {
       toast.error("Informe a API Key antes de buscar modelos.");
       return;
     }
     setFetchingModels(true);
     try {
-      let ids: string[] = [];
-      if (form.provider === "openai") {
-        const res = await fetch("https://api.openai.com/v1/models", {
-          headers: { Authorization: `Bearer ${key}` },
-        });
-        if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-        const data = await res.json();
-        ids = (data.data as { id: string }[])
-          .map((m) => m.id)
-          .filter((id) => /^(gpt-|o1|o3|chatgpt)/.test(id))
-          .sort();
-      } else if (form.provider === "gemini") {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
-        );
-        if (!res.ok) throw new Error(`Gemini ${res.status}`);
-        const data = await res.json();
-        ids = ((data.models || []) as { name: string; supportedGenerationMethods?: string[] }[])
-          .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
-          .map((m) => m.name.replace("models/", ""))
-          .sort();
-      } else if (form.provider === "ollama") {
-        const base = (form.base_url.trim() || "http://localhost:11434").replace(/\/$/, "");
-        const res = await fetch(`${base}/api/tags`);
-        if (!res.ok) throw new Error(`Ollama ${res.status}`);
-        const data = await res.json();
-        ids = ((data.models || []) as { name: string }[]).map((m) => m.name).sort();
-      }
+      const ids = await cfg.fetchModels(key, form.base_url.trim());
       setFetchedModels(ids);
       if (ids.length > 0 && !ids.includes(form.model)) {
         setForm((f) => ({ ...f, model: ids[0] }));
@@ -266,7 +284,7 @@ export function LLMConfigPage() {
                     value={form.provider}
                     onChange={(e) => {
                       const p = e.target.value;
-                      setForm((f) => ({ ...f, provider: p, model: DEFAULT_MODELS[p] || "" }));
+                      setForm((f) => ({ ...f, provider: p, model: PROVIDER_REGISTRY[p]?.defaultModel || "" }));
                       setFetchedModels([]);
                     }}
                   >
@@ -313,7 +331,7 @@ export function LLMConfigPage() {
                         required
                       />
                       <datalist id="model-options">
-                        {(MODEL_OPTIONS[form.provider] || []).map((m) => (
+                        {(PROVIDER_REGISTRY[form.provider]?.staticModels || []).map((m) => (
                           <option key={m} value={m} />
                         ))}
                       </datalist>
