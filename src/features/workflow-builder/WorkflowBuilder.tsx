@@ -1009,18 +1009,18 @@ export function WorkflowBuilder() {
       {simulationModalOpen && (
         <div style={overlayStyle} onClick={() => { setSimulationModalOpen(false); setRunState("idle"); }}>
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>Mensagem de Simulacao</div>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Mensagem de Simulação</div>
             <div style={{ display: "grid", gap: 10 }}>
               <textarea
                 className="search-input"
-                placeholder="Digite a mensagem para iniciar a simulacao"
+                placeholder="Digite a mensagem para iniciar a simulação"
                 value={simulationMessage}
                 onChange={(e) => setSimulationMessage(e.target.value)}
                 style={{ minHeight: 96, resize: "vertical" }}
                 autoFocus
               />
               <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                A simulacao real inicia uma conversa no backend para este profile.
+                A simulação real inicia uma conversa no backend para este profile.
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
@@ -1028,7 +1028,7 @@ export function WorkflowBuilder() {
                 Cancelar
               </button>
               <button className="btn primary" onClick={confirmRun} disabled={createTurn.isPending || !simulationMessage.trim()}>
-                {createTurn.isPending ? "Iniciando..." : "Iniciar Simulacao"}
+                {createTurn.isPending ? "Iniciando..." : "Iniciar Simulação"}
               </button>
             </div>
           </div>
