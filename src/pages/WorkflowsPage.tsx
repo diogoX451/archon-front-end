@@ -7,6 +7,7 @@ import { getWorkflowSummaries, getEventsTimeline } from "@shared/api/events";
 import type { WorkflowSummary } from "@shared/api/events";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useAuth } from "@app/auth-context";
+import { useTenants } from "@shared/hooks/useTenants";
 
 function deriveStatus(summary: WorkflowSummary): string {
   const types = new Set(summary.event_types ?? []);
@@ -41,10 +42,11 @@ function timeAgo(dateStr?: string): string {
 }
 
 export function WorkflowsPage() {
-  const { isSuper, user } = useAuth();
+  const { isSuper, activeTenantSlug } = useAuth();
+  const { data: tenants } = useTenants();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [tenantFilter, setTenantFilter] = useState(isSuper ? "" : user?.tenant_id || "");
+  const [tenantFilter, setTenantFilter] = useState(isSuper ? "" : activeTenantSlug || "");
 
   const { data: summaries, isLoading, error, refetch } = useQuery({
     queryKey: ["workflow-summaries", tenantFilter.trim() || "all"],
@@ -93,9 +95,6 @@ export function WorkflowsPage() {
         <div style={{ flex: 1 }}></div>
         <button className="btn" onClick={() => { refetch(); refetchAudit(); }} style={{ marginRight: 8 }}>
           Atualizar
-        </button>
-        <button className="btn" onClick={() => refetchAudit()} style={{ marginRight: 8 }}>
-          Atualizar eventos
         </button>
         <Link to="/workflows/builder" className="btn primary">
           <IconPlus size={14} />
@@ -152,13 +151,17 @@ export function WorkflowsPage() {
 
         {isSuper && (
           <div className="toolbar" style={{ marginBottom: 16 }}>
-            <input
-              className="search-input"
-              placeholder="Filtrar eventos por tenant (vazio = todos)"
+            <select
+              className="field-select"
               value={tenantFilter}
               onChange={(e) => setTenantFilter(e.target.value)}
-              style={{ maxWidth: 320 }}
-            />
+              style={{ width: 260 }}
+            >
+              <option value="">Todos os tenants</option>
+              {(tenants || []).map((t) => (
+                <option key={t.id} value={t.slug}>{t.name} ({t.slug})</option>
+              ))}
+            </select>
             <div className="grow" />
             <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
               {(auditEvents || []).length} eventos
@@ -186,11 +189,13 @@ export function WorkflowsPage() {
           <table className="table" style={{ marginBottom: 32 }}>
             <thead>
               <tr>
-                <th>QUANDO</th>
-                <th>TIPO</th>
-                <th>SUBJECT</th>
-                <th>TENANT</th>
-                <th>WORKFLOW</th>
+                <th>Workflow</th>
+                {isSuper && <th>Tenant</th>}
+                <th>Status</th>
+                <th>Tipos</th>
+                <th className="num">Eventos</th>
+                <th>Iniciado</th>
+                <th>Última atividade</th>
               </tr>
             </thead>
             <tbody>
@@ -198,21 +203,26 @@ export function WorkflowsPage() {
                 const status = deriveStatus(s);
                 return (
                   <tr key={s.workflow_id}>
-                    <td className="muted" style={{ whiteSpace: "nowrap" }}>{timeAgo(s.started_at)}</td>
+                    <td className="mono" style={{ fontSize: 12 }}>
+                      <Link to={`/workflows/result?id=${encodeURIComponent(s.workflow_id)}`} style={{ textDecoration: "none" }}>
+                        {s.workflow_id.slice(0, 8)}…
+                      </Link>
+                    </td>
+                    {isSuper && <td className="muted mono" style={{ fontSize: 12 }}>{s.tenant_id || "—"}</td>}
                     <td>
                       <span className="pill" data-tone={STATUS_TONE[status] || "warn"}>
+                        <span className="dot" />
                         {STATUS_LABEL[status] || status}
                       </span>
                     </td>
-                    <td className="mono" style={{ fontSize: 11.5, maxWidth: 420, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {s.event_types?.join(", ") || "—"}
+                    <td style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {(s.event_types || []).map((t) => (
+                        <span key={t} className="pill" data-tone={t === "result" ? "ok" : t === "command" ? "run" : "warn"} style={{ fontSize: 11 }}>{t}</span>
+                      ))}
                     </td>
-                    <td className="muted mono" style={{ fontSize: 12 }}>{s.tenant_id || "—"}</td>
-                    <td className="mono" style={{ fontSize: 12 }}>
-                      <Link to={`/workflows/result?id=${encodeURIComponent(s.workflow_id)}`} style={{ textDecoration: "none" }}>
-                        {s.workflow_id}
-                      </Link>
-                    </td>
+                    <td className="num mono">{s.event_count}</td>
+                    <td className="muted" style={{ whiteSpace: "nowrap" }}>{timeAgo(s.started_at)}</td>
+                    <td className="muted" style={{ whiteSpace: "nowrap" }}>{timeAgo(s.last_event_at)}</td>
                   </tr>
                 );
               })}
