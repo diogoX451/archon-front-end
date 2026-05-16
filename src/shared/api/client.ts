@@ -64,13 +64,16 @@ export async function fetchClient<T>(endpoint: string, options: RequestInit = {}
     headers.set("Content-Type", "application/json");
   }
 
-  if (AUTH_MODE === "cookie") {
-    const method = (options.method || "GET").toUpperCase();
-    if (MUTATING_METHODS.has(method) && !headers.has("X-CSRF-Token")) {
-      const csrf = readCookie(CSRF_COOKIE) || getCsrfToken();
-      if (csrf) headers.set("X-CSRF-Token", csrf);
-    }
-  } else {
+  // Always attach CSRF on mutations when the cookie is present.
+  // The backend enforces CSRF whenever it sees a session cookie,
+  // regardless of whether the client also sends a Bearer token.
+  const method = (options.method || "GET").toUpperCase();
+  if (MUTATING_METHODS.has(method) && !headers.has("X-CSRF-Token")) {
+    const csrf = readCookie(CSRF_COOKIE) || getCsrfToken();
+    if (csrf) headers.set("X-CSRF-Token", csrf);
+  }
+
+  if (AUTH_MODE !== "cookie") {
     const token = getToken();
     if (token && !headers.has("Authorization")) {
       headers.set("Authorization", `Bearer ${token}`);
