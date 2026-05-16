@@ -95,11 +95,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     // Authorization: Bearer. In cookie mode the server already set
     // archon_session (httpOnly) + archon_csrf (readable) — JS must not
     // persist the token to keep it XSS-resistant.
-    if (AUTH_MODE === "cookie") {
-      if (out.csrf_token) setCsrfToken(out.csrf_token);
-    } else {
+    if (AUTH_MODE !== "cookie") {
       setToken(out.token);
     }
+    // Always persist csrf_token regardless of AUTH_MODE.
+    // archon_csrf cookie is set on api.almexa.com.br — JS running on
+    // archon.almexa.com.br cannot read cross-subdomain cookies, so the
+    // JSON body token is the only reliable source for the X-CSRF-Token header.
+    if (out.csrf_token) setCsrfToken(out.csrf_token);
     setUser(out.user);
     const slug = out.user.tenant_slug;
     setActiveTenantSlug(slug);
