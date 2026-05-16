@@ -3,7 +3,7 @@ import type { PropsWithChildren } from "react";
 import { useNavigate } from "react-router-dom";
 import { login as apiLogin, logout as apiLogout, me as apiMe, type AuthUser, type MeResponse } from "@shared/api/auth";
 import { AUTH_MODE, setUnauthorizedHandler } from "@shared/api/client";
-import { clearAuth, getActiveTenantSlug, getToken, setActiveTenantSlug, setToken } from "@shared/api/token";
+import { clearAuth, getActiveTenantSlug, getToken, setActiveTenantSlug, setCsrfToken, setToken } from "@shared/api/token";
 
 export interface AuthContextValue {
   user: AuthUser | null;
@@ -95,7 +95,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     // Authorization: Bearer. In cookie mode the server already set
     // archon_session (httpOnly) + archon_csrf (readable) — JS must not
     // persist the token to keep it XSS-resistant.
-    if (AUTH_MODE !== "cookie") {
+    if (AUTH_MODE === "cookie") {
+      if (out.csrf_token) setCsrfToken(out.csrf_token);
+    } else {
       setToken(out.token);
     }
     setUser(out.user);

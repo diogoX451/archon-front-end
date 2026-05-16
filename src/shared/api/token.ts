@@ -6,6 +6,7 @@ const TENANT_KEY = "archon.auth.tenant";
 
 let memoryToken: string | null = null;
 let memoryTenant: string | null = null;
+let memoryCsrf: string | null = null;
 
 function safeStorage(): Storage | null {
   try {
@@ -47,7 +48,16 @@ export function setActiveTenantSlug(slug: string | null) {
   memoryTenant = slug;
 }
 
+export function getCsrfToken(): string | null {
+  return memoryCsrf;
+}
+
+export function setCsrfToken(token: string | null) {
+  memoryCsrf = token;
+}
+
 export function clearAuth() {
   setToken(null);
   setActiveTenantSlug(null);
+  memoryCsrf = null;
 }

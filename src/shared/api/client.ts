@@ -1,4 +1,4 @@
-import { clearAuth, getToken } from "./token";
+import { clearAuth, getCsrfToken, getToken } from "./token";
 
 function normalizeApiBaseUrl(value?: string): string {
   if (!value) return "";
@@ -67,7 +67,7 @@ export async function fetchClient<T>(endpoint: string, options: RequestInit = {}
   if (AUTH_MODE === "cookie") {
     const method = (options.method || "GET").toUpperCase();
     if (MUTATING_METHODS.has(method) && !headers.has("X-CSRF-Token")) {
-      const csrf = readCookie(CSRF_COOKIE);
+      const csrf = readCookie(CSRF_COOKIE) || getCsrfToken();
       if (csrf) headers.set("X-CSRF-Token", csrf);
     }
   } else {
