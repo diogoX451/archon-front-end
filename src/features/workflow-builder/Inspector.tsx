@@ -6,6 +6,8 @@ import { IconSliders, IconTerminal, IconShare, IconTrash, GLYPHS, GlyphPlanner }
 import type { ConversationProfileV2 } from "@shared/api/profiles";
 import { ProfileDetail, ProfileHeader } from "@shared/ui/ProfileDetail";
 import type { GhostAction } from "./GhostActionNode";
+import { useKBs } from "@shared/hooks/useKBs";
+import { useAuth } from "@app/auth-context";
 
 function hashString(s: string) {
   let h = 0;
@@ -67,7 +69,39 @@ function applyKind(action: PlannerAction, kind: string): PlannerAction {
   next.agent_type = spec.agent_type;
   if (spec.need_type) next.need_type = spec.need_type;
   if (kind === "http" && !next.config) next.config = { method: "GET", url: "", timeout: 15 };
+  if (kind === "rag" && !next.config) next.config = { knowledge_base_ids: [], top_k: 5, min_score: 0.0 };
   return next;
+}
+
+function RagKBSelector({ value, onChange }: { value: string[]; onChange: (ids: string[]) => void }) {
+  const { activeTenantSlug } = useAuth();
+  const { data: kbs, isLoading } = useKBs(activeTenantSlug);
+  const toggle = (kbId: string) => {
+    if (value.includes(kbId)) onChange(value.filter((id) => id !== kbId));
+    else onChange([...value, kbId]);
+  };
+  if (isLoading) return <div className="field-hint">Carregando bases…</div>;
+  if (!kbs || kbs.length === 0) return (
+    <div className="field-hint">Nenhuma knowledge base cadastrada. <a href="/rag" target="_blank" rel="noreferrer">Criar em RAG</a>.</div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {kbs.map((kb) => (
+        <label key={kb.kb_id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={value.includes(kb.kb_id)}
+            onChange={() => toggle(kb.kb_id)}
+          />
+          <span style={{ fontWeight: 500 }}>{kb.name}</span>
+          <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>{kb.kb_id}</span>
+        </label>
+      ))}
+      {value.length === 0 && (
+        <div className="field-hint" style={{ color: "var(--warn)" }}>Nenhuma base selecionada — query vai buscar em todas.</div>
+      )}
+    </div>
+  );
 }
 
 function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[]; onChange: (next: PlannerAction[]) => void }) {
@@ -159,6 +193,37 @@ function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[];
                     type="number"
                     value={(action.config?.timeout as number) || 15}
                     onChange={(e) => updateConfig(idx, "timeout", +e.target.value)}
+                  />
+                </Field>
+              </>
+            )}
+            {kind === "rag" && (
+              <>
+                <Field label="knowledge bases">
+                  <RagKBSelector
+                    value={Array.isArray(action.config?.knowledge_base_ids) ? action.config.knowledge_base_ids : []}
+                    onChange={(ids) => updateConfig(idx, "knowledge_base_ids", ids)}
+                  />
+                </Field>
+                <Field label="top_k">
+                  <input
+                    className="field-input"
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={(action.config?.top_k as number) || 5}
+                    onChange={(e) => updateConfig(idx, "top_k", +e.target.value)}
+                  />
+                </Field>
+                <Field label="min_score">
+                  <input
+                    className="field-input"
+                    type="number"
+                    step="0.05"
+                    min={0}
+                    max={1}
+                    value={(action.config?.min_score as number) ?? 0.0}
+                    onChange={(e) => updateConfig(idx, "min_score", +e.target.value)}
                   />
                 </Field>
               </>

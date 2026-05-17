@@ -3,6 +3,10 @@
 // flush state on logout via a single call.
 const KEY = "archon.auth.token";
 const TENANT_KEY = "archon.auth.tenant";
+// CSRF token persisted in sessionStorage so page reloads don't lose it.
+// In cross-subdomain cookie mode the archon_csrf cookie is not readable
+// by JS (different subdomain), so sessionStorage is the only fallback.
+const CSRF_KEY = "archon.auth.csrf";
 
 let memoryToken: string | null = null;
 let memoryTenant: string | null = null;
@@ -49,15 +53,23 @@ export function setActiveTenantSlug(slug: string | null) {
 }
 
 export function getCsrfToken(): string | null {
-  return memoryCsrf;
+  if (memoryCsrf) return memoryCsrf;
+  const st = safeStorage();
+  return st ? st.getItem(CSRF_KEY) : null;
 }
 
 export function setCsrfToken(token: string | null) {
   memoryCsrf = token;
+  const st = safeStorage();
+  if (st) {
+    if (token) st.setItem(CSRF_KEY, token);
+    else st.removeItem(CSRF_KEY);
+  }
 }
 
 export function clearAuth() {
   setToken(null);
   setActiveTenantSlug(null);
+  setCsrfToken(null);
   memoryCsrf = null;
 }

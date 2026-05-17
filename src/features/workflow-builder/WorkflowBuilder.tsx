@@ -204,10 +204,13 @@ export function WorkflowBuilder() {
 
   useEffect(() => {
     if (idManuallyEdited) return;
-    if (hasRouteId && loadedFromBackend) return;
+    // For existing profiles the id comes from the backend via profileToCanvas.
+    // Never auto-derive it from the workflow name — that would overwrite the
+    // real profile_id with "novo-agente" while the backend load is in-flight.
+    if (hasRouteId) return;
     const suggested = slugifyProfileId(workflow.name || "");
     setMeta((m) => (m.id === suggested ? m : { ...m, id: suggested }));
-  }, [workflow.name, idManuallyEdited, hasRouteId, loadedFromBackend]);
+  }, [workflow.name, idManuallyEdited, hasRouteId]);
 
   const handleSave = async () => {
     setSaveError(null);
