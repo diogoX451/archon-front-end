@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { login as apiLogin, logout as apiLogout, me as apiMe, type AuthUser, type MeResponse } from "@shared/api/auth";
 import { AUTH_MODE, setUnauthorizedHandler } from "@shared/api/client";
 import { clearAuth, getActiveTenantSlug, getToken, setActiveTenantSlug, setCsrfToken, setToken } from "@shared/api/token";
@@ -28,6 +28,7 @@ export function useAuth(): AuthContextValue {
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const [activeTenant, setActiveTenant] = useState<string>(() => getActiveTenantSlug() || "");
@@ -37,6 +38,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [loading, setLoading] = useState<boolean>(() => AUTH_MODE === "cookie" || !!getToken());
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
+  const locationRef = useRef(location);
+  locationRef.current = location;
 
   // Hydrate session on first paint. Cookie mode: hit /auth/me unconditionally
   // — the httpOnly cookie is invisible to JS, so the server is the source of
@@ -78,10 +81,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
+  const PUBLIC_PATHS = new Set(["/", "/login", "/privacy", "/terms", "/dpo"]);
+
   // Wire the global 401 handler so any failing API call kicks the user
-  // out and reroutes to /login.
+  // out and reroutes to /login. Skip redirect on public pages — the
+  // initial /auth/me hydration on the landing page returns 401 when the
+  // user is not logged in, which must not bounce them to /login.
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      if (PUBLIC_PATHS.has(locationRef.current.pathname)) return;
       setUser(null);
       setPermissions(new Set());
       navigateRef.current("/login", { replace: true });
