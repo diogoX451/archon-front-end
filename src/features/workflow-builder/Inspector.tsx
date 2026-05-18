@@ -306,6 +306,7 @@ function WorkflowInspector({
   meta?: CanvasMeta;
   onMetaChange?: (patch: Partial<CanvasMeta>) => void;
 }) {
+  const { isSuper } = useAuth();
   const counts = workflow.agents.reduce((acc: any, a) => {
     acc[a.type] = (acc[a.type] || 0) + 1;
     return acc;
@@ -317,6 +318,17 @@ function WorkflowInspector({
   return (
     <>
       <div className="section-title">Profile</div>
+      {isSuper && (
+        <Field label="tenant_slug">
+          <input
+            className="field-input"
+            value={meta?.tenant_slug || ""}
+            onChange={(e) => onMetaChange?.({ tenant_slug: e.target.value || undefined })}
+            placeholder="slug-do-tenant (vazio = seu tenant)"
+          />
+          <div className="field-hint">Super admin: deixe vazio para usar seu tenant ou informe o slug do tenant alvo.</div>
+        </Field>
+      )}
       <Field label="ID do profile">
         <input
           className="field-input"

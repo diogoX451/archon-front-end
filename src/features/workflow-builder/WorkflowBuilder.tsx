@@ -148,7 +148,6 @@ export function WorkflowBuilder() {
   const isNew = routeId === "new";
   const hasRouteId = !!routeId && !isNew;
 
-  const { data: profilesList, isLoading: profilesLoading } = useProfiles();
   const upsertMutation = useUpsertProfile();
   const createTurn = useCreateConversationTurn();
 
@@ -168,6 +167,11 @@ export function WorkflowBuilder() {
     id: isNew ? "" : routeId || "demo-workflow",
     description: "",
   }));
+
+  // Super admins can target a different tenant via meta.tenant_slug.
+  // Pass it to useProfiles so the hydration lookup finds profiles from
+  // the right tenant; when empty, falls back to the logged-in tenant.
+  const { data: profilesList, isLoading: profilesLoading } = useProfiles(meta.tenant_slug || undefined);
   const [loadedFromBackend, setLoadedFromBackend] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState<string | null>(null);
