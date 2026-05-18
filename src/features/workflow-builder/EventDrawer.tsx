@@ -4,7 +4,10 @@ import { IconTerminal, IconChev } from "@shared/ui/icons/Icons";
 
 type EventLogItem = {
   n: number;
-  t: number;
+  /** Simulated trace: ms offset from workflow start. */
+  t?: number;
+  /** Live events: ISO timestamp from the NATS event. */
+  ts?: string;
   type: string;
   subject: string;
   summary: string;
@@ -19,9 +22,28 @@ type EventDrawerProps = {
   runState: "idle" | "running" | "completed" | "error";
 };
 
+function formatEventTime(e: EventLogItem, firstTs: number | null): string {
+  if (e.t !== undefined) return `+${String(e.t).padStart(4, "0")}ms`;
+  if (e.ts) {
+    const ms = new Date(e.ts).getTime();
+    if (!isNaN(ms) && firstTs !== null) return `+${String(Math.max(0, ms - firstTs)).padStart(4, "0")}ms`;
+    // fallback: just show time HH:MM:SS
+    const d = new Date(e.ts);
+    if (!isNaN(d.getTime())) return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  }
+  return "—";
+}
+
 export function EventDrawer({ open, onToggle, eventLog, runState }: EventDrawerProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
-  
+
+  const firstTs = React.useMemo(() => {
+    const first = eventLog.find((e) => e.ts);
+    if (!first?.ts) return null;
+    const ms = new Date(first.ts).getTime();
+    return isNaN(ms) ? null : ms;
+  }, [eventLog]);
+
   useEffect(() => {
     if (bodyRef.current) {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
@@ -47,7 +69,7 @@ export function EventDrawer({ open, onToggle, eventLog, runState }: EventDrawerP
             <div className="drawer-empty">Clique em <strong style={{ color: "var(--ink-2)" }}>Executar</strong> para ver eventos passando pelo bus.</div>
           ) : eventLog.map((e, i) => (
             <div key={i} className="event-row">
-              <span className="t">+{String(e.t).padStart(4, "0")}ms</span>
+              <span className="t">{formatEventTime(e, firstTs)}</span>
               <span className="type" data-type={e.type}>{e.type}</span>
               <span>
                 <span className="summary">{e.summary}</span>
