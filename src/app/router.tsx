@@ -14,6 +14,7 @@ import { PermissionsPage } from "@pages/PermissionsPage";
 import { ChannelsPage } from "@pages/ChannelsPage";
 import { AdminAuditPage } from "@pages/AdminAuditPage";
 import { LLMConfigPage } from "@pages/LLMConfigPage";
+import { MCPConfigPage } from "@pages/MCPConfigPage";
 import { LoginPage } from "@pages/LoginPage";
 import { LandingPage } from "@pages/LandingPage";
 import { AccountPrivacyPage } from "@pages/AccountPrivacyPage";
@@ -75,6 +76,7 @@ export function AppRouter() {
                     <Route path="/channels" element={<ChannelsPage />} />
                     <Route path="/admin-audit" element={<AdminAuditPage />} />
                     <Route path="/llm-config" element={<LLMConfigPage />} />
+                    <Route path="/mcp-config" element={<MCPConfigPage />} />
                     <Route path="/account/privacy" element={<AccountPrivacyPage />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>

@@ -29,6 +29,11 @@ function summaryFor(agent: AgentNodeData) {
   if (agent.type === "channel.delivery") return c.channel || "—";
   if (agent.type === "event") return `need=${c.need_type || "—"}`;
   if (agent.type === "interaction") return `${c.channel || "—"} · ${c.template || ""}`;
+  if (agent.type === "mcp") {
+    const mcp = c.mcp_name || "—";
+    const tool = c.tool || "—";
+    return `${mcp} · ${tool}`;
+  }
   return "—";
 }
 
@@ -140,6 +145,18 @@ export function AgentNode({
         <span className="agent-type-badge">{agent.type}</span>
         <span className="truncate">{summaryFor(agent)}</span>
       </div>
+
+      {agent.type === "mcp" && (
+        <div
+          className="agent-mcp-link"
+          title={`Conectado ao MCP server "${agent.config?.mcp_name || ""}" via registry`}
+        >
+          <span className="agent-mcp-dot" />
+          <span className="truncate">
+            mcp: <strong>{agent.config?.mcp_name || "(sem servidor)"}</strong>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

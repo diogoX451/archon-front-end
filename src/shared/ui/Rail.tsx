@@ -59,6 +59,17 @@ export const IconLLMConfig = (p: IconProps) => (
   </svg>
 );
 
+// MCP icon: three nodes connected to a hub (mirrors the "external tool plug-in" idea).
+export const IconMCPConfig = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <circle cx="5" cy="6" r="2" />
+    <circle cx="19" cy="6" r="2" />
+    <circle cx="12" cy="20" r="2" />
+    <path d="M7 7l3 3M17 7l-3 3M12 15v3" />
+  </svg>
+);
+
 // Audit icon (clock with list)
 export const IconAudit = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -108,6 +119,7 @@ const links: RailLink[] = [
   { to: "/tenants", label: "Tenants", icon: IconTenants, superOnly: true },
   { to: "/channels", label: "Canais", icon: IconChannels, perms: ["channel_manage"] },
   { to: "/llm-config", label: "LLM Config", icon: IconLLMConfig, perms: ["channel_manage"] },
+  { to: "/mcp-config", label: "MCP Servers", icon: IconMCPConfig, perms: ["channel_manage"] },
   { to: "/admin-audit", label: "Audit Log", icon: IconAudit, superOnly: true },
   // Visible to every authenticated user — LGPD Art. 18 self-service.
   { to: "/account/privacy", label: "Minha Privacidade", icon: IconPrivacy },

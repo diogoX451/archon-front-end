@@ -101,6 +101,17 @@ export const GlyphConversation = (p: IconProps) => (
     <path d="M9 10h12v6h-3l-2 2v-2H9z" transform="translate(0 -1)" />
   </Icon>
 );
+// Three satellite nodes wired to a central hub — visual cue that the agent
+// resolves its tool through the MCP registry instead of acting on its own.
+export const GlyphMcp = (p: IconProps) => (
+  <Icon {...p} size={p.size || 14}>
+    <circle cx="12" cy="12" r="3" />
+    <circle cx="5" cy="6" r="1.5" />
+    <circle cx="19" cy="6" r="1.5" />
+    <circle cx="12" cy="20" r="1.5" />
+    <path d="M7 7l3 3M17 7l-3 3M12 15v3" />
+  </Icon>
+);
 
 export const GLYPHS = {
   planner: GlyphPlanner,
@@ -117,4 +128,5 @@ export const GLYPHS = {
   // the generic planner icon. Replace with bespoke glyphs later.
   graph: GlyphRouter,
   delivery: GlyphInteraction,
+  mcp: GlyphMcp,
 } as const;

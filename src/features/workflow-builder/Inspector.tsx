@@ -7,6 +7,7 @@ import type { ConversationProfileV2 } from "@shared/api/profiles";
 import { ProfileDetail, ProfileHeader } from "@shared/ui/ProfileDetail";
 import type { GhostAction } from "./GhostActionNode";
 import { useKBs } from "@shared/hooks/useKBs";
+import { useMCPConfigs } from "@shared/hooks/useMCPConfigs";
 import { useAuth } from "@app/auth-context";
 
 function hashString(s: string) {
@@ -406,6 +407,16 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
   const Glyph = (GLYPHS as any)[meta.glyph] || GlyphPlanner;
   const setConfig = (k: string, v: any) => onUpdate({ config: { ...agent.config, [k]: v } });
 
+  // MCP registry lookup — only hits the API when this agent actually
+  // depends on it. Super-admins without a selected tenant get an empty
+  // list and fall back to the free-text input.
+  const { activeTenantSlug, isSuper } = useAuth();
+  const mcpTenant = isSuper ? undefined : activeTenantSlug || undefined;
+  const { data: mcpServers = [], isLoading: loadingMCPs, isError: mcpErr } = useMCPConfigs(
+    mcpTenant,
+    { enabled: agent.type === "mcp" },
+  );
+
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -518,6 +529,68 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
         <>
           <Field label="tenant_id"><input className="field-input" value={agent.config.tenant_id || ""} onChange={(e) => setConfig("tenant_id", e.target.value)} /></Field>
           <Field label="knowledge_base_id"><input className="field-input" value={agent.config.knowledge_base_id || ""} onChange={(e) => setConfig("knowledge_base_id", e.target.value)} /></Field>
+        </>
+      )}
+      {agent.type === "mcp" && (
+        <>
+          <Field label="MCP server">
+            {loadingMCPs ? (
+              <input className="field-input" disabled value="Carregando registry…" />
+            ) : mcpErr || mcpServers.length === 0 ? (
+              // Either the API failed or the tenant has no MCPs yet. Fall
+              // back to a free-text input so the workflow author can still
+              // wire a name they plan to register later, then point them
+              // at the admin page.
+              <>
+                <input
+                  className="field-input"
+                  value={agent.config.mcp_name || ""}
+                  onChange={(e) => setConfig("mcp_name", e.target.value)}
+                  placeholder="ex: erp"
+                />
+                <div className="field-hint">
+                  Nenhum MCP cadastrado para este tenant.{" "}
+                  <a href="/mcp-config" target="_blank" rel="noreferrer">
+                    Cadastrar →
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <select
+                  className="field-select"
+                  value={agent.config.mcp_name || ""}
+                  onChange={(e) => setConfig("mcp_name", e.target.value)}
+                >
+                  <option value="">Selecione um servidor…</option>
+                  {mcpServers.map((s) => (
+                    <option
+                      key={s.name}
+                      value={s.name}
+                      disabled={!s.enabled}
+                    >
+                      {s.name} ({s.transport}){s.enabled ? "" : " · desativado"}
+                    </option>
+                  ))}
+                </select>
+                <div className="field-hint">
+                  Resolvido pelo registry em runtime — URL e token não
+                  precisam ser duplicados aqui.
+                </div>
+              </>
+            )}
+          </Field>
+          <Field label="Tool">
+            <input
+              className="field-input"
+              value={agent.config.tool || ""}
+              onChange={(e) => setConfig("tool", e.target.value)}
+              placeholder="ex: list_orders"
+            />
+            <div className="field-hint">
+              Nome da tool exposta pelo MCP server selecionado.
+            </div>
+          </Field>
         </>
       )}
       <div className="section-title">Portas</div>
