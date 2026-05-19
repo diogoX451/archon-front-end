@@ -1,0 +1,125 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "conversation": "Conversas",
+    "workflows": "Workflows",
+    "agents": "Agentes",
+    "executions": "Execuções",
+    "rag": "Bases RAG",
+    "users": "Usuários",
+    "roles": "Papéis",
+    "permissions": "Permissões",
+    "tenants": "Tenants",
+    "channels": "Canais",
+    "llmConfig": "LLM Config",
+    "mcpServers": "MCP Servers",
+    "auditLog": "Audit Log",
+    "myPrivacy": "Minha Privacidade",
+    "logout": "Sair"
+  },
+  "nav_logout_confirm": {
+    "title": "Sair da conta",
+    "message": "Você precisará fazer login novamente para acessar o app.",
+    "confirmLabel": "Sair"
+  },
+  "nav_user_aria": "Usuário {{name}}",
+  "breadcrumbs": {
+    "overview": "Overview",
+    "dashboard": "Painel geral",
+    "conversation": "Conversas",
+    "conv": "conv {{id}}",
+    "workflows": "Workflows",
+    "workflowList": "Lista",
+    "workflowResult": "Resultado",
+    "workflowResultId": "id {{id}}",
+    "workflowBuilder": "Builder",
+    "workflowBuilderNew": "novo",
+    "agents": "Agentes",
+    "agentTemplates": "Templates",
+    "executions": "Execuções",
+    "observability": "Observabilidade",
+    "rag": "RAG",
+    "ragBases": "Bases",
+    "users": "Usuários",
+    "usersManagement": "Gestão",
+    "tenants": "Tenants",
+    "tenantsOrgs": "Organizações",
+    "admin": "Admin",
+    "adminAuditLog": "Audit Log",
+    "llmConfig": "Configuração LLM"
+  },
+  "tour": {
+    "nav": {
+      "title": "Tour de navegação",
+      "steps": {
+        "rail_overview": {
+          "title": "Menu lateral",
+          "content": "Este é o menu principal. Cada ícone leva a uma seção da plataforma."
+        },
+        "rail_workflows": {
+          "title": "Workflows",
+          "content": "Crie e gerencie seus fluxos de automação com agentes de IA."
+        },
+        "rail_agents": {
+          "title": "Agentes",
+          "content": "Configure os perfis de agente que serão usados nos seus workflows."
+        },
+        "rail_events": {
+          "title": "Execuções",
+          "content": "Acompanhe em tempo real o histórico de execução dos seus workflows."
+        },
+        "rail_rag": {
+          "title": "Bases RAG",
+          "content": "Gerencie as bases de conhecimento que alimentam seus agentes."
+        },
+        "rail_avatar": {
+          "title": "Sua conta",
+          "content": "Seu perfil e configurações de privacidade (LGPD Art. 18)."
+        }
+      },
+      "skip": "Pular tour",
+      "back": "Voltar",
+      "next": "Próximo",
+      "finish": "Começar a usar"
+    },
+    "workflowBuilder": {
+      "title": "Tour do Workflow Builder",
+      "steps": {
+        "palette": {
+          "title": "Paleta de nós",
+          "content": "Arraste os tipos de agente daqui para o canvas para montar seu workflow."
+        },
+        "canvas": {
+          "title": "Canvas",
+          "content": "Conecte os nós arrastando as arestas entre eles para definir o fluxo de execução."
+        },
+        "inspector": {
+          "title": "Inspector",
+          "content": "Clique em um nó para configurar seus parâmetros aqui no painel direito."
+        },
+        "toolbar": {
+          "title": "Barra de ações",
+          "content": "Salve e execute seu workflow por aqui. O status de execução aparece em tempo real."
+        }
+      },
+      "skip": "Pular tour",
+      "back": "Voltar",
+      "next": "Próximo",
+      "finish": "Entendi!"
+    }
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error": "Ocorreu um erro",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "yes": "Sim",
+    "no": "Não"
+  }
+}

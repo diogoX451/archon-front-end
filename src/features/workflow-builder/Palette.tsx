@@ -30,7 +30,7 @@ export function Palette({ onStartDrag }: PaletteProps) {
   }, [query]);
 
   return (
-    <div className="palette">
+    <div className="palette" data-tour="builder-palette">
       <div className="panel-header">
         <span>Paleta de Agentes</span>
         <span style={{ color: "var(--ink-4)", fontFamily: "var(--font-mono)", fontSize: 10.5 }}>
