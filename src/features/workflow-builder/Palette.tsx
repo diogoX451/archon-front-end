@@ -56,6 +56,7 @@ export function Palette({ onStartDrag }: PaletteProps) {
               <div
                 key={item.type}
                 className="palette-item"
+                data-tour={item.type === "planner" ? "builder-palette-planner" : undefined}
                 onMouseDown={(e) => { e.preventDefault(); onStartDrag(item.type, e); }}
               >
                 <div className="glyph"><Glyph size={14} /></div>

@@ -76,37 +76,57 @@
         "rail_avatar": {
           "title": "Sua conta",
           "content": "Seu perfil e configurações de privacidade (LGPD Art. 18)."
+        },
+        "cta": {
+          "title": "Pronto para começar?",
+          "content": "Clique em Workflows e depois em Novo agente para criar o seu primeiro agente de IA. O tour do builder vai te guiar passo a passo!"
         }
       },
       "skip": "Pular tour",
       "back": "Voltar",
       "next": "Próximo",
-      "finish": "Começar a usar"
+      "finish": "Criar meu primeiro agente →"
     },
     "workflowBuilder": {
       "title": "Tour do Workflow Builder",
       "steps": {
+        "overview": {
+          "title": "Bem-vindo ao Builder",
+          "content": "Aqui você monta agentes de IA visualmente — sem código. Arraste nós, conecte-os e configure o comportamento do agente em minutos."
+        },
         "palette": {
-          "title": "Paleta de nós",
-          "content": "Arraste os tipos de agente daqui para o canvas para montar seu workflow."
+          "title": "Paleta de tipos",
+          "content": "Aqui estão todos os tipos de nó disponíveis: Planner (raciocínio LLM), HTTP, RAG, Transformadores e mais. Arraste qualquer item para o canvas."
+        },
+        "planner": {
+          "title": "Comece com o Planner",
+          "content": "O Planner é o coração de todo agente. Ele recebe a mensagem do usuário, raciocina via LLM e decide qual ação executar. Arraste-o para o canvas!"
         },
         "canvas": {
-          "title": "Canvas",
-          "content": "Conecte os nós arrastando as arestas entre eles para definir o fluxo de execução."
+          "title": "Monte o fluxo aqui",
+          "content": "Solte o Planner no canvas e adicione outros nós. Conecte as portas arrastando da saída (direita) de um nó até a entrada (esquerda) de outro."
         },
         "inspector": {
-          "title": "Inspector",
-          "content": "Clique em um nó para configurar seus parâmetros aqui no painel direito."
+          "title": "Configure cada nó",
+          "content": "Clique em qualquer nó para abrir o Inspector. Aqui você define o provider LLM, modelo, instructions do sistema e todos os parâmetros do agente."
         },
-        "toolbar": {
-          "title": "Barra de ações",
-          "content": "Salve e execute seu workflow por aqui. O status de execução aparece em tempo real."
+        "nameInput": {
+          "title": "Nomeie seu agente",
+          "content": "Dê um nome descritivo ao agente. O ID abaixo é gerado automaticamente e identifica o agente na API — você pode editá-lo antes de salvar."
+        },
+        "save": {
+          "title": "Salve no backend",
+          "content": "Clique em Salvar para persistir o agente. Ele ficará disponível para conversas, testes e integrações via API."
+        },
+        "simulate": {
+          "title": "Teste na hora",
+          "content": "Use Simular para enviar uma mensagem real ao agente e ver o fluxo de execução passo a passo no painel de eventos."
         }
       },
       "skip": "Pular tour",
       "back": "Voltar",
       "next": "Próximo",
-      "finish": "Entendi!"
+      "finish": "Vamos criar!"
     }
   },
   "common": {

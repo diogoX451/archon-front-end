@@ -76,37 +76,57 @@
         "rail_avatar": {
           "title": "Your account",
           "content": "Your profile and privacy settings."
+        },
+        "cta": {
+          "title": "Ready to start?",
+          "content": "Click Workflows then New agent to create your first AI agent. The builder tour will guide you step by step!"
         }
       },
       "skip": "Skip tour",
       "back": "Back",
       "next": "Next",
-      "finish": "Get started"
+      "finish": "Create my first agent →"
     },
     "workflowBuilder": {
       "title": "Workflow Builder tour",
       "steps": {
+        "overview": {
+          "title": "Welcome to the Builder",
+          "content": "Here you build AI agents visually — no code needed. Drag nodes, connect them, and configure agent behavior in minutes."
+        },
         "palette": {
           "title": "Node palette",
-          "content": "Drag agent types from here to the canvas to build your workflow."
+          "content": "All available node types are here: Planner (LLM reasoning), HTTP, RAG, Transformers and more. Drag any item onto the canvas."
+        },
+        "planner": {
+          "title": "Start with the Planner",
+          "content": "The Planner is the heart of every agent. It receives the user message, reasons via LLM, and decides which action to take. Drag it to the canvas!"
         },
         "canvas": {
-          "title": "Canvas",
-          "content": "Connect nodes by dragging edges between them to define the execution flow."
+          "title": "Build your flow here",
+          "content": "Drop the Planner on the canvas and add more nodes. Connect them by dragging from the output port (right) of one node to the input port (left) of another."
         },
         "inspector": {
-          "title": "Inspector",
-          "content": "Click on a node to configure its parameters in this right panel."
+          "title": "Configure each node",
+          "content": "Click any node to open the Inspector. Here you set the LLM provider, model, system instructions and all agent parameters."
         },
-        "toolbar": {
-          "title": "Action bar",
-          "content": "Save and run your workflow here. Execution status appears in real time."
+        "nameInput": {
+          "title": "Name your agent",
+          "content": "Give the agent a descriptive name. The ID below is auto-generated and identifies the agent in the API — you can edit it before saving."
+        },
+        "save": {
+          "title": "Save to backend",
+          "content": "Click Save to persist the agent. It will be available for conversations, tests and API integrations."
+        },
+        "simulate": {
+          "title": "Test right away",
+          "content": "Use Simulate to send a real message to the agent and watch the execution flow step by step in the events panel."
         }
       },
       "skip": "Skip tour",
       "back": "Back",
       "next": "Next",
-      "finish": "Got it!"
+      "finish": "Let's build!"
     }
   },
   "common": {

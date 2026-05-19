@@ -6,8 +6,7 @@ export type NavStepDef = {
   placement: Step["placement"];
   titleKey: string;
   contentKey: string;
-  /** Permissions required for this step's target to exist in the DOM.
-   *  If the user lacks ALL of them, the step is skipped. */
+  /** Permissions required for this step's target to exist in the DOM. */
   perms?: string[];
   /** If true, only super admins see this step. */
   superOnly?: boolean;
@@ -21,7 +20,6 @@ export const navStepDefs: NavStepDef[] = [
     placement: "right",
     titleKey: "tour.nav.steps.rail_overview.title",
     contentKey: "tour.nav.steps.rail_overview.content",
-    // No perms — .rail-nav is always present for authenticated users.
   },
   {
     target: "[data-tour='nav-workflows']",
@@ -56,7 +54,14 @@ export const navStepDefs: NavStepDef[] = [
     placement: "right",
     titleKey: "tour.nav.steps.rail_avatar.title",
     contentKey: "tour.nav.steps.rail_avatar.content",
-    // No perms — avatar is always present.
+  },
+  {
+    // Final CTA: send user to the builder to create their first agent.
+    target: "[data-tour='nav-workflows']",
+    placement: "right",
+    titleKey: "tour.nav.steps.cta.title",
+    contentKey: "tour.nav.steps.cta.content",
+    perms: ["workflow_list"],
   },
 ];
 
@@ -70,6 +75,15 @@ export const tourDefinitions: Record<TourId, TourDefinition> = {
 
   "workflow-builder": {
     steps: [
+      // 1 — Overview do builder
+      {
+        target: "[data-tour='builder-canvas']",
+        placement: "top",
+        skipBeacon: true,
+        title: "tour.workflowBuilder.steps.overview.title",
+        content: "tour.workflowBuilder.steps.overview.content",
+      },
+      // 2 — Paleta geral
       {
         target: "[data-tour='builder-palette']",
         placement: "right",
@@ -77,6 +91,15 @@ export const tourDefinitions: Record<TourId, TourDefinition> = {
         title: "tour.workflowBuilder.steps.palette.title",
         content: "tour.workflowBuilder.steps.palette.content",
       },
+      // 3 — Item Planner especificamente
+      {
+        target: "[data-tour='builder-palette-planner']",
+        placement: "right",
+        skipBeacon: true,
+        title: "tour.workflowBuilder.steps.planner.title",
+        content: "tour.workflowBuilder.steps.planner.content",
+      },
+      // 4 — Canvas (onde soltar o nó)
       {
         target: "[data-tour='builder-canvas']",
         placement: "top",
@@ -84,6 +107,7 @@ export const tourDefinitions: Record<TourId, TourDefinition> = {
         title: "tour.workflowBuilder.steps.canvas.title",
         content: "tour.workflowBuilder.steps.canvas.content",
       },
+      // 5 — Inspector (configurar o nó)
       {
         target: "[data-tour='builder-inspector']",
         placement: "left",
@@ -91,12 +115,29 @@ export const tourDefinitions: Record<TourId, TourDefinition> = {
         title: "tour.workflowBuilder.steps.inspector.title",
         content: "tour.workflowBuilder.steps.inspector.content",
       },
+      // 6 — Nome e ID do agente
       {
-        target: "[data-tour='builder-toolbar']",
+        target: "[data-tour='builder-name-input']",
         placement: "bottom",
         skipBeacon: true,
-        title: "tour.workflowBuilder.steps.toolbar.title",
-        content: "tour.workflowBuilder.steps.toolbar.content",
+        title: "tour.workflowBuilder.steps.nameInput.title",
+        content: "tour.workflowBuilder.steps.nameInput.content",
+      },
+      // 7 — Botão Salvar
+      {
+        target: "[data-tour='builder-save-btn']",
+        placement: "bottom",
+        skipBeacon: true,
+        title: "tour.workflowBuilder.steps.save.title",
+        content: "tour.workflowBuilder.steps.save.content",
+      },
+      // 8 — Botão Simular
+      {
+        target: "[data-tour='builder-simulate-btn']",
+        placement: "bottom",
+        skipBeacon: true,
+        title: "tour.workflowBuilder.steps.simulate.title",
+        content: "tour.workflowBuilder.steps.simulate.content",
       },
     ],
   },

@@ -683,6 +683,7 @@ export function WorkflowBuilder() {
           </div>
           <input
             className="workflow-name"
+            data-tour="builder-name-input"
             value={workflow.name}
             onChange={(e) => setWorkflow((w) => ({ ...w, name: e.target.value }))}
             placeholder="Nome do agente"
@@ -747,6 +748,7 @@ export function WorkflowBuilder() {
 
           <button
             className="btn primary"
+            data-tour="builder-save-btn"
             onClick={handleSave}
             disabled={upsertMutation.isPending || !canSaveProfile}
             title="Persistir profile no backend (POST /api/v1/profiles)"
@@ -767,7 +769,7 @@ export function WorkflowBuilder() {
             <span>Testar</span>
           </button>
 
-          <button className="btn" onClick={run} disabled={runState === "running"} title="Simulação local (não chama o backend)">
+          <button className="btn" data-tour="builder-simulate-btn" onClick={run} disabled={runState === "running"} title="Simulação local (não chama o backend)">
             <IconPlay className="icon" />
             <span>Simular</span>
           </button>
