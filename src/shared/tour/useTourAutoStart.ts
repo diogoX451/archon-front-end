@@ -1,28 +1,29 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@app/auth-context";
 import { useTour } from "./TourContext";
 import type { TourId } from "./TourContext";
 
 /**
  * Automatically starts a tour the first time the user accesses a page.
- * A small delay lets React flush the DOM so Joyride can find the targets.
+ *
+ * Design notes:
+ * - No `triggered` ref: React 18 StrictMode preserves ref values across
+ *   the simulated unmount/remount cycle, so a ref-based guard blocks the
+ *   timer on the second (real) mount and the tour never fires.
+ * - `activeTour !== null` guard: prevents re-triggering while any tour
+ *   is already running (e.g. user navigates away and back mid-tour).
+ * - `isDone` guard: reads localStorage — tour only fires once per user.
  */
 export function useTourAutoStart(tourId: TourId, delayMs = 600) {
   const { user, loading } = useAuth();
-  const { isDone, startTour } = useTour();
-  const triggered = useRef(false);
+  const { activeTour, isDone, startTour } = useTour();
 
   useEffect(() => {
-    // Wait for auth to resolve and user to be present.
     if (loading || !user) return;
-    // isDone() reads from localStorage — only fire if tour was never shown.
-    if (triggered.current || isDone(tourId)) return;
+    if (activeTour !== null) return;
+    if (isDone(tourId)) return;
 
-    triggered.current = true;
-    const timer = window.setTimeout(() => {
-      startTour(tourId);
-    }, delayMs);
-
+    const timer = window.setTimeout(() => startTour(tourId), delayMs);
     return () => window.clearTimeout(timer);
-  }, [loading, user, tourId, delayMs, isDone, startTour]);
+  }, [loading, user, tourId, delayMs, activeTour, isDone, startTour]);
 }
