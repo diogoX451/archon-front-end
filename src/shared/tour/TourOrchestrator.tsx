@@ -1,23 +1,55 @@
 import { Joyride, STATUS } from "react-joyride";
-import type { EventData, Controls } from "react-joyride";
+import type { EventData, Controls, Step } from "react-joyride";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@app/auth-context";
+import { canAny } from "@shared/authz";
 import { useTour } from "./TourContext";
-import { tourDefinitions } from "./tours";
+import { tourDefinitions, navStepDefs } from "./tours";
+
+/** Builds nav tour steps filtered to the links actually visible for this user.
+ *  A step is only included when the user has at least one of its required
+ *  permissions (or the step has no permission requirement at all). */
+function useNavSteps(t: (k: string) => string): Step[] {
+  const { isSuper, hasPermission } = useAuth();
+
+  return navStepDefs
+    .filter((def) => {
+      if (def.superOnly && !isSuper) return false;
+      if (!def.perms || def.perms.length === 0) return true;
+      return canAny({ isSuper, hasPermission }, def.perms);
+    })
+    .map((def) => ({
+      target: def.target,
+      placement: def.placement,
+      skipBeacon: true,
+      title: t(def.titleKey),
+      content: t(def.contentKey),
+    }));
+}
 
 export function TourOrchestrator() {
   const { t } = useTranslation();
   const { activeTour, endTour } = useTour();
+  const navSteps = useNavSteps(t);
 
   if (!activeTour) return null;
 
-  const definition = tourDefinitions[activeTour];
   const localeKey = activeTour === "nav" ? "tour.nav" : "tour.workflowBuilder";
 
-  const steps = definition.steps.map((step) => ({
-    ...step,
-    title: t(step.title as string),
-    content: t(step.content as string),
-  }));
+  const steps: Step[] =
+    activeTour === "nav"
+      ? navSteps
+      : tourDefinitions[activeTour].steps.map((step) => ({
+          ...step,
+          title: t(step.title as string),
+          content: t(step.content as string),
+        }));
+
+  // Nothing to show — all nav links hidden (edge case: bare-minimum user).
+  if (steps.length === 0) {
+    endTour();
+    return null;
+  }
 
   function handleEvent(data: EventData, _controls: Controls) {
     const { status } = data;

@@ -34,6 +34,7 @@
     "workflowResultId": "id {{id}}",
     "workflowBuilder": "Builder",
     "workflowBuilderNew": "novo",
+    "workflowBuilderId": "id {{id}}",
     "agents": "Agentes",
     "agentTemplates": "Templates",
     "executions": "Execuções",

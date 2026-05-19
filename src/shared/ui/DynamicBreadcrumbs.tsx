@@ -45,7 +45,7 @@ function buildCrumbKeys(pathname: string, search: string): CrumbKey[] {
       out.push(
         maybeId === "new"
           ? { key: "breadcrumbs.workflowBuilderNew" }
-          : { key: "breadcrumbs.workflowResultId", params: { id: shortId(maybeId) } }
+          : { key: "breadcrumbs.workflowBuilderId", params: { id: shortId(maybeId) } }
       );
     return out;
   }
