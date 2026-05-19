@@ -14,7 +14,12 @@ import { PermissionsPage } from "@pages/PermissionsPage";
 import { ChannelsPage } from "@pages/ChannelsPage";
 import { AdminAuditPage } from "@pages/AdminAuditPage";
 import { LLMConfigPage } from "@pages/LLMConfigPage";
+import { MCPConfigPage } from "@pages/MCPConfigPage";
 import { LoginPage } from "@pages/LoginPage";
+import { ForgotPasswordPage } from "@pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "@pages/ResetPasswordPage";
+import { SignupPage } from "@pages/SignupPage";
+import { VerifyEmailPage } from "@pages/VerifyEmailPage";
 import { LandingPage } from "@pages/LandingPage";
 import { AccountPrivacyPage } from "@pages/AccountPrivacyPage";
 import { PrivacyPolicyPage } from "@pages/legal/PrivacyPolicyPage";
@@ -33,6 +38,10 @@ export function AppRouter() {
         <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
           {/* Public marketing landing page. */}
           <Route path="/" element={<LandingPage />} />
           {/* Public legal pages (LGPD: must remain accessible without auth). */}
@@ -75,6 +84,7 @@ export function AppRouter() {
                     <Route path="/channels" element={<ChannelsPage />} />
                     <Route path="/admin-audit" element={<AdminAuditPage />} />
                     <Route path="/llm-config" element={<LLMConfigPage />} />
+                    <Route path="/mcp-config" element={<MCPConfigPage />} />
                     <Route path="/account/privacy" element={<AccountPrivacyPage />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>

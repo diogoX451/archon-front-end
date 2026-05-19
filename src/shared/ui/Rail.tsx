@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@app/auth-context";
 import { useConfirm } from "@shared/ui/feedback";
 import { canAny } from "@shared/authz";
@@ -59,6 +60,17 @@ export const IconLLMConfig = (p: IconProps) => (
   </svg>
 );
 
+// MCP icon: three nodes connected to a hub (mirrors the "external tool plug-in" idea).
+export const IconMCPConfig = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <circle cx="5" cy="6" r="2" />
+    <circle cx="19" cy="6" r="2" />
+    <circle cx="12" cy="20" r="2" />
+    <path d="M7 7l3 3M17 7l-3 3M12 15v3" />
+  </svg>
+);
+
 // Audit icon (clock with list)
 export const IconAudit = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -88,29 +100,31 @@ export const IconLogout = (p: IconProps) => (
 
 type RailLink = {
   to: string;
-  label: string;
+  labelKey: string;
   icon: (p: IconProps) => JSX.Element;
   exact?: boolean;
   superOnly?: boolean;
   perms?: string[];
+  tourTarget?: string;
 };
 
 const links: RailLink[] = [
-  { to: "/dashboard", label: "Overview", icon: IconOverview },
-  { to: "/conversation", label: "Conversation", icon: IconConversation },
-  { to: "/workflows", label: "Workflows", icon: IconWorkflows, perms: ["workflow_list"] },
-  { to: "/templates", label: "Agentes", icon: IconAgents, perms: ["conversation_profile_list"] },
-  { to: "/events", label: "Execuções", icon: IconExecutions, perms: ["workflow_list"] },
-  { to: "/rag", label: "Bases RAG", icon: IconRAG, perms: ["rag_read", "rag_query", "rag_ingest"] },
-  { to: "/profiles", label: "Usuários", icon: IconProfiles, perms: ["user_list"] },
-  { to: "/roles", label: "Papéis", icon: IconRoles, perms: ["role_list"] },
-  { to: "/permissions", label: "Permissões", icon: IconPermissions, superOnly: true, perms: ["permission_list"] },
-  { to: "/tenants", label: "Tenants", icon: IconTenants, superOnly: true },
-  { to: "/channels", label: "Canais", icon: IconChannels, perms: ["channel_manage"] },
-  { to: "/llm-config", label: "LLM Config", icon: IconLLMConfig, perms: ["channel_manage"] },
-  { to: "/admin-audit", label: "Audit Log", icon: IconAudit, superOnly: true },
+  { to: "/dashboard", labelKey: "nav.overview", icon: IconOverview },
+  { to: "/conversation", labelKey: "nav.conversation", icon: IconConversation },
+  { to: "/workflows", labelKey: "nav.workflows", icon: IconWorkflows, perms: ["workflow_list"], tourTarget: "nav-workflows" },
+  { to: "/templates", labelKey: "nav.agents", icon: IconAgents, perms: ["conversation_profile_list"], tourTarget: "nav-agents" },
+  { to: "/events", labelKey: "nav.executions", icon: IconExecutions, perms: ["workflow_list"], tourTarget: "nav-events" },
+  { to: "/rag", labelKey: "nav.rag", icon: IconRAG, perms: ["rag_read", "rag_query", "rag_ingest"], tourTarget: "nav-rag" },
+  { to: "/profiles", labelKey: "nav.users", icon: IconProfiles, perms: ["user_list"] },
+  { to: "/roles", labelKey: "nav.roles", icon: IconRoles, perms: ["role_list"] },
+  { to: "/permissions", labelKey: "nav.permissions", icon: IconPermissions, superOnly: true, perms: ["permission_list"] },
+  { to: "/tenants", labelKey: "nav.tenants", icon: IconTenants, superOnly: true },
+  { to: "/channels", labelKey: "nav.channels", icon: IconChannels, perms: ["channel_manage"] },
+  { to: "/llm-config", labelKey: "nav.llmConfig", icon: IconLLMConfig, perms: ["channel_manage"] },
+  { to: "/mcp-config", labelKey: "nav.mcpServers", icon: IconMCPConfig, perms: ["channel_manage"] },
+  { to: "/admin-audit", labelKey: "nav.auditLog", icon: IconAudit, superOnly: true },
   // Visible to every authenticated user — LGPD Art. 18 self-service.
-  { to: "/account/privacy", label: "Minha Privacidade", icon: IconPrivacy },
+  { to: "/account/privacy", labelKey: "nav.myPrivacy", icon: IconPrivacy },
 ];
 
 function initialsFromUser(name?: string, email?: string): string {
@@ -129,6 +143,7 @@ function initialsFromUser(name?: string, email?: string): string {
 
 export function Rail() {
   const location = useLocation();
+  const { t } = useTranslation();
   const { user, isSuper, hasPermission, logout } = useAuth();
   const confirm = useConfirm();
 
@@ -153,17 +168,18 @@ export function Rail() {
             to={link.to}
             className="rail-link"
             data-active={isActive(link) ? "true" : undefined}
+            data-tour={link.tourTarget}
           >
             <link.icon size={18} />
-            <span className="tip">{link.label}</span>
+            <span className="tip">{t(link.labelKey)}</span>
           </NavLink>
         ))}
       </nav>
       <div className="rail-spacer"></div>
       <div
         className="rail-avatar"
-        title={user ? `${user.name} (${user.email})` : "Usuário"}
-        aria-label={user ? `Usuário ${user.name}` : "Usuário"}
+        title={user ? `${user.name} (${user.email})` : t("nav_user_aria", { name: "" })}
+        aria-label={t("nav_user_aria", { name: user?.name ?? "" })}
       >
         {initialsFromUser(user?.name, user?.email)}
       </div>
@@ -172,17 +188,17 @@ export function Rail() {
         className="rail-link"
         onClick={async () => {
           const ok = await confirm({
-            title: "Sair da conta",
-            message: "Você precisará fazer login novamente para acessar o app.",
-            confirmLabel: "Sair",
+            title: t("nav_logout_confirm.title"),
+            message: t("nav_logout_confirm.message"),
+            confirmLabel: t("nav_logout_confirm.confirmLabel"),
           });
           if (ok) logout();
         }}
-        aria-label="Sair"
+        aria-label={t("nav.logout")}
         style={{ background: "transparent", border: "none", marginTop: 8, cursor: "pointer" }}
       >
         <IconLogout size={18} />
-        <span className="tip">Sair</span>
+        <span className="tip">{t("nav.logout")}</span>
       </button>
     </aside>
   );

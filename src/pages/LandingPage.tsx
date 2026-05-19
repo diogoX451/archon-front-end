@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import type { CSSProperties, MouseEvent, PropsWithChildren } from "react";
 import { useDocumentMeta } from "@shared/hooks/useDocumentMeta";
 import { Menu, X } from "lucide-react";
+import { SIGNUP_ENABLED } from "@shared/signup-config";
 
 const WHATSAPP_URL =
   "https://wa.me/5562999722708?text=Ol%C3%A1%21%20Quero%20conhecer%20o%20Archon.";
@@ -90,6 +91,7 @@ function Header() {
         </a>
       ))}
       <Link to="/login" style={navLink} onClick={() => setOpen(false)}>Entrar</Link>
+      {SIGNUP_ENABLED && <Link to="/signup" style={navLink} onClick={() => setOpen(false)}>Criar conta</Link>}
       <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={ctaSmall} onClick={() => setOpen(false)}>
         WhatsApp →
       </a>
@@ -121,6 +123,11 @@ function Header() {
         <Link to="/login" style={{ ...mobileNavLink, marginTop: 8 }} onClick={() => setOpen(false)}>
           Entrar
         </Link>
+        {SIGNUP_ENABLED && (
+          <Link to="/signup" style={mobileNavLink} onClick={() => setOpen(false)}>
+            Criar conta
+          </Link>
+        )}
         <a
           href={WHATSAPP_URL}
           target="_blank"
@@ -502,6 +509,7 @@ function Footer() {
           <Link to="/terms" style={navLink}>Termos</Link>
           <Link to="/dpo" style={navLink}>DPO</Link>
           <Link to="/login" style={navLink}>Entrar</Link>
+          {SIGNUP_ENABLED && <Link to="/signup" style={navLink}>Criar conta</Link>}
           <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={navLink}>WhatsApp</a>
         </nav>
       </div>

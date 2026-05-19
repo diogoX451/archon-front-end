@@ -1,0 +1,179 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "conversation": "Conversations",
+    "workflows": "Workflows",
+    "agents": "Agents",
+    "executions": "Executions",
+    "rag": "RAG Bases",
+    "users": "Users",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "tenants": "Tenants",
+    "channels": "Channels",
+    "llmConfig": "LLM Config",
+    "mcpServers": "MCP Servers",
+    "auditLog": "Audit Log",
+    "myPrivacy": "My Privacy",
+    "logout": "Logout"
+  },
+  "nav_logout_confirm": {
+    "title": "Sign out",
+    "message": "You will need to log in again to access the app.",
+    "confirmLabel": "Sign out"
+  },
+  "nav_user_aria": "User {{name}}",
+  "breadcrumbs": {
+    "overview": "Overview",
+    "dashboard": "General panel",
+    "conversation": "Conversations",
+    "conv": "conv {{id}}",
+    "workflows": "Workflows",
+    "workflowList": "List",
+    "workflowResult": "Result",
+    "workflowResultId": "id {{id}}",
+    "workflowBuilder": "Builder",
+    "workflowBuilderNew": "new",
+    "workflowBuilderId": "id {{id}}",
+    "agents": "Agents",
+    "agentTemplates": "Templates",
+    "executions": "Executions",
+    "observability": "Observability",
+    "rag": "RAG",
+    "ragBases": "Bases",
+    "users": "Users",
+    "usersManagement": "Management",
+    "tenants": "Tenants",
+    "tenantsOrgs": "Organizations",
+    "admin": "Admin",
+    "adminAuditLog": "Audit Log",
+    "llmConfig": "LLM Configuration"
+  },
+  "tour": {
+    "nav": {
+      "title": "Navigation tour",
+      "steps": {
+        "rail_overview": {
+          "title": "Side menu",
+          "content": "This is the main menu. Each icon leads to a section of the platform."
+        },
+        "rail_workflows": {
+          "title": "Workflows",
+          "content": "Create and manage your automation flows with AI agents."
+        },
+        "rail_agents": {
+          "title": "Agents",
+          "content": "Configure agent profiles that will be used in your workflows."
+        },
+        "rail_events": {
+          "title": "Executions",
+          "content": "Track the execution history of your workflows in real time."
+        },
+        "rail_rag": {
+          "title": "RAG Bases",
+          "content": "Manage the knowledge bases that power your agents."
+        },
+        "rail_avatar": {
+          "title": "Your account",
+          "content": "Your profile and privacy settings."
+        },
+        "cta": {
+          "title": "Ready to start?",
+          "content": "Click Workflows then New agent to create your first AI agent. The builder tour will guide you step by step!"
+        }
+      },
+      "skip": "Skip tour",
+      "back": "Back",
+      "next": "Next",
+      "finish": "Create my first agent →"
+    },
+    "rag": {
+      "title": "RAG Bases tour",
+      "steps": {
+        "stats": {
+          "title": "Metrics panel",
+          "content": "Here you see a real-time summary: how many bases exist, total documents, indexed chunks, and how many queries and ingestions happened in the last 24 hours."
+        },
+        "create_btn": {
+          "title": "Create a knowledge base",
+          "content": "Click here to create a new Knowledge Base. Give it a name, a unique identifier, and a description — the base will be ready to receive documents."
+        },
+        "kb_list": {
+          "title": "Your knowledge bases",
+          "content": "Each card represents a base. Click 'Open base documents' to see indexed documents, the semantic coverage score, and add new files."
+        },
+        "docs_section": {
+          "title": "Documents and coverage",
+          "content": "When you open a base you see all ingested documents, the indexing status of each one (pending → indexed), and you can add new files by clicking 'Add Document'."
+        },
+        "coverage": {
+          "title": "Semantic Coverage",
+          "content": "This indicator shows how well the documents cover the semantic space of the base. The higher it is, the more varied and complete the contents — this improves the quality of agent responses."
+        },
+        "add_doc": {
+          "title": "Ingest documents",
+          "content": "Add PDFs, DOCX, TXT, Markdown, CSV, JSON and other formats (up to 25 MB). Archon splits the file into chunks, generates embeddings, and indexes them vectorially — in seconds the agent can already query the content."
+        }
+      },
+      "skip": "Skip tour",
+      "back": "Back",
+      "next": "Next",
+      "finish": "Create my first base →"
+    },
+    "workflowBuilder": {
+      "title": "Workflow Builder tour",
+      "steps": {
+        "overview": {
+          "title": "Welcome to the Builder",
+          "content": "Here you build AI agents visually — no code needed. Drag nodes, connect them, and configure agent behavior in minutes."
+        },
+        "palette": {
+          "title": "Node palette",
+          "content": "All available node types are here: Planner (LLM reasoning), HTTP, RAG, Transformers and more. Drag any item onto the canvas."
+        },
+        "planner": {
+          "title": "Start with the Planner",
+          "content": "The Planner is the heart of every agent. It receives the user message, reasons via LLM, and decides which action to take. Drag it to the canvas!"
+        },
+        "canvas": {
+          "title": "Build your flow here",
+          "content": "Drop the Planner on the canvas and add more nodes. Connect them by dragging from the output port (right) of one node to the input port (left) of another."
+        },
+        "inspector": {
+          "title": "Configure each node",
+          "content": "Click any node to open the Inspector. Here you set the LLM provider, model, system instructions and all agent parameters."
+        },
+        "nameInput": {
+          "title": "Name your agent",
+          "content": "Give the agent a descriptive name. The ID below is auto-generated and identifies the agent in the API — you can edit it before saving."
+        },
+        "save": {
+          "title": "Save to backend",
+          "content": "Click Save to persist the agent. It will be available for conversations, tests and API integrations."
+        },
+        "simulate": {
+          "title": "Test right away",
+          "content": "Use Simulate to send a real message to the agent and watch the execution flow step by step in the events panel."
+        }
+      },
+      "skip": "Skip tour",
+      "back": "Back",
+      "next": "Next",
+      "finish": "Let's build!"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

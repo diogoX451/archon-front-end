@@ -4,6 +4,7 @@ import { useAuth } from "@app/auth-context";
 import { ApiError } from "@shared/api/client";
 import { ConsentCheckbox } from "@shared/ui/ConsentCheckbox";
 import { LegalFooter } from "@shared/ui/LegalFooter";
+import { SIGNUP_ENABLED } from "@shared/signup-config";
 
 const CONSENT_KEY = "archon-login-consent-v1";
 
@@ -179,6 +180,9 @@ export function LoginPage() {
               )}
             </button>
           </div>
+          <Link to="/forgot-password" style={{ marginTop: 6, fontSize: 12, color: "var(--accent-ink)", textDecoration: "none", alignSelf: "flex-start" }}>
+            Esqueci minha senha
+          </Link>
         </label>
 
         {error && (
@@ -241,6 +245,14 @@ export function LoginPage() {
         <Link to="/" style={{ color: "var(--accent-ink)", fontWeight: 500, textDecoration: "none" }}>
           Ver a plataforma →
         </Link>
+        {SIGNUP_ENABLED && (
+          <>
+            {" · "}
+            <Link to="/signup" style={{ color: "var(--accent-ink)", fontWeight: 500, textDecoration: "none" }}>
+              Criar conta
+            </Link>
+          </>
+        )}
       </p>
     </div>
   );

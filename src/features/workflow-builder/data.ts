@@ -90,6 +90,16 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     glyph: "delivery",
     defaultConfig: { channel: "whatsapp" },
   },
+  mcp: {
+    label: "MCP Tool",
+    category: "I/O Externo",
+    description:
+      "Invoca uma tool de um MCP server cadastrado para o tenant. O servidor é resolvido pelo registry em tempo de execução.",
+    ports: { principal: ["trigger"], auxiliary: ["response"] },
+    needType: "mcp",
+    glyph: "mcp",
+    defaultConfig: { mcp_name: "", tool: "" },
+  },
   // Runtime-only: alvos de planner.actions[].agent_type, não entram na
   // paleta. Definidos aqui para que profiles legacy renderizem.
   event: {

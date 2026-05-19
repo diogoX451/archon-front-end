@@ -10,6 +10,7 @@ import { GhostActionNode, type GhostAction } from "./GhostActionNode";
 import { GLYPHS, GlyphPlanner, IconPlay, IconReset, IconValidate, IconCursor, IconHand, IconMinus, IconPlus } from "@shared/ui/icons/Icons";
 import { Rail } from "@shared/ui/Rail";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { TourOrchestrator, useTourAutoStart } from "@shared/tour";
 import { useAuth } from "@app/auth-context";
 import { canAny } from "@shared/authz";
 import { useProfiles, useUpsertProfile } from "@shared/hooks/useProfiles";
@@ -141,6 +142,7 @@ function bezierPath(a: {x: number, y: number}, b: {x: number, y: number}) {
 }
 
 export function WorkflowBuilder() {
+  useTourAutoStart("workflow-builder", 1000);
   const { isSuper, hasPermission } = useAuth();
   const canSaveProfile = canAny({ isSuper, hasPermission }, ["workflow_update", "workflow_create"]);
   const { id: routeId } = useParams<{ id?: string }>();
@@ -675,12 +677,13 @@ export function WorkflowBuilder() {
         data-inspector={inspectorTab && (selectedAgent || selectedConn || inspectorTab === "input" || inspectorTab === "rules") ? "open" : "open"}
         data-palette={paletteOpen ? "open" : "closed"}
       >
-        <div className="topbar">
+        <div className="topbar" data-tour="builder-toolbar">
           <div className="crumbs">
             <DynamicBreadcrumbs mode="inline" includeWorkspace />
           </div>
           <input
             className="workflow-name"
+            data-tour="builder-name-input"
             value={workflow.name}
             onChange={(e) => setWorkflow((w) => ({ ...w, name: e.target.value }))}
             placeholder="Nome do agente"
@@ -745,6 +748,7 @@ export function WorkflowBuilder() {
 
           <button
             className="btn primary"
+            data-tour="builder-save-btn"
             onClick={handleSave}
             disabled={upsertMutation.isPending || !canSaveProfile}
             title="Persistir profile no backend (POST /api/v1/profiles)"
@@ -765,7 +769,7 @@ export function WorkflowBuilder() {
             <span>Testar</span>
           </button>
 
-          <button className="btn" onClick={run} disabled={runState === "running"} title="Simulação local (não chama o backend)">
+          <button className="btn" data-tour="builder-simulate-btn" onClick={run} disabled={runState === "running"} title="Simulação local (não chama o backend)">
             <IconPlay className="icon" />
             <span>Simular</span>
           </button>
@@ -775,6 +779,7 @@ export function WorkflowBuilder() {
 
         <div
           className="canvas-wrap"
+          data-tour="builder-canvas"
           ref={canvasRef}
           onMouseDown={(e) => {
             const isMiddle = e.button === 1;
@@ -1002,6 +1007,8 @@ export function WorkflowBuilder() {
           </div>
         </div>
       )}
+
+      <TourOrchestrator />
 
       {simulationModalOpen && (
         <div style={overlayStyle} onClick={() => { setSimulationModalOpen(false); setRunState("idle"); }}>

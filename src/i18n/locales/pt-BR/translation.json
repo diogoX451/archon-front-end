@@ -1,0 +1,179 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "conversation": "Conversas",
+    "workflows": "Workflows",
+    "agents": "Agentes",
+    "executions": "Execuções",
+    "rag": "Bases RAG",
+    "users": "Usuários",
+    "roles": "Papéis",
+    "permissions": "Permissões",
+    "tenants": "Tenants",
+    "channels": "Canais",
+    "llmConfig": "LLM Config",
+    "mcpServers": "MCP Servers",
+    "auditLog": "Audit Log",
+    "myPrivacy": "Minha Privacidade",
+    "logout": "Sair"
+  },
+  "nav_logout_confirm": {
+    "title": "Sair da conta",
+    "message": "Você precisará fazer login novamente para acessar o app.",
+    "confirmLabel": "Sair"
+  },
+  "nav_user_aria": "Usuário {{name}}",
+  "breadcrumbs": {
+    "overview": "Overview",
+    "dashboard": "Painel geral",
+    "conversation": "Conversas",
+    "conv": "conv {{id}}",
+    "workflows": "Workflows",
+    "workflowList": "Lista",
+    "workflowResult": "Resultado",
+    "workflowResultId": "id {{id}}",
+    "workflowBuilder": "Builder",
+    "workflowBuilderNew": "novo",
+    "workflowBuilderId": "id {{id}}",
+    "agents": "Agentes",
+    "agentTemplates": "Templates",
+    "executions": "Execuções",
+    "observability": "Observabilidade",
+    "rag": "RAG",
+    "ragBases": "Bases",
+    "users": "Usuários",
+    "usersManagement": "Gestão",
+    "tenants": "Tenants",
+    "tenantsOrgs": "Organizações",
+    "admin": "Admin",
+    "adminAuditLog": "Audit Log",
+    "llmConfig": "Configuração LLM"
+  },
+  "tour": {
+    "nav": {
+      "title": "Tour de navegação",
+      "steps": {
+        "rail_overview": {
+          "title": "Menu lateral",
+          "content": "Este é o menu principal. Cada ícone leva a uma seção da plataforma."
+        },
+        "rail_workflows": {
+          "title": "Workflows",
+          "content": "Crie e gerencie seus fluxos de automação com agentes de IA."
+        },
+        "rail_agents": {
+          "title": "Agentes",
+          "content": "Configure os perfis de agente que serão usados nos seus workflows."
+        },
+        "rail_events": {
+          "title": "Execuções",
+          "content": "Acompanhe em tempo real o histórico de execução dos seus workflows."
+        },
+        "rail_rag": {
+          "title": "Bases RAG",
+          "content": "Gerencie as bases de conhecimento que alimentam seus agentes."
+        },
+        "rail_avatar": {
+          "title": "Sua conta",
+          "content": "Seu perfil e configurações de privacidade (LGPD Art. 18)."
+        },
+        "cta": {
+          "title": "Pronto para começar?",
+          "content": "Clique em Workflows e depois em Novo agente para criar o seu primeiro agente de IA. O tour do builder vai te guiar passo a passo!"
+        }
+      },
+      "skip": "Pular tour",
+      "back": "Voltar",
+      "next": "Próximo",
+      "finish": "Criar meu primeiro agente →"
+    },
+    "rag": {
+      "title": "Tour das Bases RAG",
+      "steps": {
+        "stats": {
+          "title": "Painel de métricas",
+          "content": "Aqui você vê um resumo em tempo real: quantas bases existem, total de documentos, chunks indexados e quantas consultas e ingestões ocorreram nas últimas 24 horas."
+        },
+        "create_btn": {
+          "title": "Criar uma base de conhecimento",
+          "content": "Clique aqui para criar uma nova Base de Conhecimento. Dê um nome, um identificador único e uma descrição — a base ficará pronta para receber documentos."
+        },
+        "kb_list": {
+          "title": "Suas bases de conhecimento",
+          "content": "Cada card representa uma base. Clique em 'Abrir documentos da base' para ver os documentos indexados, o score de cobertura semântica e adicionar novos arquivos."
+        },
+        "docs_section": {
+          "title": "Documentos e cobertura",
+          "content": "Ao abrir uma base você vê todos os documentos ingeridos, o status de indexação de cada um (pending → indexed) e pode adicionar novos arquivos clicando em 'Adicionar Documento'."
+        },
+        "coverage": {
+          "title": "Cobertura Semântica",
+          "content": "Este indicador mostra quão bem os documentos cobrem o espaço semântico da base. Quanto maior, mais variados e completos são os conteúdos — isso melhora a qualidade das respostas dos agentes."
+        },
+        "add_doc": {
+          "title": "Ingerir documentos",
+          "content": "Adicione PDFs, DOCX, TXT, Markdown, CSV, JSON e outros formatos (até 25 MB). O Archon quebra o arquivo em chunks, gera embeddings e indexa vetorialmente — em segundos o agente já pode consultar o conteúdo."
+        }
+      },
+      "skip": "Pular tour",
+      "back": "Voltar",
+      "next": "Próximo",
+      "finish": "Criar minha primeira base →"
+    },
+    "workflowBuilder": {
+      "title": "Tour do Workflow Builder",
+      "steps": {
+        "overview": {
+          "title": "Bem-vindo ao Builder",
+          "content": "Aqui você monta agentes de IA visualmente — sem código. Arraste nós, conecte-os e configure o comportamento do agente em minutos."
+        },
+        "palette": {
+          "title": "Paleta de tipos",
+          "content": "Aqui estão todos os tipos de nó disponíveis: Planner (raciocínio LLM), HTTP, RAG, Transformadores e mais. Arraste qualquer item para o canvas."
+        },
+        "planner": {
+          "title": "Comece com o Planner",
+          "content": "O Planner é o coração de todo agente. Ele recebe a mensagem do usuário, raciocina via LLM e decide qual ação executar. Arraste-o para o canvas!"
+        },
+        "canvas": {
+          "title": "Monte o fluxo aqui",
+          "content": "Solte o Planner no canvas e adicione outros nós. Conecte as portas arrastando da saída (direita) de um nó até a entrada (esquerda) de outro."
+        },
+        "inspector": {
+          "title": "Configure cada nó",
+          "content": "Clique em qualquer nó para abrir o Inspector. Aqui você define o provider LLM, modelo, instructions do sistema e todos os parâmetros do agente."
+        },
+        "nameInput": {
+          "title": "Nomeie seu agente",
+          "content": "Dê um nome descritivo ao agente. O ID abaixo é gerado automaticamente e identifica o agente na API — você pode editá-lo antes de salvar."
+        },
+        "save": {
+          "title": "Salve no backend",
+          "content": "Clique em Salvar para persistir o agente. Ele ficará disponível para conversas, testes e integrações via API."
+        },
+        "simulate": {
+          "title": "Teste na hora",
+          "content": "Use Simular para enviar uma mensagem real ao agente e ver o fluxo de execução passo a passo no painel de eventos."
+        }
+      },
+      "skip": "Pular tour",
+      "back": "Voltar",
+      "next": "Próximo",
+      "finish": "Vamos criar!"
+    }
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error": "Ocorreu um erro",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "yes": "Sim",
+    "no": "Não"
+  }
+}

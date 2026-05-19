@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 type DynamicBreadcrumbsProps = {
   mode?: "page" | "inline";
@@ -18,46 +19,57 @@ function titleize(seg: string): string {
     .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-function buildCrumbs(pathname: string, search: string): string[] {
+type CrumbKey = { key: string; params?: Record<string, string> };
+
+function buildCrumbKeys(pathname: string, search: string): CrumbKey[] {
   const q = new URLSearchParams(search);
-  if (pathname === "/") return ["Overview", "Painel geral"];
+  if (pathname === "/") return [{ key: "breadcrumbs.overview" }, { key: "breadcrumbs.dashboard" }];
   if (pathname.startsWith("/conversation")) {
-    const out = ["Conversation"];
+    const out: CrumbKey[] = [{ key: "breadcrumbs.conversation" }];
     const conv = q.get("conv");
-    if (conv) out.push(`conv ${shortId(conv)}`);
+    if (conv) out.push({ key: "breadcrumbs.conv", params: { id: shortId(conv) } });
     return out;
   }
-  if (pathname === "/workflows") return ["Workflows", "Lista"];
+  if (pathname === "/workflows") return [{ key: "breadcrumbs.workflows" }, { key: "breadcrumbs.workflowList" }];
   if (pathname.startsWith("/workflows/result")) {
-    const out = ["Workflows", "Resultado"];
+    const out: CrumbKey[] = [{ key: "breadcrumbs.workflows" }, { key: "breadcrumbs.workflowResult" }];
     const id = q.get("id");
-    if (id) out.push(`id ${shortId(id)}`);
+    if (id) out.push({ key: "breadcrumbs.workflowResultId", params: { id: shortId(id) } });
     return out;
   }
   if (pathname.startsWith("/workflows/builder")) {
-    const out = ["Workflows", "Builder"];
+    const out: CrumbKey[] = [{ key: "breadcrumbs.workflows" }, { key: "breadcrumbs.workflowBuilder" }];
     const parts = pathname.split("/").filter(Boolean);
     const maybeId = parts[2];
-    if (maybeId) out.push(maybeId === "new" ? "novo" : shortId(maybeId));
+    if (maybeId)
+      out.push(
+        maybeId === "new"
+          ? { key: "breadcrumbs.workflowBuilderNew" }
+          : { key: "breadcrumbs.workflowBuilderId", params: { id: shortId(maybeId) } }
+      );
     return out;
   }
-  if (pathname.startsWith("/templates")) return ["Agentes", "Templates"];
-  if (pathname.startsWith("/events")) return ["Execuções", "Observabilidade"];
-  if (pathname.startsWith("/rag")) return ["RAG", "Bases"];
-  if (pathname.startsWith("/profiles")) return ["Usuários", "Gestão"];
-  if (pathname.startsWith("/tenants")) return ["Tenants", "Organizações"];
-  if (pathname.startsWith("/admin-audit")) return ["Admin", "Audit Log"];
-  if (pathname.startsWith("/llm-config")) return ["Admin", "Configuração LLM"];
+  if (pathname.startsWith("/templates")) return [{ key: "breadcrumbs.agents" }, { key: "breadcrumbs.agentTemplates" }];
+  if (pathname.startsWith("/events")) return [{ key: "breadcrumbs.executions" }, { key: "breadcrumbs.observability" }];
+  if (pathname.startsWith("/rag")) return [{ key: "breadcrumbs.rag" }, { key: "breadcrumbs.ragBases" }];
+  if (pathname.startsWith("/profiles")) return [{ key: "breadcrumbs.users" }, { key: "breadcrumbs.usersManagement" }];
+  if (pathname.startsWith("/tenants")) return [{ key: "breadcrumbs.tenants" }, { key: "breadcrumbs.tenantsOrgs" }];
+  if (pathname.startsWith("/admin-audit")) return [{ key: "breadcrumbs.admin" }, { key: "breadcrumbs.adminAuditLog" }];
+  if (pathname.startsWith("/llm-config")) return [{ key: "breadcrumbs.admin" }, { key: "breadcrumbs.llmConfig" }];
   const segments = pathname.split("/").filter(Boolean);
-  return segments.map(titleize);
+  return segments.map((seg) => ({ key: `__raw__${titleize(seg)}` }));
 }
 
 export function DynamicBreadcrumbs({ mode = "page", includeWorkspace = false }: DynamicBreadcrumbsProps) {
   const location = useLocation();
+  const { t } = useTranslation();
   const crumbs = useMemo(() => {
-    const base = buildCrumbs(location.pathname, location.search);
-    return includeWorkspace ? ["Workspace", ...base] : base;
-  }, [location.pathname, location.search, includeWorkspace]);
+    const keys = buildCrumbKeys(location.pathname, location.search);
+    const base = keys.map(({ key, params }) =>
+      key.startsWith("__raw__") ? key.slice(7) : t(key, params)
+    );
+    return includeWorkspace ? [t("breadcrumbs.workspace", "Workspace"), ...base] : base;
+  }, [location.pathname, location.search, includeWorkspace, t]);
 
   const titleClass = mode === "page" ? "page-title" : undefined;
   const subClass = mode === "page" ? "page-sub" : undefined;

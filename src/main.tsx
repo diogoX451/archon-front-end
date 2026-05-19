@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { AppProviders } from "@app/providers";
 import { AppRouter } from "@app/router";
+import "./i18n";
 
 // Self-hosted Geist (LGPD: avoid third-party requests to fonts.googleapis.com
 // that would leak the user's IP to Google on every page load). Includes the
