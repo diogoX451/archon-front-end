@@ -778,7 +778,7 @@ function GhostActionInspector({ ghost }: { ghost: GhostAction }) {
 
 export function Inspector({ tab, setTab, selectedAgent, selectedConn, selectedGhost, workflow, meta, profile, onMetaChange, onUpdateAgent, onRemoveAgent, onRemoveConnection }: InspectorProps) {
   return (
-    <aside className="inspector">
+    <aside className="inspector" data-tour="builder-inspector">
       <div className="inspector-tabs">
         <button className="inspector-tab" data-active={tab === "config"} onClick={() => setTab("config")}>
           <IconSliders className="icon-sm" /> Inspetor

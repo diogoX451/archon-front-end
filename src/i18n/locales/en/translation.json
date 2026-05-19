@@ -1,0 +1,125 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "conversation": "Conversations",
+    "workflows": "Workflows",
+    "agents": "Agents",
+    "executions": "Executions",
+    "rag": "RAG Bases",
+    "users": "Users",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "tenants": "Tenants",
+    "channels": "Channels",
+    "llmConfig": "LLM Config",
+    "mcpServers": "MCP Servers",
+    "auditLog": "Audit Log",
+    "myPrivacy": "My Privacy",
+    "logout": "Logout"
+  },
+  "nav_logout_confirm": {
+    "title": "Sign out",
+    "message": "You will need to log in again to access the app.",
+    "confirmLabel": "Sign out"
+  },
+  "nav_user_aria": "User {{name}}",
+  "breadcrumbs": {
+    "overview": "Overview",
+    "dashboard": "General panel",
+    "conversation": "Conversations",
+    "conv": "conv {{id}}",
+    "workflows": "Workflows",
+    "workflowList": "List",
+    "workflowResult": "Result",
+    "workflowResultId": "id {{id}}",
+    "workflowBuilder": "Builder",
+    "workflowBuilderNew": "new",
+    "agents": "Agents",
+    "agentTemplates": "Templates",
+    "executions": "Executions",
+    "observability": "Observability",
+    "rag": "RAG",
+    "ragBases": "Bases",
+    "users": "Users",
+    "usersManagement": "Management",
+    "tenants": "Tenants",
+    "tenantsOrgs": "Organizations",
+    "admin": "Admin",
+    "adminAuditLog": "Audit Log",
+    "llmConfig": "LLM Configuration"
+  },
+  "tour": {
+    "nav": {
+      "title": "Navigation tour",
+      "steps": {
+        "rail_overview": {
+          "title": "Side menu",
+          "content": "This is the main menu. Each icon leads to a section of the platform."
+        },
+        "rail_workflows": {
+          "title": "Workflows",
+          "content": "Create and manage your automation flows with AI agents."
+        },
+        "rail_agents": {
+          "title": "Agents",
+          "content": "Configure agent profiles that will be used in your workflows."
+        },
+        "rail_events": {
+          "title": "Executions",
+          "content": "Track the execution history of your workflows in real time."
+        },
+        "rail_rag": {
+          "title": "RAG Bases",
+          "content": "Manage the knowledge bases that power your agents."
+        },
+        "rail_avatar": {
+          "title": "Your account",
+          "content": "Your profile and privacy settings."
+        }
+      },
+      "skip": "Skip tour",
+      "back": "Back",
+      "next": "Next",
+      "finish": "Get started"
+    },
+    "workflowBuilder": {
+      "title": "Workflow Builder tour",
+      "steps": {
+        "palette": {
+          "title": "Node palette",
+          "content": "Drag agent types from here to the canvas to build your workflow."
+        },
+        "canvas": {
+          "title": "Canvas",
+          "content": "Connect nodes by dragging edges between them to define the execution flow."
+        },
+        "inspector": {
+          "title": "Inspector",
+          "content": "Click on a node to configure its parameters in this right panel."
+        },
+        "toolbar": {
+          "title": "Action bar",
+          "content": "Save and run your workflow here. Execution status appears in real time."
+        }
+      },
+      "skip": "Skip tour",
+      "back": "Back",
+      "next": "Next",
+      "finish": "Got it!"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

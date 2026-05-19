@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
+import { TourProvider } from "@shared/tour";
 
 const client = new QueryClient({
   defaultOptions: {
@@ -11,5 +12,11 @@ const client = new QueryClient({
 });
 
 export function AppProviders({ children }: PropsWithChildren) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <TourProvider>
+        {children}
+      </TourProvider>
+    </QueryClientProvider>
+  );
 }
