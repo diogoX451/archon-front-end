@@ -81,7 +81,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  const PUBLIC_PATHS = new Set(["/", "/login", "/privacy", "/terms", "/dpo"]);
+  const PUBLIC_PATHS = new Set(["/", "/login", "/signup", "/auth/verify-email", "/forgot-password", "/reset-password", "/privacy", "/terms", "/dpo"]);
 
   // Wire the global 401 handler so any failing API call kicks the user
   // out and reroutes to /login. Skip redirect on public pages — the

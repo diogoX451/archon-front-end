@@ -39,5 +39,7 @@ npm install
 npm run dev
 ```
 
-Por padrão usa `VITE_ARCHON_API_URL=` (vazio), para chamar a API na mesma origem
-ou via proxy do Vite no `npm run dev`.
+Por padrão usa:
+
+- `VITE_ARCHON_API_URL=` (vazio), para chamar a API na mesma origem ou via proxy do Vite.
+- `VITE_ARCHON_SIGNUP_ENABLED=false` para manter cadastro público oculto no front.
