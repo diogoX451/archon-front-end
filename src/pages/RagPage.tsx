@@ -12,6 +12,7 @@ import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useConfirm, useToast } from "@shared/ui/feedback";
 import { useAuth } from "@app/auth-context";
 import { canAny } from "@shared/authz";
+import { useTourAutoStart } from "@shared/tour";
 
 // Upload validation (LGPD: minimização — só aceitar formatos esperados e
 // recusar arquivos absurdamente grandes antes de transitarem). O backend
@@ -197,12 +198,14 @@ export function RagPage() {
 
   const coveragePct = Math.max(0, Math.min(100, Math.round((coverage?.coverage_score || 0) * 100)));
 
+  useTourAutoStart("rag", 800);
+
   return (
     <>
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary" onClick={() => setShowCreateKBModal(true)} disabled={!effectiveTenantSlug || !canIngest}>
+        <button data-tour="rag-create-btn" className="btn primary" onClick={() => setShowCreateKBModal(true)} disabled={!effectiveTenantSlug || !canIngest}>
           <IconPlus size={14} /> Nova Base de Conhecimento
         </button>
       </div>
@@ -224,7 +227,7 @@ export function RagPage() {
           </div>
         )}
 
-        <div className="stat-grid">
+        <div className="stat-grid" data-tour="rag-stats">
           <div className="stat"><div className="label">Knowledge Bases</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.knowledge_bases_total ?? "…") : "—"}</div></div>
           <div className="stat"><div className="label">Documentos</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.documents_total ?? "…") : "—"}</div></div>
           <div className="stat"><div className="label">Chunks</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.chunks_total ?? "…") : "—"}</div></div>
@@ -236,7 +239,7 @@ export function RagPage() {
         {kbsQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Erro ao carregar bases de conhecimento.</div>}
 
         <div className="section-head" style={{ marginTop: 18 }}><h2>Bases de Conhecimento</h2></div>
-        <div className="card-grid">
+        <div className="card-grid" data-tour="rag-kb-list">
           {kbs.map((kb) => (
             <div key={kb.id} className="card">
               <div className="card-header">
@@ -257,15 +260,16 @@ export function RagPage() {
           ))}
         </div>
 
+        <div data-tour="rag-docs-section">
         {!!selectedKBID && (
           <>
             <div className="section-head" style={{ marginTop: 28 }}>
               <h2>Documentos da KB: <span className="mono">{selectedKBID}</span></h2>
               <div style={{ flex: 1 }}></div>
-              <button className="btn primary" onClick={() => setShowIngestModal(true)} disabled={!canIngest}>Adicionar Documento</button>
+              <button data-tour="rag-add-doc-btn" className="btn primary" onClick={() => setShowIngestModal(true)} disabled={!canIngest}>Adicionar Documento</button>
             </div>
 
-            <div className="card" style={{ marginBottom: 12 }}>
+            <div data-tour="rag-coverage" className="card" style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, fontSize: 12 }}>
                 <span>Cobertura Semântica</span>
                 <span className="mono">{coveragePct}%</span>
@@ -278,7 +282,7 @@ export function RagPage() {
             {docsQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Erro ao carregar documentos.</div>}
             {coverageQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Erro ao carregar cobertura.</div>}
 
-            <table className="table">
+            <table data-tour="rag-docs-table" className="table">
               <thead>
                 <tr>
                   <th>Título</th>
@@ -306,6 +310,7 @@ export function RagPage() {
             </table>
           </>
         )}
+        </div>
       </div>
 
       {showCreateKBModal && canIngest && (

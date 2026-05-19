@@ -87,6 +87,39 @@
       "next": "Próximo",
       "finish": "Criar meu primeiro agente →"
     },
+    "rag": {
+      "title": "Tour das Bases RAG",
+      "steps": {
+        "stats": {
+          "title": "Painel de métricas",
+          "content": "Aqui você vê um resumo em tempo real: quantas bases existem, total de documentos, chunks indexados e quantas consultas e ingestões ocorreram nas últimas 24 horas."
+        },
+        "create_btn": {
+          "title": "Criar uma base de conhecimento",
+          "content": "Clique aqui para criar uma nova Base de Conhecimento. Dê um nome, um identificador único e uma descrição — a base ficará pronta para receber documentos."
+        },
+        "kb_list": {
+          "title": "Suas bases de conhecimento",
+          "content": "Cada card representa uma base. Clique em 'Abrir documentos da base' para ver os documentos indexados, o score de cobertura semântica e adicionar novos arquivos."
+        },
+        "docs_section": {
+          "title": "Documentos e cobertura",
+          "content": "Ao abrir uma base você vê todos os documentos ingeridos, o status de indexação de cada um (pending → indexed) e pode adicionar novos arquivos clicando em 'Adicionar Documento'."
+        },
+        "coverage": {
+          "title": "Cobertura Semântica",
+          "content": "Este indicador mostra quão bem os documentos cobrem o espaço semântico da base. Quanto maior, mais variados e completos são os conteúdos — isso melhora a qualidade das respostas dos agentes."
+        },
+        "add_doc": {
+          "title": "Ingerir documentos",
+          "content": "Adicione PDFs, DOCX, TXT, Markdown, CSV, JSON e outros formatos (até 25 MB). O Archon quebra o arquivo em chunks, gera embeddings e indexa vetorialmente — em segundos o agente já pode consultar o conteúdo."
+        }
+      },
+      "skip": "Pular tour",
+      "back": "Voltar",
+      "next": "Próximo",
+      "finish": "Criar minha primeira base →"
+    },
     "workflowBuilder": {
       "title": "Tour do Workflow Builder",
       "steps": {

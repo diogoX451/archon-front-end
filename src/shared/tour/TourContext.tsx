@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 
-export type TourId = "nav" | "workflow-builder";
+export type TourId = "nav" | "workflow-builder" | "rag";
 
 type TourRecord = {
   completed: boolean;

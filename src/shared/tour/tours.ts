@@ -73,6 +73,43 @@ export const tourDefinitions: Record<TourId, TourDefinition> = {
   // Nav steps are generated dynamically in TourOrchestrator — see navStepDefs.
   nav: { steps: [] },
 
+  rag: {
+    steps: [
+      // 1 — Stats panel
+      {
+        target: "[data-tour='rag-stats']",
+        placement: "bottom",
+        skipBeacon: true,
+        title: "tour.rag.steps.stats.title",
+        content: "tour.rag.steps.stats.content",
+      },
+      // 2 — Create KB button
+      {
+        target: "[data-tour='rag-create-btn']",
+        placement: "bottom",
+        skipBeacon: true,
+        title: "tour.rag.steps.create_btn.title",
+        content: "tour.rag.steps.create_btn.content",
+      },
+      // 3 — KB card list
+      {
+        target: "[data-tour='rag-kb-list']",
+        placement: "top",
+        skipBeacon: true,
+        title: "tour.rag.steps.kb_list.title",
+        content: "tour.rag.steps.kb_list.content",
+      },
+      // 4 — Documents section (persistent wrapper — empty until a KB is selected)
+      {
+        target: "[data-tour='rag-docs-section']",
+        placement: "top",
+        skipBeacon: true,
+        title: "tour.rag.steps.docs_section.title",
+        content: "tour.rag.steps.docs_section.content",
+      },
+    ],
+  },
+
   "workflow-builder": {
     steps: [
       // 1 — Overview do builder

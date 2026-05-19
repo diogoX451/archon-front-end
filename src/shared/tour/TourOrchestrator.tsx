@@ -52,7 +52,12 @@ export function TourOrchestrator() {
 
   if (!activeTour || steps.length === 0) return null;
 
-  const localeKey = activeTour === "nav" ? "tour.nav" : "tour.workflowBuilder";
+  const tourLocaleKeys: Record<string, string> = {
+    nav: "tour.nav",
+    "workflow-builder": "tour.workflowBuilder",
+    rag: "tour.rag",
+  };
+  const localeKey = tourLocaleKeys[activeTour] ?? "tour.nav";
 
   function handleEvent(data: EventData, _controls: Controls) {
     const { status } = data;
