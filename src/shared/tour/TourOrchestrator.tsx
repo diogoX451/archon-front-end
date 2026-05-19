@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Joyride, STATUS } from "react-joyride";
 import type { EventData, Controls, Step } from "react-joyride";
 import { useTranslation } from "react-i18next";
@@ -6,9 +7,7 @@ import { canAny } from "@shared/authz";
 import { useTour } from "./TourContext";
 import { tourDefinitions, navStepDefs } from "./tours";
 
-/** Builds nav tour steps filtered to the links actually visible for this user.
- *  A step is only included when the user has at least one of its required
- *  permissions (or the step has no permission requirement at all). */
+/** Builds nav tour steps filtered to the links actually visible for this user. */
 function useNavSteps(t: (k: string) => string): Step[] {
   const { isSuper, hasPermission } = useAuth();
 
@@ -32,24 +31,28 @@ export function TourOrchestrator() {
   const { activeTour, endTour } = useTour();
   const navSteps = useNavSteps(t);
 
-  if (!activeTour) return null;
-
-  const localeKey = activeTour === "nav" ? "tour.nav" : "tour.workflowBuilder";
-
   const steps: Step[] =
     activeTour === "nav"
       ? navSteps
-      : tourDefinitions[activeTour].steps.map((step) => ({
+      : activeTour
+      ? tourDefinitions[activeTour].steps.map((step) => ({
           ...step,
           title: t(step.title as string),
           content: t(step.content as string),
-        }));
+        }))
+      : [];
 
-  // Nothing to show — all nav links hidden (edge case: bare-minimum user).
-  if (steps.length === 0) {
-    endTour();
-    return null;
-  }
+  // Edge case: tour active but no visible steps (user without permissions).
+  // Call endTour in an effect to avoid state update during render.
+  useEffect(() => {
+    if (activeTour && steps.length === 0) {
+      endTour();
+    }
+  }, [activeTour, steps.length, endTour]);
+
+  if (!activeTour || steps.length === 0) return null;
+
+  const localeKey = activeTour === "nav" ? "tour.nav" : "tour.workflowBuilder";
 
   function handleEvent(data: EventData, _controls: Controls) {
     const { status } = data;
