@@ -114,8 +114,8 @@ export const tourDefinitions: Record<TourId, TourDefinition> = {
     steps: [
       // 1 — Overview do builder
       {
-        target: "[data-tour='builder-canvas']",
-        placement: "center",
+        target: "[data-tour='builder-toolbar']",
+        placement: "bottom",
         skipBeacon: true,
         title: "tour.workflowBuilder.steps.overview.title",
         content: "tour.workflowBuilder.steps.overview.content",
@@ -138,8 +138,8 @@ export const tourDefinitions: Record<TourId, TourDefinition> = {
       },
       // 4 — Canvas (onde soltar o nó)
       {
-        target: "[data-tour='builder-canvas']",
-        placement: "center",
+        target: "[data-tour='builder-canvas-tools']",
+        placement: "right",
         skipBeacon: true,
         title: "tour.workflowBuilder.steps.canvas.title",
         content: "tour.workflowBuilder.steps.canvas.content",

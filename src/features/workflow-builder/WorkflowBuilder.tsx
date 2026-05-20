@@ -930,7 +930,7 @@ export function WorkflowBuilder() {
             ))}
           </div>
 
-          <div className="canvas-toolbar">
+          <div className="canvas-toolbar" data-tour="builder-canvas-tools">
             <button className="tool" data-active={tool === "select"} onClick={() => setTool("select")} title="Selecionar (V)">
               <IconCursor className="icon-sm" />
               <span>Selecionar</span>
