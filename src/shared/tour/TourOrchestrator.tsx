@@ -72,7 +72,6 @@ export function TourOrchestrator() {
       run={true}
       continuous
       scrollToFirstStep
-      spotlightClicks
       locale={{
         skip: t(`${localeKey}.skip`),
         back: t(`${localeKey}.back`),
