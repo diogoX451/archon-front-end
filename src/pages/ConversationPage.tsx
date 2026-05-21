@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { IconPlus } from "@shared/ui/icons/Icons";
@@ -18,6 +18,9 @@ import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useConfirm } from "@shared/ui/feedback";
 import { useAuth } from "@app/auth-context";
 import { canAny } from "@shared/authz";
+import { useEventStream } from "@shared/hooks/useEventStream";
+import { useGraphProfile } from "@shared/hooks/useGraphProfile";
+import type { UserGraphProfile } from "@shared/api/graphProfile";
 
 function extractAssistantText(output: any): string {
   if (output == null) return "";
@@ -39,10 +42,6 @@ function extractAssistantText(output: any): string {
   }
 }
 
-/**
- * Invisible poller for a pending workflow. Drives status → result → invalidate
- * conversation turns cache so the assistant message lands automatically.
- */
 function TurnResolver({
   workflowId,
   conversationId,
@@ -67,13 +66,207 @@ function TurnResolver({
   useEffect(() => {
     if (done || !result) return;
     setDone(true);
-    // Backend already backfills conversation_turns.output via GET /result.
-    // Invalidate so the UI refetches the turn list with resolved content.
     qc.invalidateQueries({ queryKey: conversationsKeys.turns(conversationId) });
     onSettled();
   }, [result, done, qc, conversationId, onSettled]);
 
   return null;
+}
+
+const JOURNEY_LABELS: Record<string, string> = {
+  awareness: "Descoberta",
+  consideration: "Consideração",
+  evaluation: "Avaliação",
+  decision: "Decisão",
+  retention: "Retenção",
+};
+
+const TECH_LABELS: Record<string, string> = {
+  beginner: "Iniciante",
+  intermediate: "Intermediário",
+  advanced: "Avançado",
+};
+
+function UserProfilePanel({
+  profile,
+  isLoading,
+  is503,
+}: {
+  profile?: UserGraphProfile;
+  isLoading: boolean;
+  is503: boolean;
+}) {
+  if (is503) {
+    return (
+      <div style={{ padding: 16, fontSize: 12, color: "var(--ink-3)", textAlign: "center" }}>
+        <div style={{ marginBottom: 6 }}>Graph Memory não configurado.</div>
+        <div style={{ fontSize: 11 }}>Neo4j ausente no servidor.</div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: 16, fontSize: 12, color: "var(--ink-3)", textAlign: "center" }}>
+        Carregando perfil…
+      </div>
+    );
+  }
+
+  if (!profile) return null;
+
+  const { user_profile, preferences, recent_intents, recent_decisions, current_task, hooks } = profile;
+  const hasAnyData =
+    user_profile?.name ||
+    preferences.length > 0 ||
+    recent_intents.length > 0 ||
+    recent_decisions.length > 0 ||
+    current_task;
+
+  if (!hasAnyData) {
+    return (
+      <div style={{ padding: 16, fontSize: 12, color: "var(--ink-3)", textAlign: "center" }}>
+        <div style={{ fontSize: 24, opacity: 0.3, marginBottom: 8 }}>🧠</div>
+        Nenhuma memória acumulada ainda para este contato.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 14, fontSize: 12 }}>
+      {/* Identity */}
+      {(user_profile?.name || user_profile?.tech_level || user_profile?.tone || user_profile?.journey_stage) && (
+        <div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-4)", fontWeight: 600, marginBottom: 6 }}>
+            Identidade
+          </div>
+          {user_profile.name && (
+            <div style={{ fontWeight: 600, fontSize: 13, color: "var(--ink)", marginBottom: 4 }}>{user_profile.name}</div>
+          )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {user_profile.tech_level && (
+              <span style={pillStyle("var(--surface-2)", "var(--ink-3)")}>
+                {TECH_LABELS[user_profile.tech_level] ?? user_profile.tech_level}
+              </span>
+            )}
+            {user_profile.tone && (
+              <span style={pillStyle("var(--surface-2)", "var(--ink-3)")}>{user_profile.tone}</span>
+            )}
+            {user_profile.journey_stage && (
+              <span style={pillStyle("oklch(0.92 0.04 250)", "oklch(0.45 0.12 250)")}>
+                {JOURNEY_LABELS[user_profile.journey_stage] ?? user_profile.journey_stage}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Current task */}
+      {current_task && (
+        <div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-4)", fontWeight: 600, marginBottom: 6 }}>
+            Tarefa atual
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+              background: current_task.status === "in_progress" ? "#22c55e" : "var(--ink-4)",
+            }} />
+            <span style={{ color: "var(--ink-2)" }}>{current_task.name}</span>
+            <span style={{ color: "var(--ink-4)", marginLeft: "auto" }}>{current_task.status}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Recent intents */}
+      {recent_intents.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-4)", fontWeight: 600, marginBottom: 6 }}>
+            Intenções recentes
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {recent_intents.slice(0, 4).map((intent, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ flex: 1, color: "var(--ink-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {intent.name}
+                </span>
+                <span style={{ color: "var(--ink-4)", fontFamily: "var(--font-mono)", fontSize: 11, flexShrink: 0 }}>
+                  {Math.round(intent.confidence * 100)}%
+                </span>
+                <div style={{ width: 36, height: 3, background: "var(--line)", borderRadius: 2, flexShrink: 0, overflow: "hidden" }}>
+                  <div style={{ width: `${intent.confidence * 100}%`, height: "100%", background: "var(--accent)", borderRadius: 2 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Preferences */}
+      {preferences.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-4)", fontWeight: 600, marginBottom: 6 }}>
+            Preferências
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {preferences.slice(0, 5).map((p, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+                <span style={{ color: "var(--ink-3)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                  {p.key}
+                </span>
+                <span style={{ color: "var(--ink)", flexShrink: 0 }}>{p.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent decisions */}
+      {recent_decisions.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-4)", fontWeight: 600, marginBottom: 6 }}>
+            Decisões recentes
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {recent_decisions.slice(0, 3).map((d, i) => (
+              <div key={i} style={{ color: "var(--ink-2)", lineHeight: 1.4 }}>
+                {d.text}
+                {d.domain && <span style={{ color: "var(--ink-4)", marginLeft: 4 }}>· {d.domain}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hooks */}
+      {hooks.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-4)", fontWeight: 600, marginBottom: 6 }}>
+            Instruções ativas
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {hooks.map((h, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                <span style={{ color: "var(--accent)", flexShrink: 0, marginTop: 1 }}>›</span>
+                <span style={{ color: "var(--ink-3)", lineHeight: 1.4 }}>{h}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function pillStyle(bg: string, color: string): React.CSSProperties {
+  return {
+    background: bg,
+    color,
+    borderRadius: 10,
+    padding: "2px 8px",
+    fontSize: 11,
+    border: "1px solid var(--line)",
+  };
 }
 
 export function ConversationPage() {
@@ -87,11 +280,24 @@ export function ConversationPage() {
   const [activeConvId, setActiveConvId] = useState<string>(initialConvId);
   const [draft, setDraft] = useState("");
   const [selectedProfile, setSelectedProfile] = useState(presetProfile);
+  const [profilePanelOpen, setProfilePanelOpen] = useState(false);
+  const [convSearch, setConvSearch] = useState("");
 
   const { data: profiles, isLoading: profilesLoading, error: profilesError } = useListConversationProfiles();
   const createTurn = useCreateConversationTurn();
   const { data: convsPage, isLoading: convsLoading } = useConversationsList(undefined, { limit: 50 });
-  const conversations = convsPage?.items || [];
+  const allConversations = convsPage?.items || [];
+  const conversations = useMemo(() => {
+    if (!convSearch.trim()) return allConversations;
+    const q = convSearch.toLowerCase();
+    return allConversations.filter(
+      (c) =>
+        c.conversation_id.toLowerCase().includes(q) ||
+        c.profile_id.toLowerCase().includes(q) ||
+        (c.preview || "").toLowerCase().includes(q) ||
+        (c.user_id || "").toLowerCase().includes(q)
+    );
+  }, [allConversations, convSearch]);
   const deleteConv = useDeleteConversation();
   const editTurn = useEditConversationTurn();
   const regenerateTurn = useRegenerateConversationTurn();
@@ -101,12 +307,44 @@ export function ConversationPage() {
   const turns = turnsQuery.data?.turns || [];
   const activeMeta = turnsQuery.data?.conversation;
 
+  const userId = activeMeta?.user_id;
+  const { data: graphProfile, isLoading: profileLoading, error: profileError } = useGraphProfile(
+    userId,
+    { enabled: !!userId && profilePanelOpen }
+  );
+  const is503 = (profileError as any)?.status === 503;
+
+  // SSE: listen for result/conversation_turn events on the active conversation
+  // and invalidate turns cache so messages appear without waiting for the next poll.
+  const { events: sseEvents } = useEventStream({
+    conversationId: activeConvId,
+    enabled: !!activeConvId,
+  });
+  const lastSseKeyRef = useRef("");
+  useEffect(() => {
+    if (!sseEvents.length || !activeConvId) return;
+    const latest = sseEvents[sseEvents.length - 1];
+    const key = `${latest.event_type}_${latest.occurred_at}_${latest.correlation_id}`;
+    if (key === lastSseKeyRef.current) return;
+    lastSseKeyRef.current = key;
+    if (latest.event_type === "result" || latest.event_type === "conversation_turn") {
+      qc.invalidateQueries({ queryKey: conversationsKeys.turns(activeConvId) });
+    }
+  }, [sseEvents, activeConvId, qc]);
+
+  // Auto-scroll chat to bottom when new messages arrive
+  const chatMsgsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (chatMsgsRef.current) {
+      chatMsgsRef.current.scrollTop = chatMsgsRef.current.scrollHeight;
+    }
+  }, [turns.length]);
+
   const pendingWorkflowIds = useMemo(
     () => turns.filter((t) => t.status === "pending" && t.workflow_id).map((t) => t.workflow_id!),
     [turns]
   );
 
-  // Sync URL with active conversation
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     if (activeConvId) {
@@ -117,7 +355,6 @@ export function ConversationPage() {
     }
   }, [activeConvId, searchParams, setSearchParams]);
 
-  // Track profile from active conv
   useEffect(() => {
     if (activeMeta?.profile_id) setSelectedProfile(activeMeta.profile_id);
   }, [activeMeta?.profile_id]);
@@ -137,7 +374,6 @@ export function ConversationPage() {
     }
     const id = `conv_${Date.now().toString(36)}`;
     setActiveConvId(id);
-    // No persistence yet — backend creates the conversation row on first turn POST.
     qc.setQueryData(conversationsKeys.turns(id), { conversation: null, turns: [] });
   };
 
@@ -150,12 +386,36 @@ export function ConversationPage() {
       setActiveConvId(convId);
     }
 
-    // History from already-resolved assistant exchanges
     const history = turns
-      .filter((t) => t.status === "ok")
+      .filter((t) => t.status === "ok" && !t.id.startsWith("opt_"))
       .map((t) => ({ role: t.role, content: t.content }));
 
     setDraft("");
+
+    // Optimistic: show user message immediately
+    const tempId = `opt_${Date.now()}`;
+    qc.setQueryData(conversationsKeys.turns(convId), (prev: any) => {
+      const existing = prev?.turns || [];
+      const optimistic: ConversationTurnRow = {
+        id: tempId,
+        conversation_pk: "",
+        conversation_id: convId,
+        role: "user",
+        content: text,
+        status: "ok",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return {
+        conversation: prev?.conversation || {
+          conversation_id: convId,
+          profile_id: selectedProfile,
+          message_count: existing.length + 1,
+        },
+        turns: [...existing, optimistic],
+      };
+    });
+
     createTurn.mutate(
       {
         profile_id: selectedProfile,
@@ -165,29 +425,31 @@ export function ConversationPage() {
       },
       {
         onSuccess: (response: any) => {
-          // Backend echoes inserted rows so we can splice them straight into
-          // the cache instead of round-tripping the list endpoint.
-          if (response?.turns?.length && convId) {
-            qc.setQueryData(conversationsKeys.turns(convId), (prev: any) => {
-              const existing = prev?.turns || [];
-              const seen = new Set(existing.map((t: any) => t.id));
-              const merged = [...existing];
-              for (const t of response.turns as ConversationTurnRow[]) {
-                if (!seen.has(t.id)) merged.push(t);
-              }
-              return {
-                conversation: prev?.conversation || {
-                  conversation_id: convId,
-                  profile_id: response.profile_id,
-                  message_count: merged.length,
-                },
-                turns: merged,
-              };
-            });
-          }
+          // Replace optimistic turn with real server turns
+          qc.setQueryData(conversationsKeys.turns(convId), (prev: any) => {
+            const existing = (prev?.turns || []).filter((t: any) => !t.id.startsWith("opt_"));
+            const seen = new Set(existing.map((t: any) => t.id));
+            const merged = [...existing];
+            for (const t of (response?.turns || []) as ConversationTurnRow[]) {
+              if (!seen.has(t.id)) merged.push(t);
+            }
+            return {
+              conversation: prev?.conversation || {
+                conversation_id: convId,
+                profile_id: response.profile_id,
+                message_count: merged.length,
+              },
+              turns: merged,
+            };
+          });
           qc.invalidateQueries({ queryKey: conversationsKeys.list() });
         },
         onError: (err: any) => {
+          // Rollback optimistic turn
+          qc.setQueryData(conversationsKeys.turns(convId), (prev: any) => ({
+            ...prev,
+            turns: (prev?.turns || []).filter((t: any) => !t.id.startsWith("opt_")),
+          }));
           alert(`Erro: ${err?.message || "falhou"}`);
         },
       }
@@ -239,17 +501,24 @@ export function ConversationPage() {
   const activePending = turns.some((t) => t.status === "pending");
   const [timelineOpen, setTimelineOpen] = useState(false);
 
+  const gridCols = profilePanelOpen && userId
+    ? "280px 1fr 260px"
+    : "280px 1fr";
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
-        .conv-layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; min-height: calc(100vh - 200px); }
-        .conv-sidebar { border: 1px solid var(--line); border-radius: var(--r-2); background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
+        .conv-layout { display: grid; grid-template-columns: ${gridCols}; gap: 16px; height: calc(100vh - 140px); }
+        .conv-sidebar { border: 1px solid var(--line); border-radius: var(--r-2); background: var(--surface); overflow: hidden; display: flex; flex-direction: column; height: 100%; }
+        .conv-search-wrap { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+        .conv-search { width: 100%; font-size: 12px; padding: 5px 8px; border: 1px solid var(--line); border-radius: var(--r-1); background: var(--surface-2); color: var(--ink); outline: none; box-sizing: border-box; }
+        .conv-search:focus { border-color: var(--accent); }
         .conv-list { flex: 1; overflow-y: auto; }
         .conv-item { padding: 10px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
         .conv-item:hover { background: var(--surface-2); }
         .conv-item[data-active="true"] { background: var(--surface-2); border-left: 3px solid var(--accent); padding-left: 9px; }
-        .chat-area { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-2); background: var(--surface); }
-        .chat-msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; min-height: 400px; }
+        .chat-area { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-2); background: var(--surface); min-width: 0; height: 100%; overflow: hidden; }
+        .chat-msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
         .chat-msg { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
         .chat-msg[data-role="user"] { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .chat-msg[data-role="assistant"] { background: var(--surface-2); color: var(--ink); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid var(--line); }
@@ -257,7 +526,11 @@ export function ConversationPage() {
         .chat-msg[data-status="failed"] { background: oklch(0.55 0.18 25 / 0.15); color: var(--err); }
         .chat-input-row { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: flex-end; }
         .chat-input-row textarea { flex: 1; resize: none; min-height: 44px; max-height: 160px; }
-        .chat-header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+        .chat-header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .profile-panel { border: 1px solid var(--line); border-radius: var(--r-2); background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
+        .profile-panel-header { padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-4); display: flex; align-items: center; justify-content: space-between; }
+        .profile-panel-body { flex: 1; overflow-y: auto; }
+        .profile-uid { font-family: var(--font-mono); font-size: 10px; color: var(--ink-4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
       `}} />
 
       <div className="page-topbar">
@@ -297,7 +570,15 @@ export function ConversationPage() {
         <div className="conv-layout">
           <aside className="conv-sidebar">
             <div className="chat-header" style={{ fontSize: 12, color: "var(--ink-3)", fontWeight: 500 }}>
-              Histórico ({conversations.length})
+              Histórico ({conversations.length}{convSearch && allConversations.length !== conversations.length ? `/${allConversations.length}` : ""})
+            </div>
+            <div className="conv-search-wrap">
+              <input
+                className="conv-search"
+                placeholder="Filtrar por ID, profile, preview…"
+                value={convSearch}
+                onChange={(e) => setConvSearch(e.target.value)}
+              />
             </div>
             <div className="conv-list">
               {conversations.length === 0 && !convsLoading && (
@@ -356,6 +637,15 @@ export function ConversationPage() {
                   >
                     Auditoria
                   </button>
+                  <button
+                    className="btn ghost"
+                    onClick={() => setProfilePanelOpen((v) => !v)}
+                    title={userId ? "Perfil do usuário" : "Conversa sem user_id — perfil indisponível"}
+                    style={{ fontSize: 12, opacity: userId ? 1 : 0.45 }}
+                    disabled={!userId}
+                  >
+                    {profilePanelOpen ? "Fechar perfil" : "Perfil"}
+                  </button>
                 </>
               ) : (
                 <div style={{ color: "var(--ink-3)", fontSize: 13 }}>
@@ -364,7 +654,7 @@ export function ConversationPage() {
               )}
             </div>
 
-            <div className="chat-msgs">
+            <div className="chat-msgs" ref={chatMsgsRef}>
               {!activeConvId && (
                 <div style={{ textAlign: "center", margin: "auto", color: "var(--ink-3)", fontSize: 13 }}>
                   <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }}>💬</div>
@@ -386,7 +676,7 @@ export function ConversationPage() {
                           Ver trace →
                         </Link>
                       )}
-                      {t.role === "user" && t.status === "ok" && (
+                      {t.role === "user" && t.status === "ok" && !t.id.startsWith("opt_") && (
                         <button
                           className="btn ghost"
                           style={{ padding: "0", fontSize: 10, color: "inherit", background: "transparent", border: "none", textDecoration: "underline", cursor: "pointer" }}
@@ -434,6 +724,22 @@ export function ConversationPage() {
               </button>
             </div>
           </section>
+
+          {profilePanelOpen && userId && (
+            <aside className="profile-panel">
+              <div className="profile-panel-header">
+                <span>Perfil</span>
+                <span className="profile-uid" title={userId}>{userId}</span>
+              </div>
+              <div className="profile-panel-body">
+                <UserProfilePanel
+                  profile={graphProfile}
+                  isLoading={profileLoading}
+                  is503={is503}
+                />
+              </div>
+            </aside>
+          )}
         </div>
 
         {pendingWorkflowIds.map((wfId) => (

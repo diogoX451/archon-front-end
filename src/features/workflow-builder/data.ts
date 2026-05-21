@@ -2,6 +2,7 @@ export type AgentTypeMetadata = {
   label: string;
   category: string;
   description: string;
+  details?: string;
   ports: {
     principal: string[];
     auxiliary: string[];
@@ -26,6 +27,8 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     label: "Planner",
     category: "Decisão",
     description: "Toma decisão via LLM (OpenAI, Anthropic, Ollama) ou modo estático.",
+    details:
+      "Coração de qualquer workflow inteligente. Analisa o contexto recebido e decide qual caminho seguir — usando raciocínio de um LLM (modo externo) ou regras pré-definidas (modo estático). Gera um plano de ações que dispara os agentes subsequentes.",
     ports: { principal: ["input"], auxiliary: ["output"] },
     needType: "planner.decide",
     glyph: "planner",
@@ -40,6 +43,8 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     label: "HTTP",
     category: "I/O Externo",
     description: "Chama API externa (GET/POST/PUT/DELETE) e aguarda resposta.",
+    details:
+      "Ponte entre o workflow e qualquer API REST. Suporta interpolação de variáveis do contexto na URL e no corpo da requisição. O retorno da API entra no fluxo como JSON para o próximo agente processar.",
     ports: { principal: ["trigger"], auxiliary: ["response"] },
     needType: "http",
     glyph: "http",
@@ -49,6 +54,8 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     label: "Transform",
     category: "Dados",
     description: "Transforma dados via JSONPath, regex ou expressão.",
+    details:
+      "Refatora dados em trânsito sem sair do workflow. Use JSONPath para extrair campos específicos, regex para transformar texto, ou expressões para calcular e remodelar o payload — tudo sem código externo.",
     ports: { principal: ["input"], auxiliary: ["output"] },
     needType: null,
     glyph: "transform",
@@ -58,6 +65,8 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     label: "RAG Query",
     category: "Conhecimento",
     description: "Consulta base RAG e retorna chunks com scores.",
+    details:
+      "Busca semântica vetorial na base de conhecimento indexada. Converte a consulta em embedding, encontra os trechos mais relevantes por similaridade e os retorna com scores para alimentar o contexto de um Planner ou resposta final.",
     ports: { principal: ["query"], auxiliary: ["chunks"] },
     needType: "rag.query",
     glyph: "rag",
@@ -67,6 +76,8 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     label: "RAG Ingest",
     category: "Conhecimento",
     description: "Ingere documento na base RAG (text, PDF, DOCX).",
+    details:
+      "Alimenta a base de conhecimento com novos documentos. Chunka, vetoriza e indexa o conteúdo para que consultas RAG futuras o encontrem. Use em workflows de onboarding ou atualização contínua de conhecimento.",
     ports: { principal: ["document"], auxiliary: ["status"] },
     needType: "rag.ingest",
     glyph: "rag",
@@ -76,6 +87,8 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     label: "Graph Memory",
     category: "Memória",
     description: "Persiste entidades, relações e conceitos em Neo4j.",
+    details:
+      "Memória estruturada persistente entre conversas. Armazena entidades (usuário, produto, pedido) e seus relacionamentos em grafo Neo4j. Permite que o agente lembre de contexto complexo além do histórico linear de mensagens.",
     ports: { principal: ["signal"], auxiliary: ["ack"] },
     needType: "graph.memory.log",
     glyph: "graph",
@@ -85,6 +98,8 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     label: "Channel Delivery",
     category: "Saída",
     description: "Envia mensagem ao canal (WhatsApp, web, etc.).",
+    details:
+      "Último agente do fluxo — entrega a resposta ao canal de origem. Adapta a formatação para cada canal (WhatsApp, web chat, etc.) e encerra o ciclo do workflow retornando o recibo de entrega.",
     ports: { principal: ["payload"], auxiliary: ["receipt"] },
     needType: "channel.delivery",
     glyph: "delivery",
@@ -95,6 +110,8 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     category: "I/O Externo",
     description:
       "Invoca uma tool de um MCP server cadastrado para o tenant. O servidor é resolvido pelo registry em tempo de execução.",
+    details:
+      "Porta de entrada para qualquer capacidade externa via Model Context Protocol. O servidor e a tool são resolvidos em tempo de execução pelo registry do tenant, permitindo integrar ferramentas como busca na web, calendário, CRM e qualquer API compatível com MCP.",
     ports: { principal: ["trigger"], auxiliary: ["response"] },
     needType: "mcp",
     glyph: "mcp",
