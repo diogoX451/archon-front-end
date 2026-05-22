@@ -21,7 +21,7 @@ type AgentNodeProps = {
 function summaryFor(agent: AgentNodeData) {
   const c = agent.config || {};
   if (agent.type === "http") return `${c.method || "GET"} · ${(c.url || "").replace(/^https?:\/\//, "") || "—"}`;
-  if (agent.type === "planner") return `${c.provider || "—"} · ${c.model || ""}`;
+  if (agent.type === "planner") return c.model ? `${c.provider || "—"} · ${c.model}` : "⚠ modelo não configurado";
   if (agent.type === "transform") return c.expr ? `${String(c.expr).slice(0, 28)}…` : "—";
   if (agent.type === "rag.query") return `kb=${c.knowledge_base_id || "—"} · k=${c.top_k ?? 5}`;
   if (agent.type === "rag.ingest") return `kb=${c.knowledge_base_id || "—"}`;
@@ -70,6 +70,7 @@ export function AgentNode({
       data-selected={selected}
       data-drop-target={dropTarget}
       data-status={agent.status}
+      data-incomplete={agent.type === "planner" && !agent.config?.model ? true : undefined}
       data-density={density}
       style={{ left: agent.x, top: agent.y }}
       onMouseDown={(e) => { e.stopPropagation(); onSelect(); }}

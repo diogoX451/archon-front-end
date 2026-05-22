@@ -466,22 +466,60 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
               <option value="external">external (LLM)</option>
               <option value="static">static (mock)</option>
             </select>
-          </Field>
-          <Field label="need_type">
-            <input className="field-input" value={agent.config.need_type || "planner"} onChange={(e) => setConfig("need_type", e.target.value)} placeholder="planner" />
-            <div className="field-hint">Subject NATS do executor LLM. Padrão: <code>planner</code>.</div>
+            {(agent.config.mode || "external") === "static" && (
+              <div className="field-hint">Retorna action fixa sem chamar LLM — útil para testar o fluxo sem consumir créditos.</div>
+            )}
           </Field>
           <Field label="Provider">
-            <select className="field-select" value={agent.config.provider || "openai"} onChange={(e) => setConfig("provider", e.target.value)}>
-              <option>openai</option><option>anthropic</option><option>ollama</option>
+            <select
+              className="field-select"
+              value={agent.config.provider || "openai"}
+              onChange={(e) => onUpdate({ config: { ...agent.config, provider: e.target.value, model: "" } })}
+            >
+              <option value="openai">openai</option>
+              <option value="anthropic">anthropic</option>
+              <option value="google">google</option>
+              <option value="ollama">ollama</option>
             </select>
+            <div className="field-hint">
+              Chaves de API configuradas em{" "}
+              <a href="/llm-config" target="_blank" rel="noreferrer">Config de LLM →</a>
+            </div>
           </Field>
           <Field label="Model">
-            <input className="field-input" value={agent.config.model || ""} onChange={(e) => setConfig("model", e.target.value)} />
+            <input
+              className="field-input"
+              value={agent.config.model || ""}
+              onChange={(e) => setConfig("model", e.target.value)}
+              placeholder={
+                (agent.config.provider || "openai") === "anthropic" ? "ex: claude-3-5-sonnet-20241022" :
+                (agent.config.provider) === "google" ? "ex: gemini-1.5-pro" :
+                (agent.config.provider) === "ollama" ? "ex: llama3.2" :
+                "ex: gpt-4o"
+              }
+            />
+            {!agent.config.model && (
+              <div className="field-hint" style={{ color: "var(--warn)" }}>Modelo não definido — planner não vai funcionar em runtime.</div>
+            )}
           </Field>
           <Field label="Instruções">
-            <textarea className="field-textarea" value={agent.config.instructions || ""} onChange={(e) => setConfig("instructions", e.target.value)} placeholder="Você é um assistente que…" />
+            <textarea
+              className="field-textarea"
+              value={agent.config.instructions || ""}
+              onChange={(e) => setConfig("instructions", e.target.value)}
+              placeholder="Você é um assistente que… (system prompt enviado ao LLM a cada chamada)"
+            />
           </Field>
+
+          <details style={{ marginTop: 4, marginBottom: 12 }}>
+            <summary className="field-label" style={{ cursor: "pointer", userSelect: "none" }}>Avançado</summary>
+            <div style={{ marginTop: 8 }}>
+              <Field label="need_type">
+                <input className="field-input" value={agent.config.need_type || "planner"} onChange={(e) => setConfig("need_type", e.target.value)} placeholder="planner" />
+                <div className="field-hint">Subject NATS do executor LLM. Padrão: <code>planner</code>.</div>
+              </Field>
+            </div>
+          </details>
 
           <div className="section-title">Actions (ferramentas)</div>
           <PlannerActionsEditor
