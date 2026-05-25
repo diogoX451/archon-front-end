@@ -269,6 +269,27 @@ function pillStyle(bg: string, color: string): React.CSSProperties {
   };
 }
 
+function isConfirmedByServer(optimistic: ConversationTurnRow, serverTurns: ConversationTurnRow[]) {
+  const optimisticTime = Date.parse(optimistic.created_at);
+  return serverTurns.some((turn) => {
+    if (turn.id.startsWith("opt_")) return false;
+    if (turn.role !== optimistic.role || turn.content !== optimistic.content) return false;
+    if (!Number.isFinite(optimisticTime)) return true;
+    const turnTime = Date.parse(turn.created_at);
+    return !Number.isFinite(turnTime) || turnTime >= optimisticTime - 30_000;
+  });
+}
+
+function mergeConversationTurns(serverTurns: ConversationTurnRow[], optimisticTurns: ConversationTurnRow[]) {
+  const unresolvedOptimistic = optimisticTurns.filter((turn) => !isConfirmedByServer(turn, serverTurns));
+  return [...serverTurns, ...unresolvedOptimistic].sort((a, b) => {
+    const aTime = Date.parse(a.created_at);
+    const bTime = Date.parse(b.created_at);
+    if (!Number.isFinite(aTime) || !Number.isFinite(bTime) || aTime === bTime) return 0;
+    return aTime - bTime;
+  });
+}
+
 export function ConversationPage() {
   const { isSuper, hasPermission } = useAuth();
   const canUseConversation = canAny({ isSuper, hasPermission }, ["conversation_turn"]);
@@ -282,6 +303,7 @@ export function ConversationPage() {
   const [selectedProfile, setSelectedProfile] = useState(presetProfile);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [convSearch, setConvSearch] = useState("");
+  const [optimisticTurnsByConv, setOptimisticTurnsByConv] = useState<Record<string, ConversationTurnRow[]>>({});
 
   const { data: profiles, isLoading: profilesLoading, error: profilesError } = useListConversationProfiles();
   const createTurn = useCreateConversationTurn();
@@ -304,7 +326,12 @@ export function ConversationPage() {
   const qc = useQueryClient();
 
   const turnsQuery = useConversationTurns(activeConvId, undefined, { enabled: !!activeConvId });
-  const turns = turnsQuery.data?.turns || [];
+  const serverTurns = turnsQuery.data?.turns || [];
+  const optimisticTurns = activeConvId ? optimisticTurnsByConv[activeConvId] || [] : [];
+  const turns = useMemo(
+    () => mergeConversationTurns(serverTurns, optimisticTurns),
+    [serverTurns, optimisticTurns]
+  );
   const activeMeta = turnsQuery.data?.conversation;
 
   const userId = activeMeta?.user_id;
@@ -339,6 +366,20 @@ export function ConversationPage() {
       chatMsgsRef.current.scrollTop = chatMsgsRef.current.scrollHeight;
     }
   }, [turns.length]);
+
+  useEffect(() => {
+    if (!activeConvId) return;
+    setOptimisticTurnsByConv((prev) => {
+      const pending = prev[activeConvId];
+      if (!pending?.length) return prev;
+      const nextPending = pending.filter((turn) => !isConfirmedByServer(turn, serverTurns));
+      if (nextPending.length === pending.length) return prev;
+      const next = { ...prev };
+      if (nextPending.length) next[activeConvId] = nextPending;
+      else delete next[activeConvId];
+      return next;
+    });
+  }, [activeConvId, serverTurns]);
 
   const pendingWorkflowIds = useMemo(
     () => turns.filter((t) => t.status === "pending" && t.workflow_id).map((t) => t.workflow_id!),
@@ -386,35 +427,55 @@ export function ConversationPage() {
       setActiveConvId(convId);
     }
 
-    const history = turns
-      .filter((t) => t.status === "ok" && !t.id.startsWith("opt_"))
+    const history = serverTurns
+      .filter((t) => t.status === "ok")
       .map((t) => ({ role: t.role, content: t.content }));
 
     setDraft("");
 
-    // Optimistic: show user message immediately
+    // Keep outgoing messages visible while SSE/refetch races with persistence.
     const tempId = `opt_${Date.now()}`;
-    qc.setQueryData(conversationsKeys.turns(convId), (prev: any) => {
-      const existing = prev?.turns || [];
-      const optimistic: ConversationTurnRow = {
-        id: tempId,
-        conversation_pk: "",
-        conversation_id: convId,
-        role: "user",
-        content: text,
-        status: "ok",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      return {
-        conversation: prev?.conversation || {
+    const optimistic: ConversationTurnRow = {
+      id: tempId,
+      conversation_pk: "",
+      conversation_id: convId,
+      role: "user",
+      content: text,
+      status: "ok",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setOptimisticTurnsByConv((prev) => ({
+      ...prev,
+      [convId]: [...(prev[convId] || []), optimistic],
+    }));
+    qc.setQueryData(conversationsKeys.turns(convId), (prev: any) => ({
+      ...prev,
+      conversation:
+        prev?.conversation || {
           conversation_id: convId,
           profile_id: selectedProfile,
-          message_count: existing.length + 1,
+          message_count: (prev?.turns || []).length + 1,
         },
-        turns: [...existing, optimistic],
-      };
-    });
+      turns: prev?.turns || [],
+    }));
+
+    const removeOptimisticTurn = () => {
+      setOptimisticTurnsByConv((prev) => {
+        const pending = prev[convId];
+        if (!pending?.length) return prev;
+        const nextPending = pending.filter((turn) => turn.id !== tempId);
+        const next = { ...prev };
+        if (nextPending.length) next[convId] = nextPending;
+        else delete next[convId];
+        return next;
+      });
+    };
+
+    const removeOptimisticTurnIfConfirmed = (responseTurns: ConversationTurnRow[]) => {
+      if (!isConfirmedByServer(optimistic, responseTurns)) return;
+      removeOptimisticTurn();
+    };
 
     createTurn.mutate(
       {
@@ -425,15 +486,19 @@ export function ConversationPage() {
       },
       {
         onSuccess: (response: any) => {
-          // Replace optimistic turn with real server turns
+          const responseTurns = ((response?.turns || []) as ConversationTurnRow[]).filter(
+            (turn) => !turn.id.startsWith("opt_")
+          );
+          removeOptimisticTurnIfConfirmed(responseTurns);
           qc.setQueryData(conversationsKeys.turns(convId), (prev: any) => {
-            const existing = (prev?.turns || []).filter((t: any) => !t.id.startsWith("opt_"));
-            const seen = new Set(existing.map((t: any) => t.id));
+            const existing = ((prev?.turns || []) as ConversationTurnRow[]).filter((t) => !t.id.startsWith("opt_"));
+            const seen = new Set(existing.map((t) => t.id));
             const merged = [...existing];
-            for (const t of (response?.turns || []) as ConversationTurnRow[]) {
+            for (const t of responseTurns) {
               if (!seen.has(t.id)) merged.push(t);
             }
             return {
+              ...prev,
               conversation: prev?.conversation || {
                 conversation_id: convId,
                 profile_id: response.profile_id,
@@ -445,11 +510,7 @@ export function ConversationPage() {
           qc.invalidateQueries({ queryKey: conversationsKeys.list() });
         },
         onError: (err: any) => {
-          // Rollback optimistic turn
-          qc.setQueryData(conversationsKeys.turns(convId), (prev: any) => ({
-            ...prev,
-            turns: (prev?.turns || []).filter((t: any) => !t.id.startsWith("opt_")),
-          }));
+          removeOptimisticTurn();
           alert(`Erro: ${err?.message || "falhou"}`);
         },
       }
