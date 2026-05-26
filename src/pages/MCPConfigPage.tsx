@@ -59,6 +59,8 @@ interface FormState {
   audience: string;
   redirect_uri: string;
   use_pkce: boolean;
+  subject_from_id_token: boolean;
+  userinfo_endpoint: string;
   oauth_subject: string;
   tool_required_scopes: string;
   enabled: boolean;
@@ -84,6 +86,8 @@ const emptyForm = (): FormState => ({
   audience: "",
   redirect_uri: "",
   use_pkce: true,
+  subject_from_id_token: false,
+  userinfo_endpoint: "",
   oauth_subject: "",
   tool_required_scopes: "",
   enabled: true,
@@ -158,6 +162,8 @@ function formFromConfig(cfg: MCPConfig): FormState {
     audience: o2?.audience || "",
     redirect_uri: o2?.redirect_uri || "",
     use_pkce: o2?.use_pkce ?? true,
+    subject_from_id_token: !!o2?.subject_from_id_token,
+    userinfo_endpoint: o2?.userinfo_endpoint || "",
     oauth_subject: typeof metadata.oauth_subject === "string" ? metadata.oauth_subject : "",
     tool_required_scopes: safeJSON(metadata.tool_required_scopes || metadata.required_scopes),
     enabled: cfg.enabled,
@@ -519,6 +525,8 @@ export function MCPConfigPage() {
           audience: form.audience.trim() || undefined,
           redirect_uri: form.redirect_uri.trim() || undefined,
           use_pkce: form.auth_mode === "oauth2_authorization_code" ? form.use_pkce : false,
+          subject_from_id_token: form.subject_from_id_token || undefined,
+          userinfo_endpoint: form.userinfo_endpoint.trim() || undefined,
         },
       };
     }
@@ -699,6 +707,15 @@ export function MCPConfigPage() {
                         <span className="field-label" style={{ margin: 0 }}>Usar PKCE</span>
                       </label>
                     )}
+                    <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input type="checkbox" checked={form.subject_from_id_token} onChange={(e) => setForm((f) => ({ ...f, subject_from_id_token: e.target.checked }))} />
+                      <span className="field-label" style={{ margin: 0 }}>Subject do ID Token</span>
+                    </label>
+                    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <span className="field-label">Userinfo Endpoint</span>
+                      <input className="field-input" value={form.userinfo_endpoint} onChange={(e) => setForm((f) => ({ ...f, userinfo_endpoint: e.target.value }))} placeholder="Preenchido automaticamente pelo preset" />
+                      <span className="field-hint">URL para extrair subject/display name quando nao ha id_token.</span>
+                    </label>
                   </>
                 )}
 

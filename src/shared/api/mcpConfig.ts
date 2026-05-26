@@ -25,6 +25,8 @@ export interface OAuth2Config {
   use_pkce?: boolean;
   redirect_uri?: string;
   preset?: MCPProviderPreset;
+  subject_from_id_token?: boolean;
+  userinfo_endpoint?: string;
 }
 
 export interface MCPAuthConfig {
@@ -95,6 +97,7 @@ export interface OAuthClientCredentialsResponse {
 export interface OAuthRefreshResponse {
   subject: string;
   expires_at: string;
+  access_token_preview?: string;
 }
 
 export interface OAuthDiscoveryRefreshResponse {

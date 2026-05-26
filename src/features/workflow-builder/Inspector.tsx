@@ -687,6 +687,14 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
             <div className="field-hint">
               Necessario para MCP OAuth com multiplas contas. Se vazio, o backend usa metadata.oauth_subject ou exige selecao quando houver conflito.
             </div>
+            {selectedMCP?.auth?.mode?.startsWith("oauth2") && agent.config.oauth_subject && (
+              <div className="field-hint" style={{ color: "var(--color-warning, #b45309)", marginTop: 4 }}>
+                Se a conta precisar reconectar (token expirado ou revogado), acesse{" "}
+                <a href={`/admin/mcp?highlight=${selectedMCP.id}`} style={{ textDecoration: "underline" }}>
+                  MCP Config →
+                </a>
+              </div>
+            )}
           </Field>
           <Field label="Required scopes">
             <textarea
