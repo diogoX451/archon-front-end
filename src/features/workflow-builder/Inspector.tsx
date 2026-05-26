@@ -9,6 +9,7 @@ import type { GhostAction } from "./GhostActionNode";
 import { useKBs } from "@shared/hooks/useKBs";
 import { useMCPConfigs } from "@shared/hooks/useMCPConfigs";
 import { useAuth } from "@app/auth-context";
+import type { MCPConfig } from "@shared/api/mcpConfig";
 
 function hashString(s: string) {
   let h = 0;
@@ -28,6 +29,32 @@ function Field({ label, children }: FieldProps) {
       {children}
     </div>
   );
+}
+
+function requiredScopesText(value: unknown): string {
+  if (Array.isArray(value)) return value.map(String).join("\n");
+  if (typeof value === "string") return value;
+  return "";
+}
+
+function requiredScopesList(value: string): string[] {
+  return value
+    .split(/[\n,]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function defaultSubjectFromMCP(cfg?: MCPConfig): string {
+  const subject = cfg?.metadata?.oauth_subject;
+  return typeof subject === "string" ? subject : "";
+}
+
+function scopesForTool(cfg: MCPConfig | undefined, tool: string): string[] {
+  if (!cfg || !tool) return [];
+  const raw = cfg.metadata?.tool_required_scopes || cfg.metadata?.required_scopes;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
+  const scopes = (raw as Record<string, unknown>)[tool];
+  return Array.isArray(scopes) ? scopes.map(String).filter(Boolean) : [];
 }
 
 type PlannerAction = {
@@ -416,6 +443,7 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
     mcpTenant,
     { enabled: agent.type === "mcp" },
   );
+  const selectedMCP = mcpServers.find((s) => s.name === agent.config.mcp_name);
 
   return (
     <>
@@ -598,7 +626,17 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
                 <select
                   className="field-select"
                   value={agent.config.mcp_name || ""}
-                  onChange={(e) => setConfig("mcp_name", e.target.value)}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const cfg = mcpServers.find((s) => s.name === name);
+                    onUpdate({
+                      config: {
+                        ...agent.config,
+                        mcp_name: name,
+                        oauth_subject: agent.config.oauth_subject || defaultSubjectFromMCP(cfg),
+                      },
+                    });
+                  }}
                 >
                   <option value="">Selecione um servidor…</option>
                   {mcpServers.map((s) => (
@@ -622,11 +660,43 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
             <input
               className="field-input"
               value={agent.config.tool || ""}
-              onChange={(e) => setConfig("tool", e.target.value)}
+              onChange={(e) => {
+                const tool = e.target.value;
+                const scopes = scopesForTool(selectedMCP, tool);
+                onUpdate({
+                  config: {
+                    ...agent.config,
+                    tool,
+                    required_scopes: scopes.length > 0 ? scopes : agent.config.required_scopes,
+                  },
+                });
+              }}
               placeholder="ex: list_orders"
             />
             <div className="field-hint">
               Nome da tool exposta pelo MCP server selecionado.
+            </div>
+          </Field>
+          <Field label="OAuth subject">
+            <input
+              className="field-input"
+              value={agent.config.oauth_subject || ""}
+              onChange={(e) => setConfig("oauth_subject", e.target.value)}
+              placeholder="ex: suporte@empresa.com ou _service"
+            />
+            <div className="field-hint">
+              Necessario para MCP OAuth com multiplas contas. Se vazio, o backend usa metadata.oauth_subject ou exige selecao quando houver conflito.
+            </div>
+          </Field>
+          <Field label="Required scopes">
+            <textarea
+              className="field-textarea"
+              value={requiredScopesText(agent.config.required_scopes)}
+              onChange={(e) => setConfig("required_scopes", requiredScopesList(e.target.value))}
+              placeholder="https://www.googleapis.com/auth/gmail.send"
+            />
+            <div className="field-hint">
+              Um por linha ou separado por virgula. O executor valida esses scopes antes da tool call.
             </div>
           </Field>
         </>

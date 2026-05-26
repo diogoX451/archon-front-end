@@ -121,7 +121,7 @@ const links: RailLink[] = [
   { to: "/tenants", labelKey: "nav.tenants", icon: IconTenants, superOnly: true },
   { to: "/channels", labelKey: "nav.channels", icon: IconChannels, perms: ["channel_manage"] },
   { to: "/llm-config", labelKey: "nav.llmConfig", icon: IconLLMConfig, perms: ["channel_manage"] },
-  { to: "/mcp-config", labelKey: "nav.mcpServers", icon: IconMCPConfig, perms: ["channel_manage"] },
+  { to: "/mcp-config", labelKey: "nav.mcpServers", icon: IconMCPConfig, perms: ["mcp_admin"] },
   { to: "/admin-audit", labelKey: "nav.auditLog", icon: IconAudit, superOnly: true },
   // Visible to every authenticated user — LGPD Art. 18 self-service.
   { to: "/account/privacy", labelKey: "nav.myPrivacy", icon: IconPrivacy },

@@ -14,7 +14,7 @@ import { PermissionsPage } from "@pages/PermissionsPage";
 import { ChannelsPage } from "@pages/ChannelsPage";
 import { AdminAuditPage } from "@pages/AdminAuditPage";
 import { LLMConfigPage } from "@pages/LLMConfigPage";
-import { MCPConfigPage } from "@pages/MCPConfigPage";
+import { MCPConfigPage, MCPOAuthResultPage } from "@pages/MCPConfigPage";
 import { LoginPage } from "@pages/LoginPage";
 import { ForgotPasswordPage } from "@pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "@pages/ResetPasswordPage";
@@ -85,6 +85,8 @@ export function AppRouter() {
                     <Route path="/admin-audit" element={<AdminAuditPage />} />
                     <Route path="/llm-config" element={<LLMConfigPage />} />
                     <Route path="/mcp-config" element={<MCPConfigPage />} />
+                    <Route path="/admin/mcp/connected" element={<MCPOAuthResultPage kind="connected" />} />
+                    <Route path="/admin/mcp/error" element={<MCPOAuthResultPage kind="error" />} />
                     <Route path="/account/privacy" element={<AccountPrivacyPage />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>

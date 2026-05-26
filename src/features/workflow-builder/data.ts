@@ -115,7 +115,7 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     ports: { principal: ["trigger"], auxiliary: ["response"] },
     needType: "mcp",
     glyph: "mcp",
-    defaultConfig: { mcp_name: "", tool: "" },
+    defaultConfig: { mcp_name: "", tool: "", oauth_subject: "", required_scopes: [] },
   },
   // Runtime-only: alvos de planner.actions[].agent_type, não entram na
   // paleta. Definidos aqui para que profiles legacy renderizem.
