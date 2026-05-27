@@ -83,7 +83,7 @@ export function TenantsPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary" onClick={() => setShowCreate(true)}>
+        <button type="button" className="btn primary" onClick={() => setShowCreate(true)}>
           <IconPlus size={14} /> Novo tenant
         </button>
       </div>
@@ -127,10 +127,10 @@ export function TenantsPage() {
                 <td className="muted">{new Date(t.created_at).toLocaleString("pt-BR")}</td>
                 <td>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button className="btn" onClick={() => openEdit(t)}>
+                    <button type="button" className="btn" onClick={() => openEdit(t)}>
                       Editar
                     </button>
-                    <button className="btn" onClick={() => void handleToggleStatus(t)} disabled={updateTenantStatus.isPending}>
+                    <button type="button" className="btn" onClick={() => void handleToggleStatus(t)} disabled={updateTenantStatus.isPending}>
                       {t.active ? "Inativar" : "Ativar"}
                     </button>
                   </div>
@@ -151,8 +151,8 @@ export function TenantsPage() {
               <input className="search-input" placeholder="documento (opcional)" value={document} onChange={(e) => setDocument(e.target.value)} />
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
-              <button className="btn primary" onClick={handleCreate} disabled={createTenant.isPending}>
+              <button type="button" className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={handleCreate} disabled={createTenant.isPending}>
                 {createTenant.isPending ? "Criando..." : "Criar"}
               </button>
             </div>
@@ -170,8 +170,8 @@ export function TenantsPage() {
               <input className="search-input" placeholder="documento (opcional)" value={editDocument} onChange={(e) => setEditDocument(e.target.value)} />
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setEditingTenant(null)}>Cancelar</button>
-              <button className="btn primary" onClick={handleEdit} disabled={updateTenant.isPending}>
+              <button type="button" className="btn" onClick={() => setEditingTenant(null)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={handleEdit} disabled={updateTenant.isPending}>
                 {updateTenant.isPending ? "Salvando..." : "Salvar"}
               </button>
             </div>

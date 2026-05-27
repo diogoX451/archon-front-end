@@ -42,6 +42,91 @@ function extractAssistantText(output: any): string {
   }
 }
 
+function AssistantMessageContent({ text, onOptionClick }: { text: string; onOptionClick?: (opt: string) => void }) {
+  let parsed: any = null;
+  if (text.trimStart().startsWith("{") || text.trimStart().startsWith("[")) {
+    try { parsed = JSON.parse(text); } catch { /* not JSON */ }
+  }
+
+  if (parsed && parsed.decision) {
+    const { action, thought, input } = parsed.decision ?? {};
+    const options: string[] = Array.isArray(input?.options) ? input.options : [];
+
+    const actionLabel: Record<string, string> = {
+      clarify_intent: "Esclarecimento necessário",
+      respond: "Resposta",
+      escalate: "Escalado",
+    };
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {action && (
+          <span style={{
+            fontSize: 10,
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            opacity: 0.6,
+          }}>
+            {actionLabel[action] ?? action}
+          </span>
+        )}
+        {thought && <span style={{ lineHeight: 1.5 }}>{thought}</span>}
+        {options.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
+            {options.map((opt, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onOptionClick?.(opt)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 99,
+                  border: "1px solid currentColor",
+                  background: "transparent",
+                  color: "inherit",
+                  opacity: 0.75,
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: onOptionClick ? "pointer" : "default",
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={(e) => { if (onOptionClick) (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.75"; }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (parsed !== null) {
+    return (
+      <details style={{ fontSize: 12 }}>
+        <summary style={{ cursor: "pointer", opacity: 0.7, userSelect: "none" }}>
+          Ver resposta estruturada
+        </summary>
+        <pre style={{
+          marginTop: 8,
+          padding: 10,
+          borderRadius: 6,
+          background: "rgba(0,0,0,0.08)",
+          overflowX: "auto",
+          fontSize: 11,
+          lineHeight: 1.5,
+        }}>
+          {JSON.stringify(parsed, null, 2)}
+        </pre>
+      </details>
+    );
+  }
+
+  return <>{text}</>;
+}
+
 function TurnResolver({
   workflowId,
   conversationId,
@@ -418,9 +503,10 @@ export function ConversationPage() {
     qc.setQueryData(conversationsKeys.turns(id), { conversation: null, turns: [] });
   };
 
-  const sendMessage = () => {
-    const text = draft.trim();
+  const sendMessage = (overrideText?: string) => {
+    const text = (overrideText ?? draft).trim();
     if (!text || !selectedProfile) return;
+    if (!overrideText) setDraft("");
     let convId = activeConvId;
     if (!convId) {
       convId = `conv_${Date.now().toString(36)}`;
@@ -430,8 +516,6 @@ export function ConversationPage() {
     const history = serverTurns
       .filter((t) => t.status === "ok")
       .map((t) => ({ role: t.role, content: t.content }));
-
-    setDraft("");
 
     // Keep outgoing messages visible while SSE/refetch races with persistence.
     const tempId = `opt_${Date.now()}`;
@@ -610,7 +694,7 @@ export function ConversationPage() {
             <option key={p.id} value={p.id}>{p.id}</option>
           ))}
         </select>
-        <button className="btn primary" onClick={startConversation} disabled={!canUseConversation}>
+        <button type="button" className="btn primary" onClick={startConversation} disabled={!canUseConversation}>
           <IconPlus size={14} /> Nova conversa
         </button>
       </div>
@@ -639,6 +723,7 @@ export function ConversationPage() {
                 placeholder="Filtrar por ID, profile, preview…"
                 value={convSearch}
                 onChange={(e) => setConvSearch(e.target.value)}
+                aria-label="Filtrar conversas"
               />
             </div>
             <div className="conv-list">
@@ -657,6 +742,7 @@ export function ConversationPage() {
                   <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontFamily: "var(--font-mono)" }}>{c.conversation_id.slice(0, 18)}</span>
                     <button
+                      type="button"
                       className="btn ghost"
                       onClick={(e) => { e.stopPropagation(); handleDelete(c.conversation_id); }}
                       style={{ padding: "2px 6px", fontSize: 10 }}
@@ -691,6 +777,7 @@ export function ConversationPage() {
                   </div>
                   {activePending && <span className="pill" data-tone="run"><span className="dot"></span>aguardando</span>}
                   <button
+                    type="button"
                     className="btn ghost"
                     onClick={() => setTimelineOpen(true)}
                     title="Abrir trail de auditoria desta conversa"
@@ -699,6 +786,7 @@ export function ConversationPage() {
                     Auditoria
                   </button>
                   <button
+                    type="button"
                     className="btn ghost"
                     onClick={() => setProfilePanelOpen((v) => !v)}
                     title={userId ? "Perfil do usuário" : "Conversa sem user_id — perfil indisponível"}
@@ -727,7 +815,7 @@ export function ConversationPage() {
                 const display = t.status === "failed" ? `❌ ${t.error || text}` : text;
                 return (
                   <div key={t.id} className="chat-msg" data-role={t.role} data-status={t.status}>
-                    {display}
+                    {t.role === "assistant" ? <AssistantMessageContent text={display} onOptionClick={(opt) => sendMessage(opt)} /> : display}
                     <div style={{ marginTop: 6, fontSize: 10, opacity: 0.7, display: "flex", gap: 10 }}>
                       {t.role === "assistant" && t.workflow_id && t.status !== "pending" && (
                         <Link
@@ -739,6 +827,7 @@ export function ConversationPage() {
                       )}
                       {t.role === "user" && t.status === "ok" && !t.id.startsWith("opt_") && (
                         <button
+                          type="button"
                           className="btn ghost"
                           style={{ padding: "0", fontSize: 10, color: "inherit", background: "transparent", border: "none", textDecoration: "underline", cursor: "pointer" }}
                           onClick={() => handleEditMessage(t)}
@@ -748,6 +837,7 @@ export function ConversationPage() {
                       )}
                       {t.role === "assistant" && t.status !== "pending" && (
                         <button
+                          type="button"
                           className="btn ghost"
                           style={{ padding: "0", fontSize: 10, color: "inherit", background: "transparent", border: "none", textDecoration: "underline", cursor: "pointer" }}
                           onClick={() => handleRegenerate(t)}
@@ -775,8 +865,10 @@ export function ConversationPage() {
                   }
                 }}
                 disabled={!selectedProfile || createTurn.isPending || !canUseConversation}
+                aria-label="Mensagem para enviar"
               />
               <button
+                type="button"
                 className="btn primary"
                 onClick={sendMessage}
                 disabled={!selectedProfile || !draft.trim() || createTurn.isPending || !canUseConversation}

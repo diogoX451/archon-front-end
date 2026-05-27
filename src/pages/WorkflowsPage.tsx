@@ -96,7 +96,7 @@ export function WorkflowsPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn" onClick={() => { refetch(); refetchAudit(); }} style={{ marginRight: 8 }}>
+        <button type="button" className="btn" onClick={() => { refetch(); refetchAudit(); }} style={{ marginRight: 8 }}>
           Atualizar
         </button>
         <Link to="/workflows/builder" className="btn primary">
@@ -136,6 +136,7 @@ export function WorkflowsPage() {
             placeholder="Buscar por workflow_id, user..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Buscar por workflow_id ou usuário"
           />
           <select className="field-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">todos status</option>

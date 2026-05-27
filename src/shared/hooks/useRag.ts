@@ -1,22 +1,34 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '../api/rag';
 import type { RAGIngestRequest, RAGQueryRequest } from '../api/types';
 
 export const useCreateRAGIngestWorkflow = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: RAGIngestRequest) => api.createRAGIngestWorkflow(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rag'] });
+    },
   });
 };
 
 export const useCreateRAGIngestUploadWorkflow = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: FormData) => api.createRAGIngestUploadWorkflow(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rag'] });
+    },
   });
 };
 
 export const useCreateRAGQueryWorkflow = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: RAGQueryRequest) => api.createRAGQueryWorkflow(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rag', 'queries'] });
+    },
   });
 };
 

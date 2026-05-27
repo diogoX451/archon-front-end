@@ -77,11 +77,11 @@ export function EventsPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn" onClick={() => refetch()}>
+        <button type="button" className="btn" onClick={() => refetch()}>
           <IconReset size={14} />
           Atualizar
         </button>
-        <button className="btn" onClick={() => refetchEvents()}>
+        <button type="button" className="btn" onClick={() => refetchEvents()}>
           <IconReset size={14} />
           Atualizar eventos
         </button>
@@ -188,7 +188,7 @@ export function EventsPage() {
                       </span>
                     </td>
                     <td className="num mono">{agentCount(wf)}</td>
-                    <td className="num mono">{dur || <span className="muted">—</span>}</td>
+                    <td className="num mono">{dur || <span className="muted">{"—"}</span>}</td>
                     <td className="muted">{timeAgo(wf.created_at)}</td>
                   </tr>
                 );

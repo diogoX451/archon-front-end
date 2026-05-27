@@ -1,13 +1,15 @@
-import React, { useState, useMemo } from "react";
-import { AGENT_TYPES, SAMPLE_WORKFLOW } from "./data";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import { AGENT_TYPES } from "./data";
 import { AgentNodeData, ConnectionData, WorkflowData } from "./types";
-import type { CanvasMeta } from "./profileSerializer";
-import { IconSliders, IconTerminal, IconShare, IconTrash, GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
+import type { CanvasMeta, GuardrailsConfig } from "./profileSerializer";
+import { canvasToProfile, profileToCanvas } from "./profileSerializer";
+import { GLYPHS } from "@shared/ui/icons/glyphs";
+import { IconSliders, IconTerminal, IconShare, IconTrash, GlyphPlanner } from "@shared/ui/icons/Icons";
 import type { ConversationProfileV2 } from "@shared/api/profiles";
-import { ProfileDetail, ProfileHeader } from "@shared/ui/ProfileDetail";
 import type { GhostAction } from "./GhostActionNode";
 import { useKBs } from "@shared/hooks/useKBs";
 import { useMCPConfigs } from "@shared/hooks/useMCPConfigs";
+import { useMCPTools } from "@shared/hooks/useMCPTools";
 import { useAuth } from "@app/auth-context";
 import type { MCPConfig } from "@shared/api/mcpConfig";
 
@@ -70,6 +72,7 @@ const ACTION_KINDS: { id: string; label: string; agent_type?: string; need_type?
   { id: "ask_user", label: "ask_user (pedir info)" },
   { id: "http", label: "http (chamar API externa)", agent_type: "http", configFields: ["method", "url", "headers", "timeout"] },
   { id: "rag", label: "rag.query (buscar contexto)", agent_type: "event", need_type: "rag.query" },
+  { id: "mcp", label: "mcp (ferramenta MCP)", agent_type: "mcp", need_type: "mcp" },
   { id: "interaction", label: "interaction (canal)", agent_type: "interaction", need_type: "user_interaction.whatsapp.buttons" },
   { id: "event", label: "event (custom)", agent_type: "event" },
 ];
@@ -79,6 +82,7 @@ function detectKind(action: PlannerAction): string {
   if (action.name === "ask_user") return "ask_user";
   if (action.agent_type === "http") return "http";
   if (action.need_type === "rag.query") return "rag";
+  if (action.agent_type === "mcp") return "mcp";
   if (action.agent_type === "interaction") return "interaction";
   return "event";
 }
@@ -98,7 +102,93 @@ function applyKind(action: PlannerAction, kind: string): PlannerAction {
   if (spec.need_type) next.need_type = spec.need_type;
   if (kind === "http" && !next.config) next.config = { method: "GET", url: "", timeout: 15 };
   if (kind === "rag" && !next.config) next.config = { knowledge_base_ids: [], top_k: 5, min_score: 0.0 };
+  if (kind === "mcp") {
+    if (!next.config) next.config = { mcp_name: "", tool: "", oauth_subject: "" };
+    // Auto-name only when coming from another kind; preserve if already mcp__ prefixed
+    if (!next.name.startsWith("mcp__")) next.name = "mcp__tool";
+  }
   return next;
+}
+
+function MCPActionFields({
+  action,
+  mcpServers,
+  onServerChange,
+  onToolChange,
+  onSubjectChange,
+}: {
+  action: PlannerAction;
+  mcpServers: MCPConfig[];
+  onServerChange: (name: string) => void;
+  onToolChange: (tool: string) => void;
+  onSubjectChange: (subject: string) => void;
+}) {
+  const selectedServer = mcpServers.find((s) => s.name === (action.config?.mcp_name as string));
+  const subject = (action.config?.oauth_subject as string) || "";
+  const { data: tools = [], isLoading: loadingTools } = useMCPTools(
+    selectedServer?.id,
+    subject || undefined,
+    { enabled: !!selectedServer },
+  );
+
+  return (
+    <>
+      <Field label="servidor MCP">
+        {mcpServers.length > 0 ? (
+          <select
+            className="field-select"
+            value={(action.config?.mcp_name as string) || ""}
+            onChange={(e) => onServerChange(e.target.value)}
+          >
+            <option value="">{"—"} selecionar {"—"}</option>
+            {mcpServers.filter((s) => s.enabled).map((s) => (
+              <option key={s.name} value={s.name}>{s.name}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className="field-input"
+            value={(action.config?.mcp_name as string) || ""}
+            onChange={(e) => onServerChange(e.target.value)}
+            placeholder="nome-do-servidor"
+          />
+        )}
+      </Field>
+      <Field label="tool">
+        {selectedServer && tools.length > 0 ? (
+          <select
+            className="field-select"
+            value={(action.config?.tool as string) || ""}
+            onChange={(e) => onToolChange(e.target.value)}
+          >
+            <option value="">{"—"} selecionar tool {"—"}</option>
+            {tools.map((t) => (
+              <option key={t.name} value={t.name} title={t.description}>{t.name}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className="field-input"
+            value={(action.config?.tool as string) || ""}
+            onChange={(e) => onToolChange(e.target.value)}
+            placeholder={loadingTools ? "Carregando tools…" : "list_events"}
+          />
+        )}
+        {selectedServer && tools.length === 0 && !loadingTools && (
+          <div className="field-hint" style={{ color: "var(--warn)" }}>Nenhuma tool encontrada {"—"} servidor pode estar offline.</div>
+        )}
+      </Field>
+      <Field label="oauth_subject (opcional)">
+        <input
+          className="field-input"
+          value={subject}
+          onChange={(e) => onSubjectChange(e.target.value)}
+          placeholder="user@email.com ou deixar vazio"
+        />
+      </Field>
+      <div className="field-hint">name: <code>{action.name}</code></div>
+    </>
+  );
 }
 
 function RagKBSelector({ value, onChange }: { value: string[]; onChange: (ids: string[]) => void }) {
@@ -120,24 +210,36 @@ function RagKBSelector({ value, onChange }: { value: string[]; onChange: (ids: s
             type="checkbox"
             checked={value.includes(kb.kb_id)}
             onChange={() => toggle(kb.kb_id)}
+            aria-label={`Base de conhecimento ${kb.name}`}
           />
           <span style={{ fontWeight: 500 }}>{kb.name}</span>
           <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>{kb.kb_id}</span>
         </label>
       ))}
       {value.length === 0 && (
-        <div className="field-hint" style={{ color: "var(--warn)" }}>Nenhuma base selecionada — query vai buscar em todas.</div>
+        <div className="field-hint" style={{ color: "var(--warn)" }}>Nenhuma base selecionada {"—"} query vai buscar em todas.</div>
       )}
     </div>
   );
 }
 
-function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[]; onChange: (next: PlannerAction[]) => void }) {
+function PlannerActionsEditor({ actions, onChange, mcpServers = [] }: { actions: PlannerAction[]; onChange: (next: PlannerAction[]) => void; mcpServers?: MCPConfig[] }) {
   const update = (idx: number, patch: Partial<PlannerAction>) => {
     onChange(actions.map((a, i) => (i === idx ? { ...a, ...patch } : a)));
   };
   const updateConfig = (idx: number, key: string, value: any) => {
     onChange(actions.map((a, i) => (i === idx ? { ...a, config: { ...(a.config || {}), [key]: value } } : a)));
+  };
+  const updateMCPConfig = (idx: number, key: "mcp_name" | "tool" | "oauth_subject", value: string) => {
+    onChange(actions.map((a, i) => {
+      if (i !== idx) return a;
+      const cfg = { ...(a.config || {}), [key]: value };
+      // Auto-sync action name to mcp__<server>__<tool>
+      const server = key === "mcp_name" ? value : (cfg.mcp_name as string || "");
+      const tool = key === "tool" ? value : (cfg.tool as string || "");
+      const name = server && tool ? `mcp__${server}__${tool}` : a.name;
+      return { ...a, name, config: cfg };
+    }));
   };
   const remove = (idx: number) => onChange(actions.filter((_, i) => i !== idx));
   const add = () => onChange([...actions, { name: "nova_action", description: "" }]);
@@ -157,10 +259,11 @@ function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[];
                 style={{ flex: 1 }}
                 value={kind}
                 onChange={(e) => onChange(actions.map((a, i) => (i === idx ? applyKind(a, e.target.value) : a)))}
+                aria-label="Tipo da action"
               >
                 {ACTION_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
               </select>
-              <button className="btn ghost" onClick={() => remove(idx)} title="Remover action" style={{ padding: "4px 8px" }}>×</button>
+              <button type="button" className="btn ghost" onClick={() => remove(idx)} title="Remover action" aria-label="Remover action" style={{ padding: "4px 8px" }}>×</button>
             </div>
             <Field label="name">
               <input
@@ -168,6 +271,7 @@ function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[];
                 value={action.name}
                 onChange={(e) => update(idx, { name: e.target.value })}
                 disabled={kind === "complete" || kind === "ask_user"}
+                aria-label="Nome da action"
               />
             </Field>
             <Field label="description">
@@ -176,6 +280,7 @@ function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[];
                 value={action.description || ""}
                 onChange={(e) => update(idx, { description: e.target.value })}
                 placeholder="O que esta tool faz"
+                aria-label="Descrição da action"
               />
             </Field>
             {kind === "event" && (
@@ -185,6 +290,7 @@ function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[];
                   value={action.need_type || ""}
                   onChange={(e) => update(idx, { need_type: e.target.value })}
                   placeholder="my.custom.event"
+                  aria-label="Tipo do evento (need_type)"
                 />
               </Field>
             )}
@@ -195,6 +301,7 @@ function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[];
                     className="field-select"
                     value={(action.config?.method as string) || "GET"}
                     onChange={(e) => updateConfig(idx, "method", e.target.value)}
+                    aria-label="Método HTTP"
                   >
                     <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
                   </select>
@@ -256,6 +363,15 @@ function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[];
                 </Field>
               </>
             )}
+            {kind === "mcp" && (
+              <MCPActionFields
+                action={action}
+                mcpServers={mcpServers}
+                onServerChange={(v) => updateMCPConfig(idx, "mcp_name", v)}
+                onToolChange={(v) => updateMCPConfig(idx, "tool", v)}
+                onSubjectChange={(v) => updateMCPConfig(idx, "oauth_subject", v)}
+              />
+            )}
             {kind === "interaction" && (
               <Field label="need_type">
                 <input
@@ -266,7 +382,7 @@ function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[];
                 />
               </Field>
             )}
-            {spec && spec.need_type && kind !== "event" && kind !== "interaction" && (
+            {spec && spec.need_type && kind !== "event" && kind !== "interaction" && kind !== "mcp" && (
               <div className="field-hint" style={{ marginTop: -4 }}>
                 need_type: <code>{spec.need_type}</code>
               </div>
@@ -274,7 +390,7 @@ function PlannerActionsEditor({ actions, onChange }: { actions: PlannerAction[];
           </div>
         );
       })}
-      <button className="btn" onClick={add} style={{ width: "100%", marginTop: 4 }}>+ Adicionar action</button>
+      <button type="button" className="btn" onClick={add} style={{ width: "100%", marginTop: 4 }}>+ Adicionar action</button>
       <div className="field-hint" style={{ marginTop: 8 }}>
         Actions definem o que o planner pode escolher. <code>response_schema</code> é derivado automaticamente ao salvar.
       </div>
@@ -300,7 +416,7 @@ function MemoryHooksEditor({ rules, onChange }: { rules: Array<{ relations: stri
         <div key={idx} className="card" style={{ padding: 10, marginBottom: 8 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
             <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>regra #{idx + 1}</span>
-            <button className="btn ghost" onClick={() => remove(idx)} style={{ padding: "2px 8px" }}>×</button>
+            <button type="button" className="btn ghost" onClick={() => remove(idx)} style={{ padding: "2px 8px" }}>×</button>
           </div>
           <Field label="relations (separadas por vírgula)">
             <input
@@ -320,8 +436,129 @@ function MemoryHooksEditor({ rules, onChange }: { rules: Array<{ relations: stri
           </Field>
         </div>
       ))}
-      <button className="btn" onClick={add} style={{ width: "100%" }}>+ Nova regra</button>
+      <button type="button" className="btn" onClick={add} style={{ width: "100%" }}>+ Nova regra</button>
     </>
+  );
+}
+
+const GUARDRAIL_CHECKS: { key: keyof GuardrailsConfig["checks"] & string; label: string }[] = [
+  { key: "pii", label: "PII" },
+  { key: "jailbreak", label: "Jailbreak" },
+  { key: "hallucination", label: "Alucinação" },
+  { key: "nsfw", label: "NSFW" },
+  { key: "moderation", label: "Moderação" },
+  { key: "prompt_injection", label: "Prompt injection" },
+];
+
+function GuardrailsEditor({ value, onChange }: { value?: GuardrailsConfig; onChange: (next: GuardrailsConfig | undefined) => void }) {
+  if (!value) {
+    return (
+      <button
+        type="button"
+        className="btn ghost"
+        style={{ width: "100%", fontSize: 12, marginBottom: 8 }}
+        onClick={() => onChange({ enabled: true, blocking_mode: "warn", checks: {} })}
+      >
+        + Ativar guardrails neste workflow
+      </button>
+    );
+  }
+  const cfg: GuardrailsConfig = value;
+  const set = <K extends keyof GuardrailsConfig>(k: K, v: GuardrailsConfig[K]) => onChange({ ...cfg, [k]: v });
+  const setCheck = (key: string, v: boolean) => set("checks", { ...cfg.checks, [key]: v });
+
+  const toolsExemptText = (cfg.tools_exempt || []).join(", ");
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <Field label="ativo">
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+          <input
+            type="checkbox"
+            checked={cfg.enabled !== false}
+            onChange={(e) => set("enabled", e.target.checked)}
+          />
+          {cfg.enabled !== false ? "habilitado" : "desabilitado"}
+        </label>
+      </Field>
+      <Field label="blocking_mode">
+        <select
+          className="field-select"
+          value={cfg.blocking_mode || "warn"}
+          onChange={(e) => set("blocking_mode", e.target.value as GuardrailsConfig["blocking_mode"])}
+        >
+          <option value="warn">warn (registra, não bloqueia)</option>
+          <option value="block">block (bloqueia execução)</option>
+          <option value="retry">retry (tenta novamente)</option>
+          <option value="escalate">escalate (exige aprovação)</option>
+        </select>
+      </Field>
+      <Field label="max_retries">
+        <input
+          className="field-input"
+          type="number"
+          min={0}
+          max={10}
+          value={cfg.max_retries ?? 2}
+          onChange={(e) => set("max_retries", +e.target.value)}
+        />
+      </Field>
+      <Field label="checks">
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 2 }}>
+          {GUARDRAIL_CHECKS.map(({ key, label }) => (
+            <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={!!(cfg.checks as any)?.[key]}
+                onChange={(e) => setCheck(key, e.target.checked)}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </Field>
+      <Field label="min_composite">
+        <input
+          className="field-input"
+          type="number"
+          step="0.05"
+          min={0}
+          max={1}
+          value={cfg.min_composite ?? 0.6}
+          onChange={(e) => set("min_composite", +e.target.value)}
+        />
+        <div className="field-hint">Score mínimo composto [0–1]. Padrão: 0.60.</div>
+      </Field>
+      <Field label="financial_threshold">
+        <input
+          className="field-input"
+          type="number"
+          min={0}
+          value={cfg.financial_threshold ?? 1000}
+          onChange={(e) => set("financial_threshold", +e.target.value)}
+        />
+        <div className="field-hint">Bloqueia tool calls com amount/value acima deste valor.</div>
+      </Field>
+      <Field label="tools_exempt (vírgula)">
+        <input
+          className="field-input"
+          value={toolsExemptText}
+          onChange={(e) =>
+            set("tools_exempt", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))
+          }
+          placeholder="list_events, get_calendar"
+        />
+        <div className="field-hint">Tools isentas de verificação de score.</div>
+      </Field>
+      <button
+        type="button"
+        className="btn ghost"
+        style={{ marginTop: 4, fontSize: 12, width: "100%" }}
+        onClick={() => onChange(undefined)}
+      >
+        remover guardrails
+      </button>
+    </div>
   );
 }
 
@@ -404,7 +641,7 @@ function WorkflowInspector({
 
       <div className="section-title">Composição</div>
       <div className="kv-list">
-        {Object.entries(counts).length === 0 && <div className="kv-row"><span className="k">—</span><span className="v">vazio</span></div>}
+        {Object.entries(counts).length === 0 && <div className="kv-row"><span className="k">{"—"}</span><span className="v">vazio</span></div>}
         {Object.entries(counts).map(([type, n]) => (
           <div key={type} className="kv-row">
             <span className="k">{type}</span>
@@ -417,6 +654,19 @@ function WorkflowInspector({
       <MemoryHooksEditor
         rules={hookRules}
         onChange={(next) => onMetaChange?.({ memory_hook_rules: next })}
+      />
+
+      <div className="section-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        Guardrails
+        {meta?.guardrails?.enabled !== false && meta?.guardrails && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: "oklch(0.55 0.12 72)", background: "oklch(0.96 0.03 72)", border: "1px solid oklch(0.85 0.06 72)", borderRadius: 4, padding: "1px 7px" }}>
+            ativo
+          </span>
+        )}
+      </div>
+      <GuardrailsEditor
+        value={meta?.guardrails}
+        onChange={(next) => onMetaChange?.({ guardrails: next })}
       />
 
       <div className="section-title">Atalhos</div>
@@ -441,7 +691,7 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
   const mcpTenant = isSuper ? undefined : activeTenantSlug || undefined;
   const { data: mcpServers = [], isLoading: loadingMCPs, isError: mcpErr } = useMCPConfigs(
     mcpTenant,
-    { enabled: agent.type === "mcp" },
+    { enabled: agent.type === "mcp" || agent.type === "planner" },
   );
   const selectedMCP = mcpServers.find((s) => s.name === agent.config.mcp_name);
 
@@ -455,7 +705,7 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
           <div style={{ fontWeight: 500 }}>{meta.label}</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>{agent.id}</div>
         </div>
-        <button className="btn ghost" onClick={onRemove} title="Excluir agente"><IconTrash className="icon-sm" /></button>
+        <button type="button" className="btn ghost" onClick={onRemove} title="Excluir agente"><IconTrash className="icon-sm" /></button>
       </div>
 
       <div style={{ fontSize: 12, color: "var(--ink-3)", marginBottom: 14, lineHeight: 1.55 }}>
@@ -495,7 +745,7 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
               <option value="static">static (mock)</option>
             </select>
             {(agent.config.mode || "external") === "static" && (
-              <div className="field-hint">Retorna action fixa sem chamar LLM — útil para testar o fluxo sem consumir créditos.</div>
+              <div className="field-hint">Retorna action fixa sem chamar LLM {"—"} útil para testar o fluxo sem consumir créditos.</div>
             )}
           </Field>
           <Field label="Provider">
@@ -527,7 +777,7 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
               }
             />
             {!agent.config.model && (
-              <div className="field-hint" style={{ color: "var(--warn)" }}>Modelo não definido — planner não vai funcionar em runtime.</div>
+              <div className="field-hint" style={{ color: "var(--warn)" }}>Modelo não definido {"—"} planner não vai funcionar em runtime.</div>
             )}
           </Field>
           <Field label="Instruções">
@@ -553,6 +803,7 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
           <PlannerActionsEditor
             actions={Array.isArray(agent.config.actions) ? agent.config.actions : []}
             onChange={(next) => setConfig("actions", next)}
+            mcpServers={mcpServers}
           />
         </>
       )}
@@ -650,7 +901,7 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
                   ))}
                 </select>
                 <div className="field-hint">
-                  Resolvido pelo registry em runtime — URL e token não
+                  Resolvido pelo registry em runtime {"—"} URL e token não
                   precisam ser duplicados aqui.
                 </div>
               </>
@@ -709,6 +960,67 @@ function AgentInspector({ agent, onUpdate, onRemove }: { agent: AgentNodeData, o
           </Field>
         </>
       )}
+      {agent.type === "guardrails" && (
+        <>
+          <Field label="blocking_mode">
+            <select
+              className="field-select"
+              value={agent.config.blocking_mode || "block"}
+              onChange={(e) => setConfig("blocking_mode", e.target.value)}
+            >
+              <option value="block">block — interrompe fluxo</option>
+              <option value="warn">warn — registra, continua</option>
+              <option value="retry">retry — tenta novamente</option>
+              <option value="escalate">escalate — aguarda aprovação</option>
+            </select>
+          </Field>
+          <Field label="checks">
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+              {GUARDRAIL_CHECKS.map(({ key, label }) => (
+                <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={!!(agent.config.checks as any)?.[key]}
+                    onChange={(e) => setConfig("checks", { ...(agent.config.checks || {}), [key]: e.target.checked })}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </Field>
+          <Field label="min_composite">
+            <input
+              className="field-input"
+              type="number"
+              step="0.05"
+              min={0}
+              max={1}
+              value={agent.config.min_composite ?? 0.6}
+              onChange={(e) => setConfig("min_composite", +e.target.value)}
+            />
+            <div className="field-hint">Score mínimo composto [0–1]. Padrão: 0.60.</div>
+          </Field>
+          <Field label="financial_threshold">
+            <input
+              className="field-input"
+              type="number"
+              min={0}
+              value={agent.config.financial_threshold ?? 1000}
+              onChange={(e) => setConfig("financial_threshold", +e.target.value)}
+            />
+          </Field>
+          <Field label="tools_exempt (vírgula)">
+            <input
+              className="field-input"
+              value={(agent.config.tools_exempt || []).join(", ")}
+              onChange={(e) =>
+                setConfig("tools_exempt", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))
+              }
+              placeholder="list_events, get_calendar"
+            />
+          </Field>
+        </>
+      )}
       <div className="section-title">Portas</div>
       <div className="kv-list">
         {meta.ports.principal.map((p: string) => (
@@ -743,7 +1055,7 @@ function ConnectionInspector({ conn, workflow, onRemove }: { conn: ConnectionDat
           <div style={{ fontWeight: 500 }}>Conexão</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-3)" }}>{conn.id}</div>
         </div>
-        <button className="btn ghost" onClick={onRemove}><IconTrash className="icon-sm" /></button>
+        <button type="button" className="btn ghost" onClick={onRemove}><IconTrash className="icon-sm" /></button>
       </div>
 
       <div className="kv-list">
@@ -771,25 +1083,87 @@ function ConnectionInspector({ conn, workflow, onRemove }: { conn: ConnectionDat
   );
 }
 
-function InputTab({ workflow }: { workflow: WorkflowData }) {
-  const [body, setBody] = useState(JSON.stringify(SAMPLE_WORKFLOW.input, null, 2));
+function JsonTab({
+  workflow,
+  meta,
+  onReplaceWorkflow,
+}: {
+  workflow: WorkflowData;
+  meta?: CanvasMeta;
+  onReplaceWorkflow?: (w: WorkflowData, m: CanvasMeta) => void;
+}) {
+  const canonical = useMemo(
+    () => JSON.stringify(canvasToProfile(workflow, meta || { id: "" }), null, 2),
+    [workflow, meta],
+  );
+  const [draft, setDraft] = useState(canonical);
+  const [error, setError] = useState<string | null>(null);
+  const [applied, setApplied] = useState(false);
+  const justApplied = useRef(false);
+
+  useEffect(() => {
+    if (justApplied.current) {
+      justApplied.current = false;
+      return;
+    }
+    setDraft(canonical);
+    setError(null);
+    setApplied(false);
+  }, [canonical]);
+
+  const apply = () => {
+    try {
+      const parsed = JSON.parse(draft);
+      const { workflow: w, meta: m } = profileToCanvas(parsed as ConversationProfileV2);
+      justApplied.current = true;
+      onReplaceWorkflow?.(w, m);
+      setError(null);
+      setApplied(true);
+      setTimeout(() => setApplied(false), 2500);
+    } catch (e: any) {
+      setError(e?.message || "JSON inválido");
+    }
+  };
+
+  const isDirty = draft !== canonical;
+
   return (
     <>
-      <div className="section-title">Entrada do workflow</div>
-      <Field label="JSON">
-        <textarea className="field-textarea" style={{ minHeight: 140 }} value={body} onChange={(e) => setBody(e.target.value)} />
-        <div className="field-hint">Esta carga é enviada ao agente raiz quando o workflow é executado.</div>
-      </Field>
-
-      <div className="section-title">cURL</div>
-      <div className="kv-list" style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
-        <div style={{ color: "var(--ink-2)" }}>POST /api/v1/workflows</div>
-        <div style={{ color: "var(--ink-3)" }}>Content-Type: application/json</div>
-        <div style={{ color: "var(--ink-4)" }}>—</div>
-        <div style={{ color: "var(--ink-2)" }}>{`{ "user_id": "user_123",`}</div>
-        <div style={{ color: "var(--ink-2)", paddingLeft: 14 }}>{`"agents": […${workflow.agents.length}],`}</div>
-        <div style={{ color: "var(--ink-2)", paddingLeft: 14 }}>{`"connections": […${workflow.connections.length}],`}</div>
-        <div style={{ color: "var(--ink-2)", paddingLeft: 14 }}>{`"input": {…} }`}</div>
+      <div className="section-title">JSON do profile</div>
+      <textarea
+        className="field-textarea"
+        style={{ minHeight: 420, fontFamily: "var(--font-mono)", fontSize: 12, resize: "vertical" }}
+        value={draft}
+        onChange={(e) => { setDraft(e.target.value); setError(null); setApplied(false); }}
+        spellCheck={false}
+      />
+      {error && (
+        <div style={{ color: "var(--error, #dc2626)", fontSize: 12, marginTop: 4, fontFamily: "var(--font-mono)" }}>
+          {error}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button
+          type="button"
+          className="btn"
+          onClick={apply}
+          disabled={!isDirty}
+          style={{ flex: 1 }}
+        >
+          {applied ? "Aplicado ✓" : "Aplicar"}
+        </button>
+        {isDirty && (
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => { setDraft(canonical); setError(null); }}
+          >
+            Resetar
+          </button>
+        )}
+      </div>
+      <div className="field-hint" style={{ marginTop: 6 }}>
+        Edite o JSON e clique em Aplicar para atualizar o canvas. Salve após aplicar para persistir.
       </div>
     </>
   );
@@ -844,13 +1218,11 @@ type InspectorProps = {
   selectedGhost?: GhostAction | null;
   workflow: WorkflowData;
   meta?: CanvasMeta;
-  /** Backend profile object — when present enables the "Profile" tab
-   *  that mirrors the rich docs/profiles/*.json content. */
-  profile?: ConversationProfileV2 | null;
   onMetaChange?: (patch: Partial<CanvasMeta>) => void;
   onUpdateAgent: (id: string, patch: any) => void;
   onRemoveAgent: (id: string) => void;
   onRemoveConnection: (id: string) => void;
+  onReplaceWorkflow?: (w: WorkflowData, m: CanvasMeta) => void;
 };
 
 function GhostActionInspector({ ghost }: { ghost: GhostAction }) {
@@ -885,29 +1257,24 @@ function GhostActionInspector({ ghost }: { ghost: GhostAction }) {
         )}
       </Field>
       <div className="field-hint" style={{ marginTop: 4 }}>
-        Esta é uma branch dinâmica — o planner LLM decide em runtime. Para editar
+        Esta é uma branch dinâmica {"—"} o planner LLM decide em runtime. Para editar
         as actions, selecione o nó do planner.
       </div>
     </div>
   );
 }
 
-export function Inspector({ tab, setTab, selectedAgent, selectedConn, selectedGhost, workflow, meta, profile, onMetaChange, onUpdateAgent, onRemoveAgent, onRemoveConnection }: InspectorProps) {
+export function Inspector({ tab, setTab, selectedAgent, selectedConn, selectedGhost, workflow, meta, onMetaChange, onUpdateAgent, onRemoveAgent, onRemoveConnection, onReplaceWorkflow }: InspectorProps) {
   return (
     <aside className="inspector" data-tour="builder-inspector">
       <div className="inspector-tabs">
-        <button className="inspector-tab" data-active={tab === "config"} onClick={() => setTab("config")}>
+        <button type="button" className="inspector-tab" data-active={tab === "config"} onClick={() => setTab("config")}>
           <IconSliders className="icon-sm" /> Inspetor
         </button>
-        {profile && (
-          <button className="inspector-tab" data-active={tab === "profile"} onClick={() => setTab("profile")}>
-            <IconSliders className="icon-sm" /> Profile
-          </button>
-        )}
-        <button className="inspector-tab" data-active={tab === "input"} onClick={() => setTab("input")}>
-          <IconTerminal className="icon-sm" /> Entrada
+        <button type="button" className="inspector-tab" data-active={tab === "json"} onClick={() => setTab("json")}>
+          <IconTerminal className="icon-sm" /> JSON
         </button>
-        <button className="inspector-tab" data-active={tab === "rules"} onClick={() => setTab("rules")}>
+        <button type="button" className="inspector-tab" data-active={tab === "rules"} onClick={() => setTab("rules")}>
           <IconShare className="icon-sm" /> Regras
           <span className="badge">{workflow.connections.length}</span>
         </button>
@@ -919,13 +1286,7 @@ export function Inspector({ tab, setTab, selectedAgent, selectedConn, selectedGh
           selectedConn ? <ConnectionInspector conn={selectedConn} workflow={workflow} onRemove={() => onRemoveConnection(selectedConn.id)} /> :
           <WorkflowInspector workflow={workflow} meta={meta} onMetaChange={onMetaChange} />
         )}
-        {tab === "profile" && profile && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <ProfileHeader profile={profile} />
-            <ProfileDetail profile={profile} />
-          </div>
-        )}
-        {tab === "input" && <InputTab workflow={workflow} />}
+        {tab === "json" && <JsonTab workflow={workflow} meta={meta} onReplaceWorkflow={onReplaceWorkflow} />}
         {tab === "rules" && <RulesTab workflow={workflow} />}
       </div>
     </aside>

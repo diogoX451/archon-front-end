@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@app/auth-context";
 import { useConfirm } from "@shared/ui/feedback";
 import { canAny } from "@shared/authz";
+import { useEffect, useState } from "react";
 import {
   IconOverview,
   IconConversation,
@@ -60,7 +61,7 @@ export const IconLLMConfig = (p: IconProps) => (
   </svg>
 );
 
-// MCP icon: three nodes connected to a hub (mirrors the "external tool plug-in" idea).
+// MCP icon: three nodes connected to a hub
 export const IconMCPConfig = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="3" />
@@ -71,7 +72,7 @@ export const IconMCPConfig = (p: IconProps) => (
   </svg>
 );
 
-// Audit icon (clock with list)
+// Audit icon (calendar with lines)
 export const IconAudit = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -80,7 +81,7 @@ export const IconAudit = (p: IconProps) => (
   </svg>
 );
 
-// Privacy icon (shield + user) — link to /account/privacy.
+// Privacy icon (shield + user)
 export const IconPrivacy = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" />
@@ -89,7 +90,7 @@ export const IconPrivacy = (p: IconProps) => (
   </svg>
 );
 
-// Logout icon (arrow-out-of-box)
+// Logout icon
 export const IconLogout = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -97,6 +98,8 @@ export const IconLogout = (p: IconProps) => (
     <line x1="21" y1="12" x2="9" y2="12" />
   </svg>
 );
+
+type RailGroup = "main" | "observe" | "config" | "admin" | "account";
 
 type RailLink = {
   to: string;
@@ -106,26 +109,42 @@ type RailLink = {
   superOnly?: boolean;
   perms?: string[];
   tourTarget?: string;
+  group: RailGroup;
+};
+
+const GROUP_LABELS: Record<RailGroup, string> = {
+  main: "",
+  observe: "Observabilidade",
+  config: "Configuração",
+  admin: "Admin",
+  account: "Conta",
 };
 
 const links: RailLink[] = [
-  { to: "/dashboard", labelKey: "nav.overview", icon: IconOverview },
-  { to: "/conversation", labelKey: "nav.conversation", icon: IconConversation },
-  { to: "/workflows", labelKey: "nav.workflows", icon: IconWorkflows, perms: ["workflow_list"], tourTarget: "nav-workflows" },
-  { to: "/templates", labelKey: "nav.agents", icon: IconAgents, perms: ["conversation_profile_list"], tourTarget: "nav-agents" },
-  { to: "/events", labelKey: "nav.executions", icon: IconExecutions, perms: ["workflow_list"], tourTarget: "nav-events" },
-  { to: "/rag", labelKey: "nav.rag", icon: IconRAG, perms: ["rag_read", "rag_query", "rag_ingest"], tourTarget: "nav-rag" },
-  { to: "/profiles", labelKey: "nav.users", icon: IconProfiles, perms: ["user_list"] },
-  { to: "/roles", labelKey: "nav.roles", icon: IconRoles, perms: ["role_list"] },
-  { to: "/permissions", labelKey: "nav.permissions", icon: IconPermissions, superOnly: true, perms: ["permission_list"] },
-  { to: "/tenants", labelKey: "nav.tenants", icon: IconTenants, superOnly: true },
-  { to: "/channels", labelKey: "nav.channels", icon: IconChannels, perms: ["channel_manage"] },
-  { to: "/llm-config", labelKey: "nav.llmConfig", icon: IconLLMConfig, perms: ["channel_manage"] },
-  { to: "/mcp-config", labelKey: "nav.mcpServers", icon: IconMCPConfig, perms: ["mcp_admin"] },
-  { to: "/admin-audit", labelKey: "nav.auditLog", icon: IconAudit, superOnly: true },
-  // Visible to every authenticated user — LGPD Art. 18 self-service.
-  { to: "/account/privacy", labelKey: "nav.myPrivacy", icon: IconPrivacy },
+  // Main — core daily actions
+  { to: "/dashboard",       labelKey: "nav.overview",     icon: IconOverview,     group: "main" },
+  { to: "/conversation",    labelKey: "nav.conversation",  icon: IconConversation, group: "main" },
+  { to: "/workflows",       labelKey: "nav.workflows",     icon: IconWorkflows,    perms: ["workflow_list"], tourTarget: "nav-workflows", group: "main" },
+  { to: "/templates",       labelKey: "nav.agents",        icon: IconAgents,       perms: ["conversation_profile_list"], tourTarget: "nav-agents", group: "main" },
+  // Observe — monitoring & knowledge
+  { to: "/events",          labelKey: "nav.executions",    icon: IconExecutions,   perms: ["workflow_list"], tourTarget: "nav-events", group: "observe" },
+  { to: "/rag",             labelKey: "nav.rag",           icon: IconRAG,          perms: ["rag_read", "rag_query", "rag_ingest"], tourTarget: "nav-rag", group: "observe" },
+  // Config — integrations & models
+  { to: "/channels",        labelKey: "nav.channels",      icon: IconChannels,     perms: ["channel_manage"], group: "config" },
+  { to: "/llm-config",      labelKey: "nav.llmConfig",     icon: IconLLMConfig,    perms: ["channel_manage"], group: "config" },
+  { to: "/mcp-config",      labelKey: "nav.mcpServers",    icon: IconMCPConfig,    perms: ["mcp_admin"], group: "config" },
+  // Admin — users, permissions, tenants
+  { to: "/profiles",        labelKey: "nav.users",         icon: IconProfiles,     perms: ["user_list"], group: "admin" },
+  { to: "/roles",           labelKey: "nav.roles",         icon: IconRoles,        perms: ["role_list"], group: "admin" },
+  { to: "/permissions",     labelKey: "nav.permissions",   icon: IconPermissions,  superOnly: true, perms: ["permission_list"], group: "admin" },
+  { to: "/tenants",         labelKey: "nav.tenants",       icon: IconTenants,      superOnly: true, group: "admin" },
+  { to: "/admin-audit",     labelKey: "nav.auditLog",      icon: IconAudit,        superOnly: true, group: "admin" },
+  // Account
+  { to: "/account/privacy", labelKey: "nav.myPrivacy",     icon: IconPrivacy,      group: "account" },
 ];
+
+const RAIL_W_COLLAPSED = 56;
+const RAIL_W_EXPANDED  = 208;
 
 function initialsFromUser(name?: string, email?: string): string {
   const source = (name || "").trim();
@@ -147,6 +166,23 @@ export function Rail() {
   const { user, isSuper, hasPermission, logout } = useAuth();
   const confirm = useConfirm();
 
+  const [expanded, setExpanded] = useState<boolean>(() => {
+    try { return localStorage.getItem("rail-expanded") === "true"; } catch { return false; }
+  });
+
+  useEffect(() => {
+    const w = expanded ? RAIL_W_EXPANDED : RAIL_W_COLLAPSED;
+    document.documentElement.style.setProperty("--rail-w", `${w}px`);
+    try { localStorage.setItem("rail-expanded", String(expanded)); } catch { /* noop */ }
+  }, [expanded]);
+
+  // Set initial CSS var synchronously before first paint
+  useEffect(() => {
+    const w = expanded ? RAIL_W_EXPANDED : RAIL_W_COLLAPSED;
+    document.documentElement.style.setProperty("--rail-w", `${w}px`);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const isActive = (link: RailLink) => {
     if (link.exact) return location.pathname === link.to;
     return location.pathname === link.to || location.pathname.startsWith(link.to + "/");
@@ -158,34 +194,83 @@ export function Rail() {
     return canAny({ isSuper, hasPermission }, link.perms);
   });
 
+  // Group consecutive items with same group id
+  const grouped: Array<{ groupId: RailGroup; items: RailLink[] }> = [];
+  for (const link of visibleLinks) {
+    const last = grouped[grouped.length - 1];
+    if (last && last.groupId === link.group) {
+      last.items.push(link);
+    } else {
+      grouped.push({ groupId: link.group, items: [link] });
+    }
+  }
+
   return (
-    <aside className="rail">
-      <div className="rail-brand" aria-hidden="true"></div>
+    <aside className="rail" data-expanded={expanded ? "true" : undefined}>
+      {/* Brand row with toggle */}
+      <div className="rail-brand-row">
+        <div className="rail-brand" aria-hidden="true" />
+        <button
+          type="button"
+          className="rail-toggle"
+          onClick={() => setExpanded((v) => !v)}
+          aria-label={expanded ? "Recolher menu" : "Expandir menu"}
+        >
+          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+            style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 220ms" }}>
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+
       <nav className="rail-nav">
-        {visibleLinks.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className="rail-link"
-            data-active={isActive(link) ? "true" : undefined}
-            data-tour={link.tourTarget}
-          >
-            <link.icon size={18} />
-            <span className="tip">{t(link.labelKey)}</span>
-          </NavLink>
+        {grouped.map(({ groupId, items }, gi) => (
+          <div key={groupId + gi} className="rail-group">
+            {expanded && groupId !== "main" && (
+              <div className="rail-group-label">{GROUP_LABELS[groupId]}</div>
+            )}
+            {!expanded && gi > 0 && <div className="rail-divider" />}
+            {items.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className="rail-link"
+                data-active={isActive(link) ? "true" : undefined}
+                data-tour={link.tourTarget}
+              >
+                <span className="rail-icon"><link.icon size={18} /></span>
+                {expanded
+                  ? <span className="rail-label">{t(link.labelKey)}</span>
+                  : <span className="tip">{t(link.labelKey)}</span>
+                }
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
-      <div className="rail-spacer"></div>
-      <div
-        className="rail-avatar"
-        title={user ? `${user.name} (${user.email})` : t("nav_user_aria", { name: "" })}
-        aria-label={t("nav_user_aria", { name: user?.name ?? "" })}
-      >
-        {initialsFromUser(user?.name, user?.email)}
+
+      <div className="rail-spacer" />
+
+      {/* User footer */}
+      <div className="rail-footer">
+        <div
+          className="rail-avatar"
+          title={user ? `${user.name} (${user.email})` : t("nav_user_aria", { name: "" })}
+          aria-label={t("nav_user_aria", { name: user?.name ?? "" })}
+        >
+          {initialsFromUser(user?.name, user?.email)}
+        </div>
+        {expanded && (
+          <div className="rail-user-info">
+            <div className="rail-user-name">{user?.name || user?.email?.split("@")[0] || "Usuário"}</div>
+            <div className="rail-user-email">{user?.email}</div>
+          </div>
+        )}
       </div>
+
       <button
         type="button"
-        className="rail-link"
+        className="rail-link rail-logout"
         onClick={async () => {
           const ok = await confirm({
             title: t("nav_logout_confirm.title"),
@@ -195,10 +280,12 @@ export function Rail() {
           if (ok) logout();
         }}
         aria-label={t("nav.logout")}
-        style={{ background: "transparent", border: "none", marginTop: 8, cursor: "pointer" }}
       >
-        <IconLogout size={18} />
-        <span className="tip">{t("nav.logout")}</span>
+        <span className="rail-icon"><IconLogout size={18} /></span>
+        {expanded
+          ? <span className="rail-label">{t("nav.logout")}</span>
+          : <span className="tip">{t("nav.logout")}</span>
+        }
       </button>
     </aside>
   );

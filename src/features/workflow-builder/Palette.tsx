@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from "react";
 import { AGENT_TYPES, CATEGORIES, type AgentTypeMetadata } from "./data";
-import { IconSearch, GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
+import { GLYPHS } from "@shared/ui/icons/glyphs";
+import { IconSearch, GlyphPlanner } from "@shared/ui/icons/Icons";
 import { useAuth } from "@app/auth-context";
 import { useMCPConfigs } from "@shared/hooks/useMCPConfigs";
 
@@ -176,6 +177,7 @@ export function Palette({ onStartDrag }: PaletteProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{ paddingLeft: 26, width: "100%", margin: 0 }}
+            aria-label="Buscar agentes na paleta"
           />
         </div>
         {CATEGORIES.map((cat) => groups[cat].length > 0 && (

@@ -13,9 +13,21 @@ export type NavStepDef = {
 };
 
 /** Nav tour steps with permission metadata so we never point at a DOM
- *  element that the current user's Rail doesn't render. */
+ *  element that the current user's Rail doesn't render.
+ *
+ *  The sidebar is now collapsible (toggle button at top). Items are grouped:
+ *  Main → Observabilidade → Configuração → Admin → Conta.
+ */
 export const navStepDefs: NavStepDef[] = [
   {
+    // Expanded toggle — introduce the sidebar concept first
+    target: ".rail-toggle",
+    placement: "right",
+    titleKey: "tour.nav.steps.rail_toggle.title",
+    contentKey: "tour.nav.steps.rail_toggle.content",
+  },
+  {
+    // Main group overview
     target: ".rail-nav",
     placement: "right",
     titleKey: "tour.nav.steps.rail_overview.title",
@@ -50,7 +62,7 @@ export const navStepDefs: NavStepDef[] = [
     perms: ["rag_read", "rag_query", "rag_ingest"],
   },
   {
-    target: ".rail-avatar",
+    target: ".rail-footer",
     placement: "right",
     titleKey: "tour.nav.steps.rail_avatar.title",
     contentKey: "tour.nav.steps.rail_avatar.content",

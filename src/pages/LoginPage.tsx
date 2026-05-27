@@ -145,6 +145,7 @@ export function LoginPage() {
             placeholder="voce@empresa.com"
             required
             style={inputStyle}
+            aria-label="E-mail"
           />
         </label>
 
@@ -159,6 +160,7 @@ export function LoginPage() {
               placeholder="••••••••"
               required
               style={{ ...inputStyle, width: "100%", boxSizing: "border-box", paddingRight: 40 }}
+              aria-label="Senha"
             />
             <button
               type="button"

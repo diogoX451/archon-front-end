@@ -205,7 +205,7 @@ export function RagPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button data-tour="rag-create-btn" className="btn primary" onClick={() => setShowCreateKBModal(true)} disabled={!effectiveTenantSlug || !canIngest}>
+        <button type="button" data-tour="rag-create-btn" className="btn primary" onClick={() => setShowCreateKBModal(true)} disabled={!effectiveTenantSlug || !canIngest}>
           <IconPlus size={14} /> Nova Base de Conhecimento
         </button>
       </div>
@@ -251,10 +251,10 @@ export function RagPage() {
               </div>
               <div style={{ fontSize: 12, color: "var(--ink-3)", minHeight: 32 }}>{kb.description || "Sem descrição"}</div>
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <button className="btn" onClick={() => setSelectedKBID(kb.kb_id)}>
+                <button type="button" className="btn" onClick={() => setSelectedKBID(kb.kb_id)}>
                   {selectedKBID === kb.kb_id ? "Base aberta" : "Abrir documentos da base"}
                 </button>
-                <button className="btn ghost" onClick={() => onDeleteKB(kb.kb_id)} disabled={deleteKB.isPending || !canIngest}><IconTrash size={14} /> Excluir</button>
+                <button type="button" className="btn ghost" onClick={() => onDeleteKB(kb.kb_id)} disabled={deleteKB.isPending || !canIngest}><IconTrash size={14} /> Excluir</button>
               </div>
             </div>
           ))}
@@ -266,7 +266,7 @@ export function RagPage() {
             <div className="section-head" style={{ marginTop: 28 }}>
               <h2>Documentos da KB: <span className="mono">{selectedKBID}</span></h2>
               <div style={{ flex: 1 }}></div>
-              <button data-tour="rag-add-doc-btn" className="btn primary" onClick={() => setShowIngestModal(true)} disabled={!canIngest}>Adicionar Documento</button>
+              <button type="button" data-tour="rag-add-doc-btn" className="btn primary" onClick={() => setShowIngestModal(true)} disabled={!canIngest}>Adicionar Documento</button>
             </div>
 
             <div data-tour="rag-coverage" className="card" style={{ marginBottom: 12 }}>
@@ -318,18 +318,18 @@ export function RagPage() {
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Nova Base de Conhecimento</div>
             <div style={{ display: "grid", gap: 10 }}>
-              <input className="search-input" placeholder="Nome da base *" value={newKBName} onChange={(e) => setNewKBName(e.target.value)} />
-              <input className="search-input" placeholder="Identificador (kb_id) *" value={newKBID} onChange={(e) => setNewKBID(e.target.value)} />
-              <textarea className="search-input" placeholder="Descrição" value={newKBDescription} onChange={(e) => setNewKBDescription(e.target.value)} style={{ minHeight: 72, resize: "vertical" }} />
-              <select className="field-select" value={newKBScope} onChange={(e) => setNewKBScope(e.target.value)}>
+              <input className="search-input" placeholder="Nome da base *" value={newKBName} onChange={(e) => setNewKBName(e.target.value)} aria-label="Nome da base de conhecimento" />
+              <input className="search-input" placeholder="Identificador (kb_id) *" value={newKBID} onChange={(e) => setNewKBID(e.target.value)} aria-label="Identificador da base (kb_id)" />
+              <textarea className="search-input" placeholder="Descrição" value={newKBDescription} onChange={(e) => setNewKBDescription(e.target.value)} style={{ minHeight: 72, resize: "vertical" }} aria-label="Descrição da base de conhecimento" />
+              <select className="field-select" value={newKBScope} onChange={(e) => setNewKBScope(e.target.value)} aria-label="Escopo da base de conhecimento">
                 <option value="tenant">tenant</option>
                 <option value="private">private</option>
                 <option value="public">public</option>
               </select>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setShowCreateKBModal(false)}>Cancelar</button>
-              <button className="btn primary" onClick={onCreateKB} disabled={createKB.isPending || !newKBName.trim() || !newKBID.trim()}>
+              <button type="button" className="btn" onClick={() => setShowCreateKBModal(false)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={onCreateKB} disabled={createKB.isPending || !newKBName.trim() || !newKBID.trim()}>
                 {createKB.isPending ? "Criando..." : "Criar Base"}
               </button>
             </div>
@@ -356,20 +356,20 @@ export function RagPage() {
             >
               Ao enviar você confirma ter base legal para tratar o conteúdo. Não envie dados
               pessoais sensíveis (Art. 5º, II da LGPD) sem consentimento específico do
-              titular. Formatos aceitos: PDF, DOCX, TXT, MD, CSV, JSON, XML, YAML, HTML —
+              titular. Formatos aceitos: PDF, DOCX, TXT, MD, CSV, JSON, XML, YAML, HTML {"—"}
               tamanho máximo 25 MB.
             </div>
             <div style={{ display: "grid", gap: 10 }}>
-              <input type="file" accept=".pdf,.docx,.txt,.md,.csv,.json,.xml,.yaml,.yml,.html" onChange={(e) => onPickFile(e.target.files?.[0] || null)} />
-              <input className="search-input" placeholder="Título" value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
-              <input className="search-input" placeholder="document_id" value={documentID} onChange={(e) => setDocumentID(e.target.value)} />
+              <input type="file" accept=".pdf,.docx,.txt,.md,.csv,.json,.xml,.yaml,.yml,.html" onChange={(e) => onPickFile(e.target.files?.[0] || null)} aria-label="Selecionar arquivo para ingestão" />
+              <input className="search-input" placeholder="Título" value={docTitle} onChange={(e) => setDocTitle(e.target.value)} aria-label="Título do documento" />
+              <input className="search-input" placeholder="document_id" value={documentID} onChange={(e) => setDocumentID(e.target.value)} aria-label="ID do documento" />
               <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
                 KB: <code>{selectedKBID}</code> · tenant: <code>{effectiveTenantSlug}</code>
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setShowIngestModal(false)}>Cancelar</button>
-              <button className="btn primary" onClick={onIngest} disabled={ingestUploadMutation.isPending || !file || !selectedKBID || !effectiveTenantSlug}>
+              <button type="button" className="btn" onClick={() => setShowIngestModal(false)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={onIngest} disabled={ingestUploadMutation.isPending || !file || !selectedKBID || !effectiveTenantSlug}>
                 {ingestUploadMutation.isPending ? "Enviando..." : "Ingerir"}
               </button>
             </div>

@@ -150,13 +150,13 @@ export function PermissionsPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary" onClick={() => setShowCreate(true)}>
+        <button type="button" className="btn primary" onClick={() => setShowCreate(true)}>
           <IconPlus size={14} /> Novo template
         </button>
       </div>
 
       <div className="page-body">
-        <h1 className="page-h1">Permissões — templates de papéis</h1>
+        <h1 className="page-h1">Permissões {"—"} templates de papéis</h1>
         <p className="muted" style={{ marginTop: -8, marginBottom: 16 }}>
           Os templates definem o piso e o teto das permissões que os tenants podem usar. Mudanças aqui se aplicam a todos os tenants no próximo login.
         </p>
@@ -178,6 +178,7 @@ export function PermissionsPage() {
                 const active = effectiveId === tpl.id;
                 return (
                   <button
+                    type="button"
                     key={tpl.id}
                     onClick={() => setSelectedId(tpl.id)}
                     style={{
@@ -207,7 +208,7 @@ export function PermissionsPage() {
               })}
               {templates.length === 0 && !templatesQuery.isLoading && (
                 <div className="muted" style={{ padding: 16 }}>
-                  Nenhum template ainda — crie o primeiro.
+                  Nenhum template ainda {"—"} crie o primeiro.
                 </div>
               )}
             </div>
@@ -224,8 +225,8 @@ export function PermissionsPage() {
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button className="btn" onClick={() => openEdit(selectedTemplate)}>Editar</button>
-                  <button className="btn" onClick={() => void handleDelete(selectedTemplate)} disabled={deleteTemplate.isPending}>
+                  <button type="button" className="btn" onClick={() => openEdit(selectedTemplate)}>Editar</button>
+                  <button type="button" className="btn" onClick={() => void handleDelete(selectedTemplate)} disabled={deleteTemplate.isPending}>
                     Excluir
                   </button>
                 </div>
@@ -260,12 +261,12 @@ export function PermissionsPage() {
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Novo template</div>
             <div style={{ display: "grid", gap: 10 }}>
-              <input className="search-input" placeholder="nome (ex.: template:supervisor)" value={newName} onChange={(e) => setNewName(e.target.value)} />
-              <input className="search-input" placeholder="descrição (opcional)" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} />
+              <input className="search-input" placeholder="nome (ex.: template:supervisor)" value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="Nome do template" />
+              <input className="search-input" placeholder="descrição (opcional)" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} aria-label="Descrição do template" />
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
-              <button className="btn primary" onClick={handleCreate} disabled={createTemplate.isPending}>
+              <button type="button" className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={handleCreate} disabled={createTemplate.isPending}>
                 {createTemplate.isPending ? "Criando..." : "Criar"}
               </button>
             </div>
@@ -278,12 +279,12 @@ export function PermissionsPage() {
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Editar template</div>
             <div style={{ display: "grid", gap: 10 }}>
-              <input className="search-input" placeholder="nome" value={editName} onChange={(e) => setEditName(e.target.value)} />
-              <input className="search-input" placeholder="descrição" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+              <input className="search-input" placeholder="nome" value={editName} onChange={(e) => setEditName(e.target.value)} aria-label="Nome do template" />
+              <input className="search-input" placeholder="descrição" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} aria-label="Descrição do template" />
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setEditing(null)}>Cancelar</button>
-              <button className="btn primary" onClick={handleEdit} disabled={updateTemplate.isPending}>
+              <button type="button" className="btn" onClick={() => setEditing(null)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={handleEdit} disabled={updateTemplate.isPending}>
                 {updateTemplate.isPending ? "Salvando..." : "Salvar"}
               </button>
             </div>
@@ -345,6 +346,7 @@ function PermissionsByCategory({
                     checked={checked}
                     onChange={() => onToggle(p)}
                     disabled={busy}
+                    aria-label={`Permissão ${p.key}`}
                   />
                   <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
                     <span className="mono" style={{ fontSize: 12 }}>{p.key}</span>

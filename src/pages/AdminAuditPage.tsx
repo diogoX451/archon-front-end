@@ -23,6 +23,7 @@ function SummaryPopover({ entry }: { entry: AdminAuditEntry }) {
   return (
     <span style={{ position: "relative" }}>
       <button
+        type="button"
         className="btn"
         style={{ fontSize: 13, padding: "3px 10px" }}
         onClick={() => setOpen((v) => !v)}
@@ -140,6 +141,7 @@ export function AdminAuditPage() {
               value={actorId}
               onChange={(e) => setActorId(e.target.value)}
               style={{ width: 200 }}
+              aria-label="Actor ID"
             />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -150,6 +152,7 @@ export function AdminAuditPage() {
               value={targetType}
               onChange={(e) => setTargetType(e.target.value)}
               style={{ width: 200 }}
+              aria-label="Tipo de alvo"
             />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -160,6 +163,7 @@ export function AdminAuditPage() {
               value={targetId}
               onChange={(e) => setTargetId(e.target.value)}
               style={{ width: 160 }}
+              aria-label="ID do alvo"
             />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -170,6 +174,7 @@ export function AdminAuditPage() {
               value={since}
               onChange={(e) => setSince(e.target.value)}
               style={{ width: 210 }}
+              aria-label="Data inicial (RFC3339)"
             />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -180,6 +185,7 @@ export function AdminAuditPage() {
               value={until}
               onChange={(e) => setUntil(e.target.value)}
               style={{ width: 210 }}
+              aria-label="Data final (RFC3339)"
             />
           </label>
           <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -191,10 +197,11 @@ export function AdminAuditPage() {
               max={1000}
               value={limit}
               onChange={(e) => setLimit(e.target.value)}
+              aria-label="Limite de resultados"
               style={{ width: 90 }}
             />
           </label>
-          <button className="btn primary" onClick={applyFilters}>
+          <button type="button" className="btn primary" onClick={applyFilters}>
             Filtrar
           </button>
         </div>

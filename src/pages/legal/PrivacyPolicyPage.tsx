@@ -30,7 +30,7 @@ export function PrivacyPolicyPage() {
         </p>
         <ul style={{ paddingLeft: 20, margin: 0 }}>
           <li>Nome e e-mail do usuário administrador.</li>
-          <li>Senha (armazenada em hash bcrypt — nunca em texto claro).</li>
+          <li>Senha (armazenada em hash bcrypt {"—"} nunca em texto claro).</li>
           <li>Razão social, slug e, opcionalmente, documento (CNPJ ou CPF) do tenant.</li>
           <li>
             Conteúdo das conversas processadas pelos modelos de linguagem e pelos canais
@@ -109,7 +109,7 @@ export function PrivacyPolicyPage() {
         <ul style={{ paddingLeft: 20, margin: 0 }}>
           <li>Acesso aos dados que mantemos sobre você.</li>
           <li>Correção de dados incompletos ou inexatos.</li>
-          <li>Portabilidade — exportação em formato legível.</li>
+          <li>Portabilidade {"—"} exportação em formato legível.</li>
           <li>Eliminação dos seus dados pessoais.</li>
           <li>Informação sobre compartilhamento com terceiros.</li>
           <li>Revogação de consentimento, quando aplicável.</li>

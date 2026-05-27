@@ -115,7 +115,7 @@ export function ProfilesPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary" onClick={() => setShowCreate(true)} disabled={!canCreate}>
+        <button type="button" className="btn primary" onClick={() => setShowCreate(true)} disabled={!canCreate}>
           <IconPlus size={14} /> Novo usuário
         </button>
       </div>
@@ -164,13 +164,13 @@ export function ProfilesPage() {
                 </td>
                 <td>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button className="btn" onClick={() => openEdit(u)} disabled={!canUpdate}>
+                    <button type="button" className="btn" onClick={() => openEdit(u)} disabled={!canUpdate}>
                       Editar
                     </button>
-                    <button className="btn" onClick={() => setRolesUser(u)} disabled={u.is_super || !canAssociateRoles}>
+                    <button type="button" className="btn" onClick={() => setRolesUser(u)} disabled={u.is_super || !canAssociateRoles}>
                       Papéis
                     </button>
-                    <button className="btn" onClick={() => void handleToggleStatus(u)} disabled={updateUserStatus.isPending || !canUpdate}>
+                    <button type="button" className="btn" onClick={() => void handleToggleStatus(u)} disabled={updateUserStatus.isPending || !canUpdate}>
                       {u.is_active ? "Inativar" : "Ativar"}
                     </button>
                   </div>
@@ -204,8 +204,8 @@ export function ProfilesPage() {
               </label>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
-              <button className="btn primary" onClick={handleCreate} disabled={createUser.isPending}>
+              <button type="button" className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={handleCreate} disabled={createUser.isPending}>
                 {createUser.isPending ? "Criando..." : "Criar"}
               </button>
             </div>
@@ -231,8 +231,8 @@ export function ProfilesPage() {
               </label>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setEditingUser(null)}>Cancelar</button>
-              <button className="btn primary" onClick={handleEdit} disabled={updateUser.isPending}>
+              <button type="button" className="btn" onClick={() => setEditingUser(null)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={handleEdit} disabled={updateUser.isPending}>
                 {updateUser.isPending ? "Salvando..." : "Salvar"}
               </button>
             </div>
@@ -339,7 +339,7 @@ function UserRolesModal({ user, onClose }: { user: User; onClose: () => void }) 
         )}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-          <button className="btn" onClick={onClose}>Fechar</button>
+          <button type="button" className="btn" onClick={onClose}>Fechar</button>
         </div>
       </div>
     </div>

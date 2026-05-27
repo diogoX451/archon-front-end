@@ -112,21 +112,9 @@ export const GlyphMcp = (p: IconProps) => (
     <path d="M7 7l3 3M17 7l-3 3M12 15v3" />
   </Icon>
 );
-
-export const GLYPHS = {
-  planner: GlyphPlanner,
-  http: GlyphHttp,
-  transform: GlyphTransform,
-  event: GlyphEvent,
-  interaction: GlyphInteraction,
-  router: GlyphRouter,
-  calculator: GlyphCalculator,
-  rag: GlyphRag,
-  conversation: GlyphConversation,
-  // Aliases pointing at the closest existing glyph so the backend
-  // catalog (graph.memory, channel.delivery) doesn't fall through to
-  // the generic planner icon. Replace with bespoke glyphs later.
-  graph: GlyphRouter,
-  delivery: GlyphInteraction,
-  mcp: GlyphMcp,
-} as const;
+export const GlyphGuardrails = (p: IconProps) => (
+  <Icon {...p} viewBox="0 0 24 24">
+    <path d="M12 2L4 6v6c0 5 3.5 9.3 8 10.5C16.5 21.3 20 17 20 12V6l-8-4z" />
+    <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+  </Icon>
+);

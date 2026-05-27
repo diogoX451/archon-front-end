@@ -202,8 +202,8 @@ function SubjectList({ subjects, onRefresh, onRevoke, busySubject }: {
               </div>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
-              <button className="btn" disabled={busySubject === s.subject} onClick={() => onRefresh(s.subject)}>Refresh</button>
-              <button className="btn" style={{ color: "var(--err)" }} disabled={busySubject === s.subject} onClick={() => onRevoke(s.subject)}>Revogar</button>
+              <button type="button" className="btn" disabled={busySubject === s.subject} onClick={() => onRefresh(s.subject)}>Refresh</button>
+              <button type="button" className="btn" style={{ color: "var(--err)" }} disabled={busySubject === s.subject} onClick={() => onRevoke(s.subject)}>Revogar</button>
             </div>
           </div>
           {(s.scopes_granted || []).length > 0 && (
@@ -242,13 +242,13 @@ function OAuthStatusPanel({ cfg, onConnect, onClientCredentials, onRefreshDiscov
   return (
     <div style={{ minWidth: 320, display: "grid", gap: 10 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {mode === "oauth2_authorization_code" && <button className="btn" disabled={busyAction === cfg.id} onClick={() => onConnect(cfg)}>Conectar conta</button>}
-        {mode === "oauth2_client_credentials" && <button className="btn" disabled={busyAction === cfg.id} onClick={() => onClientCredentials(cfg)}>Gerar token service</button>}
-        <button className="btn" disabled={busyAction === cfg.id} onClick={() => onRefreshDiscovery(cfg)}>Discovery</button>
-        <button className="btn" disabled={busyAction === cfg.id} onClick={() => onRegister(cfg)}>DCR</button>
+        {mode === "oauth2_authorization_code" && <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onConnect(cfg)}>Conectar conta</button>}
+        {mode === "oauth2_client_credentials" && <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onClientCredentials(cfg)}>Gerar token service</button>}
+        <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onRefreshDiscovery(cfg)}>Discovery</button>
+        <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onRegister(cfg)}>DCR</button>
       </div>
       {isLoading ? (
-        <div className="muted" style={{ fontSize: 13 }}>Carregando status OAuth...</div>
+        <div className="muted" style={{ fontSize: 13 }}>Carregando status OAuth…</div>
       ) : isError ? (
         <div className="muted" style={{ fontSize: 13 }}>Status OAuth indisponivel.</div>
       ) : (
@@ -314,8 +314,8 @@ function ConfigRow({
       <td className="muted" style={{ fontSize: 14 }}>{new Date(cfg.updated_at).toLocaleString()}</td>
       <td>
         <div style={{ display: "flex", gap: 6 }}>
-          <button className="btn" disabled={busyName === cfg.name} onClick={() => onEdit(cfg)}>Editar</button>
-          <button className="btn" style={{ color: "var(--err)", fontSize: 14 }} disabled={busyName === cfg.name} onClick={() => onDelete(cfg.name)}>Remover</button>
+          <button type="button" className="btn" disabled={busyName === cfg.name} onClick={() => onEdit(cfg)}>Editar</button>
+          <button type="button" className="btn" style={{ color: "var(--err)", fontSize: 14 }} disabled={busyName === cfg.name} onClick={() => onDelete(cfg.name)}>Remover</button>
         </div>
       </td>
     </tr>
@@ -582,7 +582,7 @@ export function MCPConfigPage() {
             {(tenants || []).map((t) => <option key={t.id} value={t.slug}>{t.name} ({t.slug})</option>)}
           </select>
         )}
-        <button className="btn primary" onClick={() => setShowForm(!showForm)} disabled={isSuper && !effectiveTenant}>
+        <button type="button" className="btn primary" onClick={() => setShowForm(!showForm)} disabled={isSuper && !effectiveTenant}>
           <IconPlus size={14} />
           {showForm ? "Cancelar" : "Novo MCP server"}
         </button>
@@ -605,34 +605,34 @@ export function MCPConfigPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <span className="field-label">Nome</span>
-                  <input className="field-input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="ex: google, github, crm" required />
+                  <input className="field-input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="ex: google, github, crm" required aria-label="Nome do MCP server" />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <span className="field-label">Transport</span>
-                  <select className="field-select" value={form.transport} onChange={(e) => setForm((f) => ({ ...f, transport: e.target.value as MCPTransport }))}>
+                  <select className="field-select" value={form.transport} onChange={(e) => setForm((f) => ({ ...f, transport: e.target.value as MCPTransport }))} aria-label="Transport do MCP server">
                     {TRANSPORTS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: "1 / -1" }}>
                   <span className="field-label">URL</span>
-                  <input className="field-input" value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://meu-mcp.example.com/mcp" required />
+                  <input className="field-input" value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://meu-mcp.example.com/mcp" required aria-label="URL do MCP server" />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <span className="field-label">Modo de auth</span>
-                  <select className="field-select" value={form.auth_mode} onChange={(e) => setForm((f) => ({ ...f, auth_mode: e.target.value as MCPAuthMode }))}>
+                  <select className="field-select" value={form.auth_mode} onChange={(e) => setForm((f) => ({ ...f, auth_mode: e.target.value as MCPAuthMode }))} aria-label="Modo de autenticação">
                     {AUTH_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                   </select>
                   {selectedMode && <span className="field-hint">{selectedMode.hint}</span>}
                 </label>
                 <label style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 28 }}>
-                  <input type="checkbox" checked={form.enabled} onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))} />
+                  <input type="checkbox" checked={form.enabled} onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))} aria-label="Habilitado" />
                   <span className="field-label" style={{ margin: 0 }}>Habilitado</span>
                 </label>
 
                 {form.auth_mode === "static_bearer" && (
                   <label style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: "1 / -1" }}>
                     <span className="field-label">Bearer token</span>
-                    <input className="field-input" type="password" value={form.static_token} onChange={(e) => setForm((f) => ({ ...f, static_token: e.target.value }))} placeholder="Token enviado como Authorization: Bearer" autoComplete="new-password" />
+                    <input className="field-input" type="password" value={form.static_token} onChange={(e) => setForm((f) => ({ ...f, static_token: e.target.value }))} placeholder="Token enviado como Authorization: Bearer" autoComplete="new-password" aria-label="Bearer token" />
                   </label>
                 )}
 
@@ -641,7 +641,7 @@ export function MCPConfigPage() {
                     <div className="section-title" style={{ gridColumn: "1 / -1", marginTop: 8 }}>OAuth 2.1</div>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Preset</span>
-                      <select className="field-select" value={form.preset} onChange={(e) => setForm((f) => ({ ...f, preset: e.target.value as MCPProviderPreset }))}>
+                      <select className="field-select" value={form.preset} onChange={(e) => setForm((f) => ({ ...f, preset: e.target.value as MCPProviderPreset }))} aria-label="Preset do provedor OAuth">
                         <option value="">Manual</option>
                         <option value="google">Google</option>
                         <option value="github">GitHub</option>
@@ -650,70 +650,70 @@ export function MCPConfigPage() {
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Client ID</span>
-                      <input className="field-input" value={form.client_id} onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))} placeholder="Obrigatorio, exceto com DCR" />
+                      <input className="field-input" value={form.client_id} onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))} placeholder="Obrigatorio, exceto com DCR" aria-label="Client ID do OAuth" />
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Client secret</span>
-                      <input className="field-input" type="password" value={form.client_secret} onChange={(e) => setForm((f) => ({ ...f, client_secret: e.target.value }))} placeholder="Confidential clients" autoComplete="new-password" />
+                      <input className="field-input" type="password" value={form.client_secret} onChange={(e) => setForm((f) => ({ ...f, client_secret: e.target.value }))} placeholder="Confidential clients" autoComplete="new-password" aria-label="Client secret do OAuth" />
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Discovery URL</span>
-                      <input className="field-input" value={form.discovery_url} onChange={(e) => setForm((f) => ({ ...f, discovery_url: e.target.value }))} placeholder="https://issuer/.well-known/oauth-authorization-server" />
+                      <input className="field-input" value={form.discovery_url} onChange={(e) => setForm((f) => ({ ...f, discovery_url: e.target.value }))} placeholder="https://issuer/.well-known/oauth-authorization-server" aria-label="Discovery URL do OAuth" />
                     </label>
                     {form.auth_mode === "oauth2_authorization_code" && (
                       <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <span className="field-label">Authorization endpoint</span>
-                        <input className="field-input" value={form.authorization_endpoint} onChange={(e) => setForm((f) => ({ ...f, authorization_endpoint: e.target.value }))} />
+                        <input className="field-input" value={form.authorization_endpoint} onChange={(e) => setForm((f) => ({ ...f, authorization_endpoint: e.target.value }))} aria-label="Authorization endpoint" />
                       </label>
                     )}
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Token endpoint</span>
-                      <input className="field-input" value={form.token_endpoint} onChange={(e) => setForm((f) => ({ ...f, token_endpoint: e.target.value }))} />
+                      <input className="field-input" value={form.token_endpoint} onChange={(e) => setForm((f) => ({ ...f, token_endpoint: e.target.value }))} aria-label="Token endpoint" />
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Revocation endpoint</span>
-                      <input className="field-input" value={form.revocation_endpoint} onChange={(e) => setForm((f) => ({ ...f, revocation_endpoint: e.target.value }))} />
+                      <input className="field-input" value={form.revocation_endpoint} onChange={(e) => setForm((f) => ({ ...f, revocation_endpoint: e.target.value }))} aria-label="Revocation endpoint" />
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Registration endpoint</span>
-                      <input className="field-input" value={form.registration_endpoint} onChange={(e) => setForm((f) => ({ ...f, registration_endpoint: e.target.value }))} />
+                      <input className="field-input" value={form.registration_endpoint} onChange={(e) => setForm((f) => ({ ...f, registration_endpoint: e.target.value }))} aria-label="Registration endpoint" />
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Issuer</span>
-                      <input className="field-input" value={form.issuer} onChange={(e) => setForm((f) => ({ ...f, issuer: e.target.value }))} />
+                      <input className="field-input" value={form.issuer} onChange={(e) => setForm((f) => ({ ...f, issuer: e.target.value }))} aria-label="Issuer do OAuth" />
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Audience / resource</span>
-                      <input className="field-input" value={form.audience} onChange={(e) => setForm((f) => ({ ...f, audience: e.target.value }))} />
+                      <input className="field-input" value={form.audience} onChange={(e) => setForm((f) => ({ ...f, audience: e.target.value }))} aria-label="Audience ou resource do OAuth" />
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: "1 / -1" }}>
                       <span className="field-label">Scopes</span>
-                      <textarea className="field-textarea" value={form.scopes} onChange={(e) => setForm((f) => ({ ...f, scopes: e.target.value }))} placeholder="openid\nemail\nhttps://www.googleapis.com/auth/gmail.readonly" />
+                      <textarea className="field-textarea" value={form.scopes} onChange={(e) => setForm((f) => ({ ...f, scopes: e.target.value }))} placeholder="openid\nemail\nhttps://www.googleapis.com/auth/gmail.readonly" aria-label="Scopes do OAuth" />
                       <span className="field-hint">Um por linha ou separados por virgula.</span>
                     </label>
                     {form.auth_mode === "oauth2_authorization_code" && (
                       <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         <span className="field-label">Redirect URI override</span>
-                        <input className="field-input" value={form.redirect_uri} onChange={(e) => setForm((f) => ({ ...f, redirect_uri: e.target.value }))} placeholder="Vazio usa callback padrao do Archon" />
+                        <input className="field-input" value={form.redirect_uri} onChange={(e) => setForm((f) => ({ ...f, redirect_uri: e.target.value }))} placeholder="Vazio usa callback padrao do Archon" aria-label="Redirect URI override" />
                       </label>
                     )}
                     <label style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 28 }}>
-                      <input type="checkbox" checked={form.dynamic_registration} onChange={(e) => setForm((f) => ({ ...f, dynamic_registration: e.target.checked }))} />
+                      <input type="checkbox" checked={form.dynamic_registration} onChange={(e) => setForm((f) => ({ ...f, dynamic_registration: e.target.checked }))} aria-label="Dynamic Client Registration" />
                       <span className="field-label" style={{ margin: 0 }}>Dynamic Client Registration</span>
                     </label>
                     {form.auth_mode === "oauth2_authorization_code" && (
                       <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <input type="checkbox" checked={form.use_pkce} onChange={(e) => setForm((f) => ({ ...f, use_pkce: e.target.checked }))} />
+                        <input type="checkbox" checked={form.use_pkce} onChange={(e) => setForm((f) => ({ ...f, use_pkce: e.target.checked }))} aria-label="Usar PKCE" />
                         <span className="field-label" style={{ margin: 0 }}>Usar PKCE</span>
                       </label>
                     )}
                     <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <input type="checkbox" checked={form.subject_from_id_token} onChange={(e) => setForm((f) => ({ ...f, subject_from_id_token: e.target.checked }))} />
+                      <input type="checkbox" checked={form.subject_from_id_token} onChange={(e) => setForm((f) => ({ ...f, subject_from_id_token: e.target.checked }))} aria-label="Subject do ID Token" />
                       <span className="field-label" style={{ margin: 0 }}>Subject do ID Token</span>
                     </label>
                     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <span className="field-label">Userinfo Endpoint</span>
-                      <input className="field-input" value={form.userinfo_endpoint} onChange={(e) => setForm((f) => ({ ...f, userinfo_endpoint: e.target.value }))} placeholder="Preenchido automaticamente pelo preset" />
+                      <input className="field-input" value={form.userinfo_endpoint} onChange={(e) => setForm((f) => ({ ...f, userinfo_endpoint: e.target.value }))} placeholder="Preenchido automaticamente pelo preset" aria-label="Userinfo Endpoint" />
                       <span className="field-hint">URL para extrair subject/display name quando nao ha id_token.</span>
                     </label>
                   </>
@@ -722,11 +722,11 @@ export function MCPConfigPage() {
                 <div className="section-title" style={{ gridColumn: "1 / -1", marginTop: 8 }}>Runtime MCP</div>
                 <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <span className="field-label">OAuth subject padrao</span>
-                  <input className="field-input" value={form.oauth_subject} onChange={(e) => setForm((f) => ({ ...f, oauth_subject: e.target.value }))} placeholder="ex: suporte@empresa.com ou _service" />
+                  <input className="field-input" value={form.oauth_subject} onChange={(e) => setForm((f) => ({ ...f, oauth_subject: e.target.value }))} placeholder="ex: suporte@empresa.com ou _service" aria-label="OAuth subject padrão" />
                 </label>
                 <label style={{ display: "flex", flexDirection: "column", gap: 6, gridColumn: "1 / -1" }}>
                   <span className="field-label">Scopes por tool</span>
-                  <textarea className="field-textarea" value={form.tool_required_scopes} onChange={(e) => setForm((f) => ({ ...f, tool_required_scopes: e.target.value }))} placeholder={'{"gmail_send":["https://www.googleapis.com/auth/gmail.send"]}'} />
+                  <textarea className="field-textarea" value={form.tool_required_scopes} onChange={(e) => setForm((f) => ({ ...f, tool_required_scopes: e.target.value }))} placeholder={'{"gmail_send":["https://www.googleapis.com/auth/gmail.send"]}'} aria-label="Scopes por tool (JSON)" />
                   <span className="field-hint">JSON opcional salvo em metadata.tool_required_scopes; o executor valida antes da chamada.</span>
                 </label>
               </div>
@@ -742,7 +742,7 @@ export function MCPConfigPage() {
         {isSuper && !effectiveTenant ? (
           <div className="empty-state"><div className="big">Selecione um tenant</div>Escolha um tenant para listar e configurar MCP servers.</div>
         ) : isLoading ? (
-          <p className="muted">Carregando...</p>
+          <p className="muted">Carregando…</p>
         ) : configs.length === 0 ? (
           <div className="empty-state"><div className="big">Nenhum MCP server cadastrado</div>Cadastre um servidor para que os agentes possam consumir suas tools.</div>
         ) : (

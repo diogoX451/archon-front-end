@@ -176,7 +176,7 @@ export function RolesPage() {
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
-        <button className="btn primary" onClick={() => setShowCreate(true)} disabled={templateOptions.length === 0 || !canCreate}>
+        <button type="button" className="btn primary" onClick={() => setShowCreate(true)} disabled={templateOptions.length === 0 || !canCreate}>
           <IconPlus size={14} /> Novo papel
         </button>
       </div>
@@ -210,6 +210,7 @@ export function RolesPage() {
                 const active = effectiveId === role.id;
                 return (
                   <button
+                    type="button"
                     key={role.id}
                     onClick={() => setSelectedId(role.id)}
                     style={{
@@ -267,8 +268,9 @@ export function RolesPage() {
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button className="btn" onClick={() => openEdit(selectedRole)} disabled={!canUpdate}>Editar</button>
+                  <button type="button" className="btn" onClick={() => openEdit(selectedRole)} disabled={!canUpdate}>Editar</button>
                   <button
+                    type="button"
                     className="btn"
                     onClick={() => void handleDelete(selectedRole)}
                     disabled={selectedRole.is_managed || deleteRole.isPending || !canDelete}
@@ -309,14 +311,14 @@ export function RolesPage() {
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Novo papel personalizado</div>
             <div style={{ display: "grid", gap: 10 }}>
-              <input className="search-input" placeholder="nome (ex.: vendas-junior)" value={newName} onChange={(e) => setNewName(e.target.value)} />
-              <input className="search-input" placeholder="descrição (opcional)" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} />
+              <input className="search-input" placeholder="nome (ex.: vendas-junior)" value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="Nome do papel" />
+              <input className="search-input" placeholder="descrição (opcional)" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} aria-label="Descrição do papel" />
               <select
                 className="search-input"
                 value={newParent}
                 onChange={(e) => setNewParent(e.target.value)}
               >
-                <option value="">— template-pai (obrigatório) —</option>
+                <option value="">{"—"} template-pai (obrigatório) {"—"}</option>
                 {templateOptions.map((t) => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
@@ -326,8 +328,8 @@ export function RolesPage() {
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
-              <button className="btn primary" onClick={handleCreate} disabled={createRole.isPending || !newParent}>
+              <button type="button" className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={handleCreate} disabled={createRole.isPending || !newParent}>
                 {createRole.isPending ? "Criando..." : "Criar"}
               </button>
             </div>
@@ -340,8 +342,8 @@ export function RolesPage() {
           <div className="card" style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Editar papel</div>
             <div style={{ display: "grid", gap: 10 }}>
-              <input className="search-input" placeholder="nome" value={editName} onChange={(e) => setEditName(e.target.value)} />
-              <input className="search-input" placeholder="descrição" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+              <input className="search-input" placeholder="nome" value={editName} onChange={(e) => setEditName(e.target.value)} aria-label="Nome do papel" />
+              <input className="search-input" placeholder="descrição" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} aria-label="Descrição do papel" />
               {editing.is_managed && (
                 <div className="muted" style={{ fontSize: 12 }}>
                   Este papel é gerenciado. Apenas nome e descrição podem ser alterados; 
@@ -349,8 +351,8 @@ export function RolesPage() {
               )}
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setEditing(null)}>Cancelar</button>
-              <button className="btn primary" onClick={handleEdit} disabled={updateRole.isPending}>
+              <button type="button" className="btn" onClick={() => setEditing(null)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={handleEdit} disabled={updateRole.isPending}>
                 {updateRole.isPending ? "Salvando..." : "Salvar"}
               </button>
             </div>
@@ -434,6 +436,7 @@ function RolePermissionsEditor({
                     checked={checked}
                     onChange={() => onToggle(p.key)}
                     disabled={inherited || busy}
+                    aria-label={`Permissão ${p.key}`}
                   />
                   <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
                     <span className="mono" style={{ fontSize: 12 }}>

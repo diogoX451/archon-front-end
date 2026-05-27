@@ -1176,6 +1176,42 @@ select {
   100% { box-shadow: 0 0 0 0   rgba(74, 222, 128, 0);    }
 }
 
+/* ========== Guardrails node ========== */
+
+.agent[data-type="guardrails"] {
+  --guardrail-amber: oklch(0.72 0.15 72);
+  --guardrail-amber-soft: oklch(0.96 0.04 72);
+  border-color: var(--guardrail-amber);
+  border-width: 1.5px;
+}
+
+.agent[data-type="guardrails"] .agent-header {
+  background: oklch(0.96 0.03 72);
+}
+
+.agent[data-type="guardrails"] .agent-glyph {
+  background: var(--guardrail-amber);
+  color: oklch(0.12 0.03 72);
+  border-color: var(--guardrail-amber);
+}
+
+.agent[data-type="guardrails"][data-selected="true"] {
+  box-shadow: 0 0 0 3px var(--guardrail-amber-soft), var(--shadow-2);
+}
+
+.agent[data-type="guardrails"] .agent-type-badge {
+  background: var(--guardrail-amber-soft);
+  color: oklch(0.40 0.10 72);
+}
+
+/* Pass port → green tint, Fail port → red tint */
+.agent[data-type="guardrails"] .agent-port[data-port="pass"] {
+  color: var(--ok);
+}
+.agent[data-type="guardrails"] .agent-port[data-port="fail"] {
+  color: var(--error, oklch(0.60 0.20 25));
+}
+
 /* ========== Connections ========== */
 
 .conn-path {
@@ -1228,21 +1264,29 @@ select {
 .inspector-tabs {
   display: flex;
   border-bottom: 1px solid var(--line);
-  padding: 0 8px;
+  padding: 0 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.inspector-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .inspector-tab {
-  padding: 11px 12px 10px;
+  padding: 10px 9px 9px;
   background: transparent;
   border: none;
   color: var(--ink-3);
-  font-size: 14.5px;
+  font-size: 13px;
   font-weight: 500;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .inspector-tab:hover {
@@ -1571,33 +1615,51 @@ select {
 /* Tweaks UI is handled by tweaks-panel.jsx itself */
 
 /* ========== Nav rail (shared) ========== */
+:root {
+  --rail-w: 56px;
+  --rail-expanded-w: 208px;
+  --rail-transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .rail {
   position: fixed;
   left: 0;
   top: 0;
   bottom: 0;
-  width: 56px;
+  width: var(--rail-w, 56px);
   background: var(--surface);
   border-right: 1px solid var(--line);
   z-index: 10;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 10px 0;
+  align-items: stretch;
+  padding: 10px 0 6px;
+  overflow: hidden;
+  transition: width var(--rail-transition);
 }
 
-.rail .rail-brand {
+/* Brand row */
+.rail-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  margin-bottom: 14px;
+  min-height: 32px;
+}
+
+.rail-brand {
+  flex-shrink: 0;
   width: 32px;
   height: 32px;
   border: 1.5px solid var(--ink);
   border-radius: 7px;
   display: grid;
   place-items: center;
-  margin-bottom: 14px;
   position: relative;
 }
 
-.rail .rail-brand::before {
+.rail-brand::before {
   content: "";
   width: 10px;
   height: 10px;
@@ -1605,7 +1667,7 @@ select {
   border-radius: 50%;
 }
 
-.rail .rail-brand::after {
+.rail-brand::after {
   content: "";
   position: absolute;
   width: 18px;
@@ -1615,24 +1677,88 @@ select {
   left: -9px;
 }
 
+.rail-toggle {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--ink-3);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms, background 100ms, color 100ms;
+  padding: 0;
+}
+
+.rail:hover .rail-toggle,
+.rail[data-expanded="true"] .rail-toggle {
+  opacity: 1;
+}
+
+.rail-toggle:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+/* Nav groups */
 .rail-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   width: 100%;
-  align-items: center;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 6px;
+  scrollbar-width: none;
 }
 
+.rail-nav::-webkit-scrollbar { display: none; }
+
+.rail-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.rail-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-3);
+  padding: 10px 8px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.rail-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 6px;
+}
+
+/* Links */
 .rail-link {
-  width: 36px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   height: 36px;
-  display: grid;
-  place-items: center;
+  padding: 0 9px;
   border-radius: 8px;
   color: var(--ink-3);
   text-decoration: none;
   position: relative;
   transition: background 100ms, color 100ms;
+  white-space: nowrap;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .rail-link:hover {
@@ -1648,7 +1774,7 @@ select {
 .rail-link[data-active="true"]::before {
   content: "";
   position: absolute;
-  left: -10px;
+  left: -6px;
   top: 8px;
   bottom: 8px;
   width: 2px;
@@ -1656,13 +1782,30 @@ select {
   border-radius: 2px;
 }
 
+.rail-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 20px;
+}
+
+.rail-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transition: opacity 120ms;
+}
+
+/* Tooltip — only shown when collapsed */
 .rail-link .tip {
   position: absolute;
   left: 100%;
-  margin-left: 12px;
+  margin-left: 10px;
   background: var(--ink);
   color: var(--surface);
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   padding: 4px 8px;
   border-radius: 5px;
@@ -1683,7 +1826,17 @@ select {
   flex: 1;
 }
 
+/* Footer — avatar + user info */
+.rail-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 9px;
+  overflow: hidden;
+}
+
 .rail-avatar {
+  flex-shrink: 0;
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -1693,17 +1846,46 @@ select {
   place-items: center;
   font-size: 13px;
   font-weight: 600;
-  margin-top: 8px;
+}
+
+.rail-user-info {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rail-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rail-user-email {
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rail-logout {
+  margin: 0 6px 2px;
 }
 
 /* shift workflow builder grid to make room for rail */
 .app {
-  padding-left: 56px;
+  padding-left: var(--rail-w, 56px);
+  transition: padding-left var(--rail-transition);
 }
 
 /* ========== Generic page chrome (for non-canvas pages) ========== */
 .page {
-  padding-left: 56px;
+  padding-left: var(--rail-w, 56px);
+  transition: padding-left var(--rail-transition);
   height: 100vh;
   overflow-y: auto;
   background: var(--bg);

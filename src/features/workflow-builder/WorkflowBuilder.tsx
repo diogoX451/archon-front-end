@@ -7,7 +7,8 @@ import { Inspector } from "./Inspector";
 import { EventDrawer } from "./EventDrawer";
 import { AgentNode } from "./AgentNode";
 import { GhostActionNode, type GhostAction } from "./GhostActionNode";
-import { GLYPHS, GlyphPlanner, IconPlay, IconReset, IconValidate, IconCursor, IconHand, IconMinus, IconPlus } from "@shared/ui/icons/Icons";
+import { GLYPHS } from "@shared/ui/icons/glyphs";
+import { GlyphPlanner, IconPlay, IconReset, IconValidate, IconCursor, IconHand, IconMinus, IconPlus } from "@shared/ui/icons/Icons";
 import { Rail } from "@shared/ui/Rail";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { TourOrchestrator, useTourAutoStart } from "@shared/tour";
@@ -256,7 +257,7 @@ export function WorkflowBuilder() {
   const [eventLog, setEventLog] = useState<any[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(true);
-  const [inspectorTab, setInspectorTab] = useState(hasRouteId ? "profile" : "config");
+  const [inspectorTab, setInspectorTab] = useState("config");
 
   const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -687,17 +688,19 @@ export function WorkflowBuilder() {
             value={workflow.name}
             onChange={(e) => setWorkflow((w) => ({ ...w, name: e.target.value }))}
             placeholder="Nome do agente"
+            aria-label="Nome do agente"
           />
           <input
             className="workflow-name"
-            value={meta.id}
+            value={loadedFromBackend ? meta.id : hasRouteId ? "carregando…" : meta.id}
             onChange={(e) => {
               setIdManuallyEdited(true);
               setMeta((m) => ({ ...m, id: e.target.value }));
             }}
             placeholder="id-do-profile"
-            style={{ fontFamily: "var(--font-mono)", fontSize: 12, maxWidth: 200 }}
-            readOnly={hasRouteId && loadedFromBackend}
+            style={{ fontFamily: "var(--font-mono)", fontSize: 12, maxWidth: 200, opacity: hasRouteId && !loadedFromBackend ? 0.45 : 1 }}
+            aria-label="ID do profile"
+            readOnly={hasRouteId}
             title={hasRouteId ? "ID do profile (imutável após criação)" : "ID único do profile (a-z, 0-9, _, -)"}
           />
 
@@ -736,17 +739,18 @@ export function WorkflowBuilder() {
             {runState === "error"     && <span>erro</span>}
           </div>
 
-          <button className="btn ghost" title="Validar">
+          <button type="button" className="btn ghost" title="Validar">
             <IconValidate className="icon" />
             <span>Validar</span>
           </button>
 
-          <button className="btn" onClick={reset} disabled={runState === "idle" && eventLog.length === 0}>
+          <button type="button" className="btn" onClick={reset} disabled={runState === "idle" && eventLog.length === 0}>
             <IconReset className="icon" />
             <span>Reset</span>
           </button>
 
           <button
+            type="button"
             className="btn primary"
             data-tour="builder-save-btn"
             onClick={handleSave}
@@ -757,6 +761,7 @@ export function WorkflowBuilder() {
           </button>
 
           <button
+            type="button"
             className="btn"
             onClick={() => {
               const id = (meta.id || "").trim();
@@ -769,7 +774,7 @@ export function WorkflowBuilder() {
             <span>Testar</span>
           </button>
 
-          <button className="btn" data-tour="builder-simulate-btn" onClick={run} disabled={runState === "running"} title="Simulação local (não chama o backend)">
+          <button type="button" className="btn" data-tour="builder-simulate-btn" onClick={run} disabled={runState === "running"} title="Simulação local (não chama o backend)">
             <IconPlay className="icon" />
             <span>Simular</span>
           </button>
@@ -931,25 +936,25 @@ export function WorkflowBuilder() {
           </div>
 
           <div className="canvas-toolbar" data-tour="builder-canvas-tools">
-            <button className="tool" data-active={tool === "select"} onClick={() => setTool("select")} title="Selecionar (V)">
+            <button type="button" className="tool" data-active={tool === "select"} onClick={() => setTool("select")} title="Selecionar (V)">
               <IconCursor className="icon-sm" />
               <span>Selecionar</span>
             </button>
-            <button className="tool" data-active={tool === "pan"} onClick={() => setTool("pan")} title="Mover canvas (Space)">
+            <button type="button" className="tool" data-active={tool === "pan"} onClick={() => setTool("pan")} title="Mover canvas (Space)">
               <IconHand className="icon-sm" />
               <span>Mover</span>
             </button>
           </div>
 
           <div className="canvas-zoom">
-            <button onClick={() => setViewport((v) => ({ ...v, scale: Math.max(0.4, v.scale - 0.1) }))} title="Diminuir zoom">
+            <button type="button" onClick={() => setViewport((v) => ({ ...v, scale: Math.max(0.4, v.scale - 0.1) }))} title="Diminuir zoom">
               <IconMinus className="icon-sm" />
             </button>
             <span className="zoom-label">{Math.round(viewport.scale * 100)}%</span>
-            <button onClick={() => setViewport((v) => ({ ...v, scale: Math.min(2.5, v.scale + 0.1) }))} title="Aumentar zoom">
+            <button type="button" onClick={() => setViewport((v) => ({ ...v, scale: Math.min(2.5, v.scale + 0.1) }))} title="Aumentar zoom">
               <IconPlus className="icon-sm" />
             </button>
-            <button onClick={() => setViewport({ x: 0, y: 0, scale: 1 })} title="Resetar zoom">
+            <button type="button" onClick={() => setViewport({ x: 0, y: 0, scale: 1 })} title="Resetar zoom">
               <IconReset className="icon-sm" />
             </button>
           </div>
@@ -979,11 +984,11 @@ export function WorkflowBuilder() {
           selectedGhost={selectedGhost}
           workflow={workflow}
           meta={meta}
-          profile={loadedProfile}
           onMetaChange={(patch) => setMeta((m) => ({ ...m, ...patch }))}
           onUpdateAgent={updateAgent}
           onRemoveAgent={removeAgent}
           onRemoveConnection={removeConnection}
+          onReplaceWorkflow={(w, m) => { setWorkflow(w); setMeta(m); }}
         />
       </div>
 
@@ -1022,16 +1027,17 @@ export function WorkflowBuilder() {
                 onChange={(e) => setSimulationMessage(e.target.value)}
                 style={{ minHeight: 96, resize: "vertical" }}
                 autoFocus
+                aria-label="Mensagem de simulação"
               />
               <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
                 A simulação real inicia uma conversa no backend para este profile.
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => { setSimulationModalOpen(false); setRunState("idle"); }}>
+              <button type="button" className="btn" onClick={() => { setSimulationModalOpen(false); setRunState("idle"); }}>
                 Cancelar
               </button>
-              <button className="btn primary" onClick={confirmRun} disabled={createTurn.isPending || !simulationMessage.trim()}>
+              <button type="button" className="btn primary" onClick={confirmRun} disabled={createTurn.isPending || !simulationMessage.trim()}>
                 {createTurn.isPending ? "Iniciando..." : "Iniciar Simulação"}
               </button>
             </div>

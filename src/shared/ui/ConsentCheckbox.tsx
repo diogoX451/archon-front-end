@@ -31,6 +31,7 @@ export function ConsentCheckbox({ checked, onChange, id = "lgpd-consent" }: Prop
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         style={{ marginTop: 3 }}
+        aria-label="Li e concordo com a Política de Privacidade e os Termos de Uso"
       />
       <span>
         Li e concordo com a{" "}

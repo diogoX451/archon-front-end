@@ -35,6 +35,28 @@ type ConnectionJSON = {
   to: { agent: string; port: string };
 };
 
+export type GuardrailChecks = {
+  pii?: boolean;
+  jailbreak?: boolean;
+  hallucination?: boolean;
+  nsfw?: boolean;
+  moderation?: boolean;
+  prompt_injection?: boolean;
+};
+
+export type GuardrailsConfig = {
+  enabled?: boolean;
+  blocking_mode?: "block" | "retry" | "warn" | "escalate";
+  max_retries?: number;
+  checks?: GuardrailChecks;
+  min_composite?: number;
+  min_rag_relevance?: number;
+  min_graph_certainty?: number;
+  min_sql_similarity?: number;
+  financial_threshold?: number;
+  tools_exempt?: string[];
+};
+
 export type CanvasMeta = {
   id: string;
   description?: string;
@@ -45,6 +67,7 @@ export type CanvasMeta = {
   memory_hook_rules?: Array<{ relations: string[]; edge_type: string }>;
   input_defaults?: any;
   extra_metadata?: any;
+  guardrails?: GuardrailsConfig;
   /** User-overridden ghost-node positions. Survives reload via
    *  metadata.ui.ghost_positions. */
   ghost_positions?: Record<string, { x: number; y: number }>;
@@ -179,6 +202,7 @@ export function canvasToProfile(workflow: WorkflowData, meta: CanvasMeta): Profi
   const metadata: Record<string, any> = {
     ...(meta.extra_metadata && typeof meta.extra_metadata === "object" ? meta.extra_metadata : {}),
     ui: uiMetadata,
+    ...(meta.guardrails ? { guardrails: meta.guardrails } : {}),
   };
 
   return {
@@ -251,7 +275,7 @@ export function profileToCanvas(profile: ConversationProfileV2): { workflow: Wor
   // First-class executor_type / memory_schema (post-migration 0003) win;
   // fall back to metadata stash for legacy rows that haven't been re-saved.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { ui: _omitUi, executor_type: legacyExecutor, memory_schema: legacyMemory, ...extraMetadata } = metadata;
+  const { ui: _omitUi, executor_type: legacyExecutor, memory_schema: legacyMemory, guardrails: guardrailsMeta, ...extraMetadata } = metadata;
   const executorType = profile.executor_type || (typeof legacyExecutor === "string" ? legacyExecutor : undefined);
   const memorySchema: any = profile.memory_schema || legacyMemory;
   const memoryHookRules = Array.isArray(memorySchema?.hook_rules) ? memorySchema.hook_rules : undefined;
@@ -272,6 +296,7 @@ export function profileToCanvas(profile: ConversationProfileV2): { workflow: Wor
       memory_hook_rules: memoryHookRules,
       input_defaults: profile.input_defaults,
       extra_metadata: Object.keys(extraMetadata).length > 0 ? extraMetadata : undefined,
+      guardrails: guardrailsMeta && typeof guardrailsMeta === "object" ? guardrailsMeta : undefined,
       ghost_positions: ui.ghost_positions,
     },
   };

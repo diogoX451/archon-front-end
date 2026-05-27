@@ -1,4 +1,5 @@
-import { GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
+import { GLYPHS } from "@shared/ui/icons/glyphs";
+import { GlyphPlanner } from "@shared/ui/icons/Icons";
 import { AGENT_TYPES } from "./data";
 
 // One planner action rendered as a "ghost" node hanging off the planner.

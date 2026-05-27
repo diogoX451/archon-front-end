@@ -34,7 +34,7 @@ export function useWorkflowEventsSSE(workflowId: string, enabled = true) {
 
     const es = new EventSource(url, { withCredentials: true });
 
-    es.addEventListener("state", (ev: MessageEvent) => {
+    const onState = (ev: MessageEvent) => {
       try {
         const data = JSON.parse(ev.data) as WorkflowState;
         setState(data);
@@ -42,29 +42,34 @@ export function useWorkflowEventsSSE(workflowId: string, enabled = true) {
       } catch {
         /* ignore parse */
       }
-    });
+    };
 
-    es.addEventListener("done", () => {
+    const onDone = () => {
       setStatus("terminal");
       es.close();
-    });
+    };
 
-    es.addEventListener("error", (ev: MessageEvent) => {
+    const onError = (ev: MessageEvent) => {
       try {
         const data = ev.data ? JSON.parse(ev.data) : {};
         if (data?.error) setError(data.error);
       } catch {
         /* ignore */
       }
-    });
+    };
+
+    es.addEventListener("state", onState);
+    es.addEventListener("done", onDone);
+    es.addEventListener("error", onError);
 
     es.onerror = () => {
-      // EventSource auto-reconnects on transient drops; only flag "error" so
-      // the UI can hint at connectivity.
       setStatus((prev) => (prev === "terminal" ? prev : "error"));
     };
 
     return () => {
+      es.removeEventListener("state", onState);
+      es.removeEventListener("done", onDone);
+      es.removeEventListener("error", onError);
       es.close();
     };
   }, [workflowId, enabled]);

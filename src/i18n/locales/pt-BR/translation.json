@@ -53,9 +53,13 @@
     "nav": {
       "title": "Tour de navegação",
       "steps": {
+        "rail_toggle": {
+          "title": "Menu expansível",
+          "content": "Clique neste botão para expandir o menu e ver os nomes das seções. O estado é salvo automaticamente."
+        },
         "rail_overview": {
           "title": "Menu lateral",
-          "content": "Este é o menu principal. Cada ícone leva a uma seção da plataforma."
+          "content": "O menu está organizado em grupos: ações principais no topo, Observabilidade, Configuração e Admin abaixo."
         },
         "rail_workflows": {
           "title": "Workflows",

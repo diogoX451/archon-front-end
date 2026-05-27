@@ -127,6 +127,7 @@ function ConfigRow({
       </td>
       <td>
         <button
+          type="button"
           className="btn"
           style={{ color: "var(--err)", fontSize: 14 }}
           disabled={busy}
@@ -139,12 +140,39 @@ function ConfigRow({
   );
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
   return (
-    <div className="card" style={{ padding: "16px 20px", minWidth: 160 }}>
-      <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
-      {sub && <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>{sub}</div>}
+    <div className="card" style={{
+      padding: "14px 18px",
+      minWidth: 150,
+      flex: "1 1 150px",
+      borderLeft: accent ? `3px solid ${accent}` : undefined,
+    }}>
+      <div className="muted" style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>{value}</div>
+      {sub && <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function PctBar({ pct }: { pct: number }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+      <div style={{
+        width: 48,
+        height: 4,
+        borderRadius: 2,
+        background: "var(--ink-1, #e5e7eb)",
+        overflow: "hidden",
+      }}>
+        <div style={{
+          width: `${Math.min(pct, 100)}%`,
+          height: "100%",
+          background: "var(--brand, #6366f1)",
+          borderRadius: 2,
+        }} />
+      </div>
+      <span style={{ minWidth: 42, textAlign: "right" }}>{pct.toFixed(1)}%</span>
     </div>
   );
 }
@@ -188,50 +216,76 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
     staleTime: 5 * 60_000,
   });
 
-  const fmtNum = (n?: number) => n == null ? "—" : n.toLocaleString();
-  const fmtCost = (n?: number) => n == null ? "—" : `$${n.toFixed(4)}`;
-  const fmtPct = (n?: number) => n == null ? "—" : `${n.toFixed(1)}%`;
-  const fmtMs = (n?: number) => n == null ? "—" : `${n.toFixed(0)} ms`;
+  const fmtNum = (n?: number | string) => n == null ? "—" : Number(n).toLocaleString();
+  const fmtCost = (n?: number | string) => n == null ? "—" : `$${Number(n).toFixed(4)}`;
+  const fmtPct = (n?: number | string) => n == null ? "—" : `${Number(n).toFixed(1)}%`;
+  const fmtMs = (n?: number | string) => n == null ? "—" : `${Number(n).toFixed(0)} ms`;
 
   const totalCallsTs = tsData?.buckets.reduce(
     (acc, b) => acc + b.groups.reduce((s, g) => s + g.calls, 0),
     0
   ) ?? 0;
 
+  const fmtLabel = (s: string) =>
+    s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span className="muted" style={{ fontSize: 13 }}>Período:</span>
-        {(["7d", "30d", "90d"] as const).map((p) => (
-          <button
-            key={p}
-            className={`btn${period === p ? " primary" : ""}`}
-            style={{ fontSize: 13, padding: "4px 12px" }}
-            onClick={() => setPeriod(p)}
-          >
-            {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "90 dias"}
-          </button>
-        ))}
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+      {/* Period segmented control */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span className="muted" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Período</span>
+        <div style={{
+          display: "inline-flex",
+          background: "var(--ink-1, #f3f4f6)",
+          borderRadius: 8,
+          padding: 3,
+          gap: 2,
+        }}>
+          {(["7d", "30d", "90d"] as const).map((p) => (
+            <button
+              type="button"
+              key={p}
+              onClick={() => setPeriod(p)}
+              style={{
+                fontSize: 13,
+                padding: "5px 14px",
+                borderRadius: 6,
+                border: "none",
+                cursor: "pointer",
+                fontWeight: period === p ? 600 : 400,
+                background: period === p ? "var(--surface, #fff)" : "transparent",
+                color: period === p ? "var(--ink-9, #111)" : "var(--ink-5, #6b7280)",
+                boxShadow: period === p ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                transition: "all 0.15s",
+              }}
+            >
+              {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "90 dias"}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Summary cards */}
       {loadingSum ? (
-        <p className="muted">Carregando resumo...</p>
+        <p className="muted" style={{ fontSize: 13 }}>Carregando resumo…</p>
       ) : (
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <StatCard label="Total de chamadas" value={fmtNum(summary?.calls)} />
-          <StatCard label="Tokens de entrada" value={fmtNum(summary?.input_tokens)} />
-          <StatCard label="Tokens de saída" value={fmtNum(summary?.output_tokens)} />
-          <StatCard label="Tokens em cache" value={fmtNum(summary?.cached_tokens)} />
-          <StatCard label="Custo total" value={fmtCost(summary?.cost_usd)} />
-          <StatCard label="Latência média" value={fmtMs(summary?.avg_latency_ms)} />
+          <StatCard label="Chamadas" value={fmtNum(summary?.calls)} accent="#6366f1" />
+          <StatCard label="Tokens entrada" value={fmtNum(summary?.input_tokens)} accent="#10b981" />
+          <StatCard label="Tokens saída" value={fmtNum(summary?.output_tokens)} accent="#3b82f6" />
+          <StatCard label="Cache hits" value={fmtNum(summary?.cached_tokens)} accent="#8b5cf6" />
+          <StatCard label="Custo total" value={fmtCost(summary?.cost_usd)} accent="#f59e0b" />
+          <StatCard label="Latência média" value={fmtMs(summary?.avg_latency_ms)} accent="#ef4444" />
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      {/* Breakdown: Purpose + Provider */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 600 }}>Por finalidade</h3>
+          <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-5, #6b7280)" }}>Por finalidade</h3>
           {loadingPurpose ? (
-            <p className="muted">Carregando...</p>
+            <p className="muted" style={{ fontSize: 13 }}>Carregando…</p>
           ) : byPurpose.length === 0 ? (
             <p className="muted" style={{ fontSize: 13 }}>Sem dados no período.</p>
           ) : (
@@ -240,7 +294,7 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
                 <tr>
                   <th>Finalidade</th>
                   <th style={{ textAlign: "right" }}>Chamadas</th>
-                  <th style={{ textAlign: "right" }}>% calls</th>
+                  <th style={{ textAlign: "right" }}>% chamadas</th>
                   <th style={{ textAlign: "right" }}>Custo</th>
                   <th style={{ textAlign: "right" }}>% custo</th>
                 </tr>
@@ -248,11 +302,15 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
               <tbody>
                 {byPurpose.map((row) => (
                   <tr key={row.dimension_value}>
-                    <td className="mono">{row.dimension_value}</td>
-                    <td style={{ textAlign: "right" }}>{fmtNum(row.calls)}</td>
-                    <td style={{ textAlign: "right" }}>{fmtPct(row.pct_calls)}</td>
-                    <td style={{ textAlign: "right" }}>{fmtCost(row.cost_usd)}</td>
-                    <td style={{ textAlign: "right" }}>{fmtPct(row.pct_cost)}</td>
+                    <td>
+                      <span style={{ fontSize: 12, fontWeight: 500, background: "var(--ink-1,#f3f4f6)", padding: "2px 8px", borderRadius: 99 }}>
+                        {fmtLabel(row.dimension_value)}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtNum(row.calls)}</td>
+                    <td><PctBar pct={Number(row.pct_calls)} /></td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtCost(row.cost_usd)}</td>
+                    <td><PctBar pct={Number(row.pct_cost)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -261,9 +319,9 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
         </div>
 
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 600 }}>Por provider</h3>
+          <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-5, #6b7280)" }}>Por provider</h3>
           {loadingProvider ? (
-            <p className="muted">Carregando...</p>
+            <p className="muted" style={{ fontSize: 13 }}>Carregando…</p>
           ) : byProvider.length === 0 ? (
             <p className="muted" style={{ fontSize: 13 }}>Sem dados no período.</p>
           ) : (
@@ -272,7 +330,7 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
                 <tr>
                   <th>Provider</th>
                   <th style={{ textAlign: "right" }}>Chamadas</th>
-                  <th style={{ textAlign: "right" }}>% calls</th>
+                  <th style={{ textAlign: "right" }}>% chamadas</th>
                   <th style={{ textAlign: "right" }}>Custo</th>
                   <th style={{ textAlign: "right" }}>% custo</th>
                 </tr>
@@ -281,10 +339,10 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
                 {byProvider.map((row) => (
                   <tr key={row.dimension_value}>
                     <td><ProviderPill provider={row.dimension_value} /></td>
-                    <td style={{ textAlign: "right" }}>{fmtNum(row.calls)}</td>
-                    <td style={{ textAlign: "right" }}>{fmtPct(row.pct_calls)}</td>
-                    <td style={{ textAlign: "right" }}>{fmtCost(row.cost_usd)}</td>
-                    <td style={{ textAlign: "right" }}>{fmtPct(row.pct_cost)}</td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtNum(row.calls)}</td>
+                    <td><PctBar pct={Number(row.pct_calls)} /></td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtCost(row.cost_usd)}</td>
+                    <td><PctBar pct={Number(row.pct_cost)} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -293,20 +351,21 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
         </div>
       </div>
 
+      {/* Daily timeseries */}
       {!loadingTs && tsData && tsData.buckets.length > 0 && (
         <div className="card" style={{ padding: 20 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 600 }}>Evolução diária</h3>
-          <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>
-            {totalCallsTs.toLocaleString()} chamadas no período
-          </p>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-5, #6b7280)" }}>Evolução diária</h3>
+            <span className="muted" style={{ fontSize: 12 }}>{totalCallsTs.toLocaleString()} chamadas no período</span>
+          </div>
           <div style={{ overflowX: "auto" }}>
-            <table className="table" style={{ fontSize: 12 }}>
+            <table className="table" style={{ fontSize: 13 }}>
               <thead>
                 <tr>
                   <th>Data</th>
                   <th style={{ textAlign: "right" }}>Chamadas</th>
-                  <th style={{ textAlign: "right" }}>Tokens in</th>
-                  <th style={{ textAlign: "right" }}>Tokens out</th>
+                  <th style={{ textAlign: "right" }}>Tokens entrada</th>
+                  <th style={{ textAlign: "right" }}>Tokens saída</th>
                   <th style={{ textAlign: "right" }}>Custo</th>
                 </tr>
               </thead>
@@ -316,13 +375,14 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
                   const tin = bucket.groups.reduce((s, g) => s + g.input_tokens, 0);
                   const tout = bucket.groups.reduce((s, g) => s + g.output_tokens, 0);
                   const cost = bucket.groups.reduce((s, g) => s + g.cost_usd, 0);
+                  const dateStr = new Date(bucket.ts).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
                   return (
                     <tr key={bucket.ts}>
-                      <td className="muted">{new Date(bucket.ts).toLocaleDateString()}</td>
-                      <td style={{ textAlign: "right" }}>{calls.toLocaleString()}</td>
-                      <td style={{ textAlign: "right" }}>{tin.toLocaleString()}</td>
-                      <td style={{ textAlign: "right" }}>{tout.toLocaleString()}</td>
-                      <td style={{ textAlign: "right" }}>{fmtCost(cost)}</td>
+                      <td style={{ fontWeight: 500 }}>{dateStr}</td>
+                      <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{calls.toLocaleString()}</td>
+                      <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{tin.toLocaleString()}</td>
+                      <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{tout.toLocaleString()}</td>
+                      <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtCost(cost)}</td>
                     </tr>
                   );
                 })}
@@ -332,10 +392,11 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
         </div>
       )}
 
+      {/* Pricing table */}
       <div className="card" style={{ padding: 20 }}>
-        <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 600 }}>Tabela de preços</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-5, #6b7280)" }}>Tabela de preços</h3>
         {loadingPricing ? (
-          <p className="muted">Carregando...</p>
+          <p className="muted" style={{ fontSize: 13 }}>Carregando…</p>
         ) : pricing.length === 0 ? (
           <p className="muted" style={{ fontSize: 13 }}>Sem dados de pricing.</p>
         ) : (
@@ -344,10 +405,10 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
               <thead>
                 <tr>
                   <th>Provider</th>
-                  <th>Model</th>
-                  <th style={{ textAlign: "right" }}>Input / 1M</th>
-                  <th style={{ textAlign: "right" }}>Output / 1M</th>
-                  <th style={{ textAlign: "right" }}>Cache / 1M</th>
+                  <th>Modelo</th>
+                  <th style={{ textAlign: "right" }}>Entrada / 1M tokens</th>
+                  <th style={{ textAlign: "right" }}>Saída / 1M tokens</th>
+                  <th style={{ textAlign: "right" }}>Cache / 1M tokens</th>
                   <th>Vigente desde</th>
                 </tr>
               </thead>
@@ -355,13 +416,13 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
                 {pricing.map((row, i) => (
                   <tr key={i}>
                     <td><ProviderPill provider={row.provider} /></td>
-                    <td className="mono">{row.model || <span className="muted">*</span>}</td>
-                    <td style={{ textAlign: "right" }}>${row.input_per_1m_usd.toFixed(2)}</td>
-                    <td style={{ textAlign: "right" }}>${row.output_per_1m_usd.toFixed(2)}</td>
-                    <td style={{ textAlign: "right" }}>
-                      {row.cached_input_per_1m != null ? `$${row.cached_input_per_1m.toFixed(2)}` : "—"}
+                    <td className="mono" style={{ fontSize: 12 }}>{row.model || <span className="muted">qualquer</span>}</td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>${(row.input_per_1m_usd ?? 0).toFixed(2)}</td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>${(row.output_per_1m_usd ?? 0).toFixed(2)}</td>
+                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                      {row.cached_input_per_1m != null ? `$${Number(row.cached_input_per_1m).toFixed(2)}` : "—"}
                     </td>
-                    <td className="muted">{new Date(row.effective_from).toLocaleDateString()}</td>
+                    <td className="muted">{new Date(row.effective_from).toLocaleDateString("pt-BR")}</td>
                   </tr>
                 ))}
               </tbody>
@@ -490,7 +551,7 @@ export function LLMConfigPage() {
           </select>
         )}
         {activeTab === "providers" && (
-          <button className="btn primary" onClick={() => setShowForm(!showForm)}>
+          <button type="button" className="btn primary" onClick={() => setShowForm(!showForm)}>
             <IconPlus size={14} />
             {showForm ? "Cancelar" : "Nova configuração"}
           </button>
@@ -510,6 +571,7 @@ export function LLMConfigPage() {
         <div style={{ display: "flex", gap: 2, borderBottom: "1px solid var(--border)", marginBottom: 24 }}>
           {(["providers", "analytics"] as const).map((tab) => (
             <button
+              type="button"
               key={tab}
               className="btn"
               style={{
@@ -582,6 +644,7 @@ export function LLMConfigPage() {
                       value={form.model}
                       onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
                       required
+                      aria-label="Modelo LLM"
                     >
                       {fetchedModels.map((m) => (
                         <option key={m} value={m}>{m}</option>
@@ -596,6 +659,7 @@ export function LLMConfigPage() {
                         placeholder="Ex: gpt-4o-mini"
                         list="model-options"
                         required
+                        aria-label="Modelo LLM"
                       />
                       <datalist id="model-options">
                         {(PROVIDER_REGISTRY[form.provider]?.staticModels || []).map((m) => (
@@ -615,6 +679,7 @@ export function LLMConfigPage() {
                     onChange={(e) => setForm((f) => ({ ...f, api_key: e.target.value }))}
                     placeholder="sk-...  (vazio = manter existente)"
                     autoComplete="new-password"
+                    aria-label="API Key"
                   />
                 </label>
 
@@ -625,6 +690,7 @@ export function LLMConfigPage() {
                     value={form.base_url}
                     onChange={(e) => setForm((f) => ({ ...f, base_url: e.target.value }))}
                     placeholder="https://api.openai.com"
+                    aria-label="Base URL (opcional)"
                   />
                 </label>
               </div>
@@ -650,7 +716,7 @@ export function LLMConfigPage() {
 
         {activeTab === "providers" && (
           isLoading ? (
-            <p className="muted">Carregando...</p>
+            <p className="muted">Carregando…</p>
           ) : configs.length === 0 ? (
             <div className="empty-state">
               <div className="big">Nenhuma configuração cadastrada</div>

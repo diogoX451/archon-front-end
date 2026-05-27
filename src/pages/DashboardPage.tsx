@@ -159,7 +159,7 @@ export function DashboardPage() {
                         <span className="dot"></span>{status}
                       </span>
                     </td>
-                    <td className="num mono">{dur || <span className="muted">—</span>}</td>
+                    <td className="num mono">{dur || <span className="muted">{"—"}</span>}</td>
                     <td className="muted">{timeAgo(wf.created_at)}</td>
                   </tr>
                 );

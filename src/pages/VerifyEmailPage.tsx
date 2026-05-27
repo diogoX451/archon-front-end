@@ -25,7 +25,7 @@ export function VerifyEmailPage() {
   return (
     <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", padding: 20 }}>
       <div style={{ width: "100%", maxWidth: 520, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 14, padding: 24 }}>
-        {state === "loading" && <p style={{ margin: 0 }}>Validando seu e-mail...</p>}
+        {state === "loading" && <p style={{ margin: 0 }}>Validando seu e-mail…</p>}
         {state === "ok" && (
           <>
             <h1 style={{ marginTop: 0 }}>E-mail confirmado</h1>

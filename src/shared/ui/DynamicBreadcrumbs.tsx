@@ -69,7 +69,7 @@ export function DynamicBreadcrumbs({ mode = "page", includeWorkspace = false }: 
       key.startsWith("__raw__") ? key.slice(7) : t(key, params)
     );
     return includeWorkspace ? [t("breadcrumbs.workspace", "Workspace"), ...base] : base;
-  }, [location.pathname, location.search, includeWorkspace, t]);
+  }, [location, includeWorkspace, t]);
 
   const titleClass = mode === "page" ? "page-title" : undefined;
   const subClass = mode === "page" ? "page-sub" : undefined;

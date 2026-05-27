@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { IconPlus, IconTrash, GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
+import { GLYPHS } from "@shared/ui/icons/glyphs";
+import { IconPlus, IconTrash, GlyphPlanner } from "@shared/ui/icons/Icons";
 import { AGENT_TYPES } from "@features/workflow-builder/data";
 import { useProfiles, useDeleteProfile } from "@shared/hooks/useProfiles";
 import { useTenants } from "@shared/hooks/useTenants";
@@ -99,13 +100,13 @@ export function TemplatesPage() {
         </div>
 
         <div className="page-tabs">
-          <button className="page-tab" data-active={tab === "profiles"} onClick={() => setTab("profiles")}>
+          <button type="button" className="page-tab" data-active={tab === "profiles"} onClick={() => setTab("profiles")}>
             Profiles
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-4)", marginLeft: 4 }}>
               {profiles?.length ?? 0}
             </span>
           </button>
-          <button className="page-tab" data-active={tab === "types"} onClick={() => setTab("types")}>
+          <button type="button" className="page-tab" data-active={tab === "types"} onClick={() => setTab("types")}>
             Tipos de agente
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-4)", marginLeft: 4 }}>
               {Object.keys(AGENT_TYPES).length}
@@ -121,6 +122,7 @@ export function TemplatesPage() {
                 placeholder="Buscar profile por id ou descrição…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                aria-label="Buscar profile por id ou descrição"
               />
               <div className="grow"></div>
               <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
@@ -202,6 +204,7 @@ export function TemplatesPage() {
                             Abrir
                           </Link>
                           <button
+                            type="button"
                             className="btn ghost"
                             onClick={() => onDelete(slug)}
                             disabled={deleteMutation.isPending || !canWrite}

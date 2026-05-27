@@ -105,7 +105,7 @@ function Header() {
           <span style={brandDot} />
           Almexa <span style={brandDim}>· Archon</span>
         </Link>
-        <button onClick={() => setOpen(false)} style={burger} aria-label="Fechar menu">
+        <button type="button" onClick={() => setOpen(false)} style={burger} aria-label="Fechar menu">
           <X size={26} />
         </button>
       </div>
@@ -157,6 +157,7 @@ function Header() {
 
           {/* Hamburger button — visible only on mobile */}
           <button
+            type="button"
             className="lp-burger"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Fechar menu" : "Abrir menu"}
@@ -188,7 +189,7 @@ function Hero() {
             Mesmo às 3 da manhã.
           </h1>
           <p style={lead}>
-            Um assistente que conhece o seu jeito de atender e responde por você —
+            Um assistente que conhece o seu jeito de atender e responde por você {"—"}
             no WhatsApp, no site, onde o cliente estiver.
           </p>
           <div style={ctaRow}>
@@ -321,7 +322,7 @@ function Benefits() {
       <div style={sectionInner}>
         <Eyebrow>O que muda</Eyebrow>
         <h2 style={h2}>
-          Atendimento que <em style={emAccent}>trabalha por você</em> — sem drama.
+          Atendimento que <em style={emAccent}>trabalha por você</em> {"—"} sem drama.
         </h2>
         <p style={sub}>Sem promessa de coach. Resultado prático.</p>
         <div className="lp-grid3" style={grid3}>
@@ -420,7 +421,7 @@ function Comparison() {
             <h3 style={compareTitle}>Hoje</h3>
             <ul style={ul}>
               {before.map((b) => (
-                <li key={b} style={liMuted}><span style={dash}>—</span> {b}</li>
+                <li key={b} style={liMuted}><span style={dash}>{"—"}</span> {b}</li>
               ))}
             </ul>
           </article>

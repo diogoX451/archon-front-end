@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { AGENT_TYPES } from "./data";
 import { AgentNodeData } from "./types";
-import { GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
+import { GLYPHS } from "@shared/ui/icons/glyphs";
+import { GlyphPlanner } from "@shared/ui/icons/Icons";
 
 type AgentNodeProps = {
   agent: AgentNodeData;
@@ -33,6 +34,12 @@ function summaryFor(agent: AgentNodeData) {
     const mcp = c.mcp_name || "—";
     const tool = c.tool || "—";
     return `${mcp} · ${tool}`;
+  }
+  if (agent.type === "guardrails") {
+    const mode = c.blocking_mode || "block";
+    const checks = c.checks || {};
+    const active = Object.entries(checks).filter(([, v]) => v).map(([k]) => k);
+    return active.length > 0 ? `${mode} · ${active.join(", ")}` : mode;
   }
   return "—";
 }
@@ -70,6 +77,7 @@ export function AgentNode({
       data-selected={selected}
       data-drop-target={dropTarget}
       data-status={agent.status}
+      data-type={agent.type}
       data-incomplete={agent.type === "planner" && !agent.config?.model ? true : undefined}
       data-density={density}
       style={{ left: agent.x, top: agent.y }}
@@ -111,7 +119,7 @@ export function AgentNode({
       <div className="agent-body">
         <div className="agent-ports">
           {meta.ports.principal.map((port: string) => (
-            <div key={port} className="agent-port">
+            <div key={port} className="agent-port" data-port={port}>
               <span
                 className="port-dot"
                 data-kind="principal"
@@ -127,7 +135,7 @@ export function AgentNode({
         </div>
         <div className="agent-ports right">
           {meta.ports.auxiliary.map((port: string) => (
-            <div key={port} className="agent-port">
+            <div key={port} className="agent-port" data-port={port}>
               <span>{port}</span>
               <span
                 className="port-dot"

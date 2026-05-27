@@ -53,9 +53,13 @@
     "nav": {
       "title": "Navigation tour",
       "steps": {
+        "rail_toggle": {
+          "title": "Expandable sidebar",
+          "content": "Click this button to expand the sidebar and see section names. Your preference is saved automatically."
+        },
         "rail_overview": {
           "title": "Side menu",
-          "content": "This is the main menu. Each icon leads to a section of the platform."
+          "content": "The menu is organized in groups: main actions at the top, then Observability, Configuration, and Admin below."
         },
         "rail_workflows": {
           "title": "Workflows",

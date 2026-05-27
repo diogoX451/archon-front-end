@@ -160,13 +160,13 @@ export function TimelineDrawer({ open, onClose, scope }: Props) {
                 : "oklch(0.65 0.15 80)",
             }}
           />
-          <button className="btn ghost" onClick={onClose} style={{ padding: "4px 10px" }}>Fechar</button>
+          <button type="button" className="btn ghost" onClick={onClose} style={{ padding: "4px 10px" }}>Fechar</button>
         </div>
 
         <div style={{ padding: "8px 16px", borderBottom: "1px solid var(--line)" }}>
           <div className="tl-filter">
             {(["all", "command", "interaction", "need", "response", "result", "conversation_turn", "other"] as const).map((f) => (
-              <button key={f} data-active={filter === f} onClick={() => setFilter(f)}>
+              <button type="button" key={f} data-active={filter === f} onClick={() => setFilter(f)}>
                 {f === "all" ? `tudo (${merged.length})` : f}
               </button>
             ))}

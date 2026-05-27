@@ -26,7 +26,7 @@ export function ProfileDetailDrawer({ open, profile, onClose }: Props) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <ProfileHeader profile={profile} />
           </div>
-          <button className="btn ghost" onClick={onClose} style={{ padding: "4px 10px" }}>Fechar</button>
+          <button type="button" className="btn ghost" onClick={onClose} style={{ padding: "4px 10px" }}>Fechar</button>
         </div>
         <div className="pd-body">
           <ProfileDetail profile={profile} />

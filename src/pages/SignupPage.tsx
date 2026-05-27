@@ -71,7 +71,7 @@ export function SignupPage() {
             A conta de <strong>{result.tenantName}</strong> foi criada. Enviamos um link de verificação para <strong>{result.email}</strong>.
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button className="btn primary" onClick={handleResend}>Reenviar e-mail</button>
+            <button type="button" className="btn primary" onClick={handleResend}>Reenviar e-mail</button>
             <Link to="/login" className="btn">Ir para login</Link>
           </div>
           {resent && <p style={{ color: "var(--ok)", marginBottom: 0 }}>E-mail reenviado com sucesso.</p>}
@@ -86,9 +86,9 @@ export function SignupPage() {
         <h1 style={{ marginTop: 0, marginBottom: 6 }}>Criar conta</h1>
         <p style={{ marginTop: 0, color: "var(--ink-3)", fontSize: 14 }}>Defina seu workspace inicial no Archon.</p>
 
-        <label>Nome da empresa<input required value={tenantName} onChange={(e) => setTenantName(e.target.value)} style={inputStyle} /></label>
-        <label>Slug da empresa<input required value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} style={inputStyle} placeholder="acme" /></label>
-        <label>Documento (opcional)<input value={document} onChange={(e) => setDocument(e.target.value)} style={inputStyle} /></label>
+        <label>Nome da empresa<input required value={tenantName} onChange={(e) => setTenantName(e.target.value)} style={inputStyle} aria-label="Nome da empresa" /></label>
+        <label>Slug da empresa<input required value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} style={inputStyle} placeholder="acme" aria-label="Slug da empresa" /></label>
+        <label>Documento (opcional)<input value={document} onChange={(e) => setDocument(e.target.value)} style={inputStyle} aria-label="Documento (opcional)" /></label>
 
         <label>Plano
           <select value={tier} onChange={(e) => setTier(e.target.value as SignupTier)} style={inputStyle}>
@@ -96,9 +96,9 @@ export function SignupPage() {
           </select>
         </label>
 
-        <label>Seu nome<input required value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} /></label>
-        <label>E-mail<input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} /></label>
-        <label>Senha<input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} minLength={8} /></label>
+        <label>Seu nome<input required value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} aria-label="Seu nome" /></label>
+        <label>E-mail<input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} aria-label="E-mail" /></label>
+        <label>Senha<input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} minLength={8} aria-label="Senha" /></label>
 
         {error && <div style={{ color: "var(--err)", fontSize: 13 }}>{error}</div>}
 

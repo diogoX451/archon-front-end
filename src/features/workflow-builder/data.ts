@@ -137,11 +137,35 @@ export const AGENT_TYPES: Record<string, AgentTypeMetadata> = {
     glyph: "interaction",
     defaultConfig: {},
   },
+  guardrails: {
+    label: "Guardrails",
+    category: "Segurança",
+    description: "Aplica verificações de segurança (PII, jailbreak, alucinação, NSFW) e roteia pelo resultado.",
+    details:
+      "Intercepta o fluxo e executa verificações configuráveis antes de continuar. Porta pass avança quando tudo está ok; porta fail desvia para tratamento de erro ou escalada. Use antes de tools destrutivas ou LLMs externos.",
+    ports: { principal: ["input"], auxiliary: ["pass", "fail"] },
+    needType: "guardrails",
+    glyph: "guardrails",
+    defaultConfig: {
+      blocking_mode: "block",
+      checks: {
+        pii: false,
+        jailbreak: false,
+        hallucination: false,
+        nsfw: false,
+        moderation: false,
+        prompt_injection: false,
+      },
+      min_composite: 0.6,
+      financial_threshold: 1000,
+      tools_exempt: [],
+    },
+  },
 };
 
 // Categorias listadas na paleta. "Runtime" é omitida de propósito —
 // event/interaction não devem ser arrastáveis.
-export const CATEGORIES = ["Decisão", "I/O Externo", "Dados", "Conhecimento", "Memória", "Saída"];
+export const CATEGORIES = ["Decisão", "I/O Externo", "Dados", "Conhecimento", "Memória", "Saída", "Segurança"];
 
 export const SAMPLE_WORKFLOW = {
   name: "Assistente de Clima",

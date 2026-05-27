@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ConversationProfileV2 } from "@shared/api/profiles";
-import { GLYPHS, GlyphPlanner } from "@shared/ui/icons/Icons";
+import { GLYPHS } from "@shared/ui/icons/glyphs";
+import { GlyphPlanner } from "@shared/ui/icons/Icons";
 import { AGENT_TYPES } from "@features/workflow-builder/data";
 import { useTenants } from "@shared/hooks/useTenants";
 
@@ -73,11 +74,11 @@ function Section({
   );
 }
 
-function KV({ k, v, mono }: { k: string; v: React.ReactNode; mono?: boolean }) {
+function KeyValue({ k, v, mono }: { k: string; v: React.ReactNode; mono?: boolean }) {
   return (
     <div className="pd-kv">
       <span className="pd-k">{k}</span>
-      <span className={`pd-v${mono ? " mono" : ""}`}>{v ?? <em style={{ color: "var(--ink-4)" }}>—</em>}</span>
+      <span className={`pd-v${mono ? " mono" : ""}`}>{v ?? <em style={{ color: "var(--ink-4)" }}>{"—"}</em>}</span>
     </div>
   );
 }
@@ -104,10 +105,10 @@ function PlannerAgentDetail({ config }: { config: Record<string, any> }) {
   return (
     <div style={{ display: "grid", gap: 10 }}>
       <div className="pd-grid-2">
-        <KV k="mode" v={config.mode} mono />
-        <KV k="need_type" v={config.need_type} mono />
-        <KV k="provider" v={config.provider} mono />
-        <KV k="model" v={config.model} mono />
+        <KeyValue k="mode" v={config.mode} mono />
+        <KeyValue k="need_type" v={config.need_type} mono />
+        <KeyValue k="provider" v={config.provider} mono />
+        <KeyValue k="model" v={config.model} mono />
       </div>
 
       {Object.keys(providers).length > 0 && (
@@ -229,12 +230,12 @@ export function ProfileDetail({ profile, styleInjected = false }: ProfileDetailP
 
       <Section title="Identidade" defaultOpen>
         <div className="pd-grid-2">
-          <KV k="nome" v={profile.profile_id} mono />
-          <KV k="tenant" v={tenantLabel} />
-          <KV k="user_id_prefix" v={profile.user_id_prefix} mono />
-          <KV k="executor_type" v={profile.executor_type} mono />
-          <KV k="atualizado" v={profile.updated_at ? new Date(profile.updated_at).toLocaleString("pt-BR") : "—"} />
-          <KV k="criado" v={profile.created_at ? new Date(profile.created_at).toLocaleString("pt-BR") : "—"} />
+          <KeyValue k="nome" v={profile.profile_id} mono />
+          <KeyValue k="tenant" v={tenantLabel} />
+          <KeyValue k="user_id_prefix" v={profile.user_id_prefix} mono />
+          <KeyValue k="executor_type" v={profile.executor_type} mono />
+          <KeyValue k="atualizado" v={profile.updated_at ? new Date(profile.updated_at).toLocaleString("pt-BR") : "—"} />
+          <KeyValue k="criado" v={profile.created_at ? new Date(profile.created_at).toLocaleString("pt-BR") : "—"} />
         </div>
       </Section>
 

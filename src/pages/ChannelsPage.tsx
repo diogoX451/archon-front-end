@@ -53,6 +53,7 @@ function CredentialRow({ cred, onActivate, onDeactivate, onDelete, busy }: Crede
         <div style={{ display: "flex", gap: 6 }}>
           {cred.status !== "active" && (
             <button
+              type="button"
               className="btn"
               style={{ fontSize: 12, padding: "3px 10px" }}
               disabled={busy}
@@ -63,6 +64,7 @@ function CredentialRow({ cred, onActivate, onDeactivate, onDelete, busy }: Crede
           )}
           {cred.status === "active" && (
             <button
+              type="button"
               className="btn"
               style={{ fontSize: 12, padding: "3px 10px" }}
               disabled={busy}
@@ -72,6 +74,7 @@ function CredentialRow({ cred, onActivate, onDeactivate, onDelete, busy }: Crede
             </button>
           )}
           <button
+            type="button"
             className="btn"
             style={{ fontSize: 12, padding: "3px 10px", color: "var(--err)" }}
             disabled={busy || cred.status === "revoked"}
@@ -153,10 +156,11 @@ function LinksPanel({ tenantSlug }: { tenantSlug?: string }) {
           onChange={(e) => setInputConvId(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           style={{ maxWidth: 340 }}
+          aria-label="ID da conversa"
         />
-        <button className="btn primary" onClick={handleSearch}>Buscar</button>
+        <button type="button" className="btn primary" onClick={handleSearch}>Buscar</button>
         {convId && (
-          <button className="btn" onClick={() => setShowAdd(true)}>
+          <button type="button" className="btn" onClick={() => setShowAdd(true)}>
             <IconPlus size={13} /> Adicionar canal
           </button>
         )}
@@ -200,6 +204,7 @@ function LinksPanel({ tenantSlug }: { tenantSlug?: string }) {
                 <td style={{ padding: "8px 6px" }}>
                   {link.status !== "disconnected" && (
                     <button
+                      type="button"
                       className="btn"
                       style={{ fontSize: 11, padding: "2px 8px", color: "var(--err)" }}
                       onClick={() => void handleDisconnect(link.channel)}
@@ -231,6 +236,7 @@ function LinksPanel({ tenantSlug }: { tenantSlug?: string }) {
                 className="search-input"
                 value={addChannel}
                 onChange={(e) => setAddChannel(e.target.value as ChannelKind)}
+                aria-label="Canal"
               >
                 <option value="whatsapp">WhatsApp</option>
                 <option value="web">Web</option>
@@ -242,6 +248,7 @@ function LinksPanel({ tenantSlug }: { tenantSlug?: string }) {
                   placeholder="Destinatário E.164 (ex: +5511999990000)"
                   value={addRecipient}
                   onChange={(e) => setAddRecipient(e.target.value)}
+                  aria-label="Destinatário WhatsApp (E.164)"
                 />
               )}
               {addChannel === "web" && (
@@ -250,12 +257,13 @@ function LinksPanel({ tenantSlug }: { tenantSlug?: string }) {
                   placeholder="Session ID (número)"
                   value={addSession}
                   onChange={(e) => setAddSession(e.target.value)}
+                  aria-label="Session ID"
                 />
               )}
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setShowAdd(false)}>Cancelar</button>
-              <button className="btn primary" onClick={handleAdd} disabled={upsert.isPending}>
+              <button type="button" className="btn" onClick={() => setShowAdd(false)}>Cancelar</button>
+              <button type="button" className="btn primary" onClick={handleAdd} disabled={upsert.isPending}>
                 {upsert.isPending ? "Salvando…" : "Salvar"}
               </button>
             </div>
@@ -365,7 +373,7 @@ export function ChannelsPage() {
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }} />
         {tab === "credentials" && (
-          <button className="btn primary" onClick={() => setShowCredForm(true)}>
+          <button type="button" className="btn primary" onClick={() => setShowCredForm(true)}>
             <IconPlus size={14} /> Nova credencial
           </button>
         )}
@@ -380,6 +388,7 @@ export function ChannelsPage() {
         <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: "1px solid var(--border)" }}>
           {(["credentials", "links"] as const).map((t) => (
             <button
+              type="button"
               key={t}
               onClick={() => setTab(t)}
               style={{
@@ -409,7 +418,7 @@ export function ChannelsPage() {
                 Nenhuma credencial cadastrada nesta sessão. Crie uma nova para começar.
                 <br />
                 <span style={{ fontSize: 11 }}>
-                  Credenciais anteriores são omitidas por segurança — recadastre para rotacionar.
+                  Credenciais anteriores são omitidas por segurança {"—"} recadastre para rotacionar.
                 </span>
               </div>
             ) : (
@@ -463,6 +472,7 @@ export function ChannelsPage() {
                 className="search-input"
                 value={credChannel}
                 onChange={(e) => setCredChannel(e.target.value as ChannelKind)}
+                aria-label="Canal da credencial"
               >
                 <option value="whatsapp">WhatsApp</option>
                 <option value="web">Web</option>
@@ -473,12 +483,14 @@ export function ChannelsPage() {
                 placeholder="Integração (opcional, ex: waba-phone-id)"
                 value={credIntegration}
                 onChange={(e) => setCredIntegration(e.target.value)}
+                aria-label="Integração (opcional)"
               />
               <input
                 className="search-input"
                 placeholder="Webhook URL (obrigatório)"
                 value={credWebhook}
                 onChange={(e) => setCredWebhook(e.target.value)}
+                aria-label="Webhook URL"
               />
               <input
                 className="search-input"
@@ -487,11 +499,13 @@ export function ChannelsPage() {
                 value={credToken}
                 onChange={(e) => setCredToken(e.target.value)}
                 autoComplete="new-password"
+                aria-label="Token de autenticação"
               />
               <select
                 className="search-input"
                 value={credAuthMode}
                 onChange={(e) => setCredAuthMode(e.target.value as AuthMode)}
+                aria-label="Modo de autenticação"
               >
                 <option value="bearer">Bearer</option>
                 <option value="x-header">X-Header</option>
@@ -500,8 +514,9 @@ export function ChannelsPage() {
               </select>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
-              <button className="btn" onClick={() => setShowCredForm(false)}>Cancelar</button>
+              <button type="button" className="btn" onClick={() => setShowCredForm(false)}>Cancelar</button>
               <button
+                type="button"
                 className="btn primary"
                 onClick={handleSaveCred}
                 disabled={upsertCred.isPending || !credWebhook}

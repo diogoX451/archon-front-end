@@ -110,6 +110,12 @@ export interface OAuthRegisterClientResponse {
   client_id: string;
 }
 
+export interface MCPTool {
+  name: string;
+  description?: string;
+  input_schema?: Record<string, unknown>;
+}
+
 const tenantQuery = (tenantSlug?: string) => tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
 
 export const listMCPConfigs = (tenantSlug?: string) => {
@@ -172,3 +178,8 @@ export const registerMCPOAuthClient = (configID: string) =>
     method: "POST",
     body: JSON.stringify({}),
   });
+
+export const listMCPTools = (configID: string, subject?: string) => {
+  const q = subject ? `?subject=${encodeURIComponent(subject)}` : "";
+  return fetchClient<MCPTool[]>(`/api/v1/mcp/${encodeURIComponent(configID)}/tools${q}`);
+};

@@ -258,7 +258,7 @@ function AgentCard({ row }: { row: AgentRow }) {
         <span className="pill" data-tone={tone}>
           <span className="dot"></span>{row.state}
         </span>
-        <button className="btn ghost" onClick={() => setOpen((o) => !o)} style={{ padding: "4px 10px", fontSize: 11 }}>
+        <button type="button" className="btn ghost" onClick={() => setOpen((o) => !o)} style={{ padding: "4px 10px", fontSize: 11 }}>
           {open ? "Ocultar" : "Detalhes"}
         </button>
       </div>
@@ -402,6 +402,7 @@ export function WorkflowResultPage() {
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }} />
         <button
+          type="button"
           className="btn ghost"
           onClick={() => setTimelineOpen(true)}
           disabled={!searchId}
@@ -415,7 +416,7 @@ export function WorkflowResultPage() {
         <h1 className="page-h1">Trace de Execução</h1>
         <p className="page-lead">
           Caminho percorrido pelo workflow: ordem em que os agentes foram acionados, entrada/saída de cada passo
-          e duração total. Estilo n8n — útil para depurar como o planner decidiu, qual ferramenta acionou e o que retornou.
+          e duração total. Estilo n8n {"—"} útil para depurar como o planner decidiu, qual ferramenta acionou e o que retornou.
         </p>
 
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
@@ -427,8 +428,9 @@ export function WorkflowResultPage() {
               placeholder="workflow id (ex: 8f3a…)"
               style={{ flex: 1 }}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              aria-label="ID do workflow"
             />
-            <button className="btn primary" onClick={handleSearch} disabled={stateLoading || !workflowId}>
+            <button type="button" className="btn primary" onClick={handleSearch} disabled={stateLoading || !workflowId}>
               {stateLoading ? "Carregando…" : "Carregar trace"}
             </button>
           </div>
@@ -509,6 +511,7 @@ export function WorkflowResultPage() {
                 placeholder="Filtrar agentes por id, tipo, estado, input/output..."
                 value={traceFilter}
                 onChange={(e) => setTraceFilter(e.target.value)}
+                aria-label="Filtrar etapas do trace"
               />
               <div className="grow" />
               <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
