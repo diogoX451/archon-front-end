@@ -25,6 +25,7 @@ import { AccountPrivacyPage } from "@pages/AccountPrivacyPage";
 import { PrivacyPolicyPage } from "@pages/legal/PrivacyPolicyPage";
 import { TermsPage } from "@pages/legal/TermsPage";
 import { DpoPage } from "@pages/legal/DpoPage";
+import { HandoffsPage } from "@pages/HandoffsPage";
 import { WorkflowBuilder } from "@features/workflow-builder";
 import { AuthProvider } from "./auth-context";
 import { ProtectedRoute } from "./protected-route";
@@ -72,6 +73,7 @@ export function AppRouter() {
                   <Routes>
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/conversation" element={<ConversationPage />} />
+                    <Route path="/handoffs" element={<HandoffsPage />} />
                     <Route path="/workflows" element={<WorkflowsPage />} />
                     <Route path="/workflows/result" element={<WorkflowResultPage />} />
                     <Route path="/profiles" element={<ProfilesPage />} />

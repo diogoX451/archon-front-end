@@ -15,7 +15,8 @@
     "mcpServers": "Servidores MCP",
     "auditLog": "Auditoria",
     "myPrivacy": "Minha Privacidade",
-    "logout": "Sair"
+    "logout": "Sair",
+    "handoffs": "Atendimentos"
   },
   "nav_logout_confirm": {
     "title": "Sair da conta",

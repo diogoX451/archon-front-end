@@ -90,6 +90,16 @@ export const IconPrivacy = (p: IconProps) => (
   </svg>
 );
 
+// Handoffs icon (user with arrow handoff)
+export const IconHandoffs = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="7" r="3" />
+    <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+    <path d="M16 11l3 3 3-3" />
+    <path d="M19 14V8" />
+  </svg>
+);
+
 // Logout icon
 export const IconLogout = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -124,6 +134,7 @@ const links: RailLink[] = [
   // Main — core daily actions
   { to: "/dashboard",       labelKey: "nav.overview",     icon: IconOverview,     group: "main" },
   { to: "/conversation",    labelKey: "nav.conversation",  icon: IconConversation, group: "main" },
+  { to: "/handoffs",        labelKey: "nav.handoffs",      icon: IconHandoffs,     perms: ["workflow_list", "conversation_turn"], group: "main" },
   { to: "/workflows",       labelKey: "nav.workflows",     icon: IconWorkflows,    perms: ["workflow_list"], tourTarget: "nav-workflows", group: "main" },
   { to: "/templates",       labelKey: "nav.agents",        icon: IconAgents,       perms: ["conversation_profile_list"], tourTarget: "nav-agents", group: "main" },
   // Observe — monitoring & knowledge

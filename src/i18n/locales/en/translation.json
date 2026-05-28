@@ -15,7 +15,8 @@
     "mcpServers": "MCP Servers",
     "auditLog": "Audit Log",
     "myPrivacy": "My Privacy",
-    "logout": "Logout"
+    "logout": "Logout",
+    "handoffs": "Handoffs"
   },
   "nav_logout_confirm": {
     "title": "Sign out",
