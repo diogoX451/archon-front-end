@@ -359,8 +359,9 @@ interface WhatsAppRowProps {
 }
 
 function WhatsAppRow({ ch, tenantSlug: _tenantSlug, onQR, onDelete, busy }: WhatsAppRowProps) {
-  const statusTone = ch.status === "open" ? "ok" : ch.status === "connecting" ? "warn" : "neutral";
-  const statusLabel = ch.status === "open" ? "conectado" : ch.status === "connecting" ? "conectando" : "desconectado";
+  const connState = ch.state ?? ch.status;
+  const statusTone = connState === "open" ? "ok" : connState === "connecting" ? "warn" : "neutral";
+  const statusLabel = connState === "open" ? "conectado" : connState === "connecting" ? "conectando" : "desconectado";
 
   return (
     <tr style={{ borderBottom: "1px solid var(--border)" }}>
@@ -382,7 +383,7 @@ function WhatsAppRow({ ch, tenantSlug: _tenantSlug, onQR, onDelete, busy }: What
       </td>
       <td style={{ padding: "8px 6px" }}>
         <div style={{ display: "flex", gap: 6 }}>
-          {ch.status !== "open" && (
+          {connState !== "open" && (
             <button
               type="button"
               className="btn"

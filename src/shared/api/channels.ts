@@ -124,7 +124,8 @@ export interface WhatsAppChannel {
   display_name?: string;
   instance_name: string;
   profile_id: string;
-  status: string;         // "open" | "connecting" | "close" | "active"
+  status: string;         // credential DB status: "active" | "inactive"
+  state?: string;         // Evolution connection state: "open" | "connecting" | "close" | "unknown"
   phone_number?: string;
   created_at: string;
   updated_at: string;
