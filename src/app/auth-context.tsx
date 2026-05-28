@@ -140,7 +140,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const hasPermission = useCallback(
     (key: string) => {
       if (!user) return false;
-      if (user.is_super) return true;
+      if (user.is_super || user.is_tenant_admin) return true;
       return permissions.has(key);
     },
     [user, permissions],
