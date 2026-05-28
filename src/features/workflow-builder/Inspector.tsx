@@ -441,6 +441,46 @@ function MemoryHooksEditor({ rules, onChange }: { rules: Array<{ relations: stri
   );
 }
 
+type ToolResultMapping = { action: string; relation: string; target_field: string; kind: string };
+
+function ToolResultMappingsEditor({ mappings, onChange }: { mappings: ToolResultMapping[]; onChange: (next: ToolResultMapping[]) => void }) {
+  const update = (idx: number, patch: Partial<ToolResultMapping>) =>
+    onChange(mappings.map((m, i) => (i === idx ? { ...m, ...patch } : m)));
+  const remove = (idx: number) => onChange(mappings.filter((_, i) => i !== idx));
+  const add = () => onChange([...mappings, { action: "", relation: "", target_field: "", kind: "ENTITY" }]);
+
+  return (
+    <>
+      {mappings.length === 0 && (
+        <div className="empty-state" style={{ marginBottom: 8 }}>
+          Nenhum mapeamento. Mapeia resultados de tools MCP para relações de memória (ex: create_event → AGENDOU).
+        </div>
+      )}
+      {mappings.map((m, idx) => (
+        <div key={idx} className="card" style={{ padding: 10, marginBottom: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>mapeamento #{idx + 1}</span>
+            <button type="button" className="btn ghost" onClick={() => remove(idx)} style={{ padding: "2px 8px" }}>×</button>
+          </div>
+          <Field label="action (nome da tool MCP)">
+            <input className="field-input" value={m.action} onChange={(e) => update(idx, { action: e.target.value })} placeholder="create_event" />
+          </Field>
+          <Field label="relation (relação emitida)">
+            <input className="field-input" value={m.relation} onChange={(e) => update(idx, { relation: e.target.value })} placeholder="AGENDOU" />
+          </Field>
+          <Field label="target_field (campo JSON, vazio = texto raw)">
+            <input className="field-input" value={m.target_field} onChange={(e) => update(idx, { target_field: e.target.value })} placeholder="summary" />
+          </Field>
+          <Field label="kind (tipo de entidade)">
+            <input className="field-input" value={m.kind} onChange={(e) => update(idx, { kind: e.target.value })} placeholder="EVENTO" />
+          </Field>
+        </div>
+      ))}
+      <button type="button" className="btn" onClick={add} style={{ width: "100%" }}>+ Novo mapeamento</button>
+    </>
+  );
+}
+
 const GUARDRAIL_CHECKS: { key: keyof GuardrailsConfig["checks"] & string; label: string }[] = [
   { key: "pii", label: "PII" },
   { key: "jailbreak", label: "Jailbreak" },
@@ -579,6 +619,7 @@ function WorkflowInspector({
 
   const id = meta?.id || "—";
   const hookRules = meta?.memory_hook_rules || [];
+  const toolResultMappings = meta?.memory_tool_result_mappings || [];
 
   return (
     <>
@@ -654,6 +695,12 @@ function WorkflowInspector({
       <MemoryHooksEditor
         rules={hookRules}
         onChange={(next) => onMetaChange?.({ memory_hook_rules: next })}
+      />
+
+      <div className="section-title">Tool → Memória</div>
+      <ToolResultMappingsEditor
+        mappings={toolResultMappings}
+        onChange={(next) => onMetaChange?.({ memory_tool_result_mappings: next })}
       />
 
       <div className="section-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

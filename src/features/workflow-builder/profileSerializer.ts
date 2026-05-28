@@ -65,6 +65,7 @@ export type CanvasMeta = {
   tenant_slug?: string;
   executor_type?: string;
   memory_hook_rules?: Array<{ relations: string[]; edge_type: string }>;
+  memory_tool_result_mappings?: Array<{ action: string; relation: string; target_field: string; kind: string }>;
   input_defaults?: any;
   extra_metadata?: any;
   guardrails?: GuardrailsConfig;
@@ -213,8 +214,12 @@ export function canvasToProfile(workflow: WorkflowData, meta: CanvasMeta): Profi
     user_id: meta.user_id,
     executor_type: meta.executor_type,
     memory_schema:
-      meta.memory_hook_rules && meta.memory_hook_rules.length > 0
-        ? { hook_rules: meta.memory_hook_rules }
+      (meta.memory_hook_rules && meta.memory_hook_rules.length > 0) ||
+      (meta.memory_tool_result_mappings && meta.memory_tool_result_mappings.length > 0)
+        ? {
+            ...(meta.memory_hook_rules && meta.memory_hook_rules.length > 0 ? { hook_rules: meta.memory_hook_rules } : {}),
+            ...(meta.memory_tool_result_mappings && meta.memory_tool_result_mappings.length > 0 ? { tool_result_mappings: meta.memory_tool_result_mappings } : {}),
+          }
         : undefined,
     agents,
     connections: connections.length > 0 ? connections : undefined,
@@ -279,6 +284,7 @@ export function profileToCanvas(profile: ConversationProfileV2): { workflow: Wor
   const executorType = profile.executor_type || (typeof legacyExecutor === "string" ? legacyExecutor : undefined);
   const memorySchema: any = profile.memory_schema || legacyMemory;
   const memoryHookRules = Array.isArray(memorySchema?.hook_rules) ? memorySchema.hook_rules : undefined;
+  const memoryToolResultMappings = Array.isArray(memorySchema?.tool_result_mappings) ? memorySchema.tool_result_mappings : undefined;
 
   return {
     workflow: {
@@ -294,6 +300,7 @@ export function profileToCanvas(profile: ConversationProfileV2): { workflow: Wor
       tenant_slug: profile.tenant_id,
       executor_type: executorType,
       memory_hook_rules: memoryHookRules,
+      memory_tool_result_mappings: memoryToolResultMappings,
       input_defaults: profile.input_defaults,
       extra_metadata: Object.keys(extraMetadata).length > 0 ? extraMetadata : undefined,
       guardrails: guardrailsMeta && typeof guardrailsMeta === "object" ? guardrailsMeta : undefined,

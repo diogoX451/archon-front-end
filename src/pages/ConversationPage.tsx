@@ -20,7 +20,7 @@ import { useAuth } from "@app/auth-context";
 import { canAny } from "@shared/authz";
 import { useEventStream } from "@shared/hooks/useEventStream";
 import { useGraphProfile } from "@shared/hooks/useGraphProfile";
-import type { UserGraphProfile } from "@shared/api/graphProfile";
+import type { UserGraphProfile, GraphProfileHookEdge } from "@shared/api/graphProfile";
 
 function extractAssistantText(output: any): string {
   if (output == null) return "";
@@ -200,13 +200,14 @@ function UserProfilePanel({
 
   if (!profile) return null;
 
-  const { user_profile, preferences, recent_intents, recent_decisions, current_task, hooks } = profile;
+  const { user_profile, preferences, recent_intents, recent_decisions, current_task, hooks, hook_edges } = profile;
   const hasAnyData =
     user_profile?.name ||
     preferences.length > 0 ||
     recent_intents.length > 0 ||
     recent_decisions.length > 0 ||
-    current_task;
+    current_task ||
+    hook_edges.length > 0;
 
   if (!hasAnyData) {
     return (
@@ -339,6 +340,31 @@ function UserProfilePanel({
           </div>
         </div>
       )}
+
+      {/* Hook edges (scheduled events, etc.) */}
+      {hook_edges.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-4)", fontWeight: 600, marginBottom: 6 }}>
+            Atividades
+          </div>
+          {Object.entries(
+            hook_edges.reduce<Record<string, string[]>>((acc, e) => {
+              if (!e.relation || !e.target) return acc;
+              (acc[e.relation] ??= []).push(e.target);
+              return acc;
+            }, {})
+          ).map(([rel, targets]) => (
+            <div key={rel} style={{ marginBottom: 6 }}>
+              <div style={{ fontSize: 10, color: "var(--ink-4)", marginBottom: 3 }}>{rel}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                {targets.map((t, i) => (
+                  <span key={i} style={hookEdgePillStyle(rel)}>{t}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -352,6 +378,14 @@ function pillStyle(bg: string, color: string): React.CSSProperties {
     fontSize: 11,
     border: "1px solid var(--line)",
   };
+}
+
+function hookEdgePillStyle(relation: string): React.CSSProperties {
+  let bg = "var(--surface-2)";
+  let color = "var(--ink-3)";
+  if (relation === "SCHEDULED") { bg = "oklch(0.92 0.04 140)"; color = "oklch(0.40 0.12 140)"; }
+  else if (relation === "CANCELLED") { bg = "oklch(0.95 0.02 15)"; color = "oklch(0.50 0.12 15)"; }
+  return { background: bg, color, borderRadius: 10, padding: "2px 8px", fontSize: 11, border: "1px solid var(--line)" };
 }
 
 function isConfirmedByServer(optimistic: ConversationTurnRow, serverTurns: ConversationTurnRow[]) {

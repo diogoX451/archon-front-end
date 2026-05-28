@@ -21,6 +21,12 @@ export interface GraphProfileTask {
   status: string;
 }
 
+export interface GraphProfileHookEdge {
+  relation: string;
+  target: string;
+  kind?: string;
+}
+
 export interface UserGraphProfile {
   user_profile: {
     name?: string;
@@ -36,6 +42,7 @@ export interface UserGraphProfile {
   entities: any[];
   relationships: any[];
   hooks: string[];
+  hook_edges: GraphProfileHookEdge[];
 }
 
 export const getUserGraphProfile = async (userId: string): Promise<UserGraphProfile> => {
@@ -55,5 +62,6 @@ export const getUserGraphProfile = async (userId: string): Promise<UserGraphProf
     entities: raw.entities ?? [],
     relationships: raw.relationships ?? [],
     hooks: raw.hooks ?? [],
+    hook_edges: (raw as any).hook_edges ?? [],
   };
 };
