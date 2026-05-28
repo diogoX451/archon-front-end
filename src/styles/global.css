@@ -1648,6 +1648,16 @@ select {
   min-height: 32px;
 }
 
+.rail[data-expanded="true"] .rail-brand-row {
+  justify-content: space-between;
+}
+
+.rail[data-expanded="false"] .rail-brand-row {
+  justify-content: center;
+  gap: 0;
+  padding: 0 8px;
+}
+
 .rail-brand {
   flex-shrink: 0;
   width: 32px;
@@ -1657,6 +1667,10 @@ select {
   display: grid;
   place-items: center;
   position: relative;
+}
+
+.rail[data-expanded="false"] .rail-brand {
+  display: none;
 }
 
 .rail-brand::before {
@@ -1679,28 +1693,36 @@ select {
 
 .rail-toggle {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
-  background: transparent;
-  border: 1px solid var(--line);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
   border-radius: 5px;
-  color: var(--ink-3);
+  color: var(--ink-2);
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 120ms, background 100ms, color 100ms;
+  opacity: 1;
+  transition: background 100ms, color 100ms, border-color 100ms, box-shadow 100ms;
   padding: 0;
+  box-shadow: 0 1px 0 var(--line);
 }
 
-.rail:hover .rail-toggle,
-.rail[data-expanded="true"] .rail-toggle {
-  opacity: 1;
+.rail[data-expanded="false"] .rail-toggle {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
 }
 
 .rail-toggle:hover {
   background: var(--surface-2);
+  border-color: var(--ink-3);
   color: var(--ink);
+}
+
+.rail-toggle:focus-visible {
+  outline: 2px solid var(--line-strong);
+  outline-offset: 2px;
 }
 
 /* Nav groups */
@@ -1761,6 +1783,12 @@ select {
   box-sizing: border-box;
 }
 
+.rail[data-expanded="false"] .rail-link {
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+}
+
 .rail-link:hover {
   background: var(--surface-2);
   color: var(--ink);
@@ -1780,6 +1808,10 @@ select {
   width: 2px;
   background: var(--ink);
   border-radius: 2px;
+}
+
+.rail[data-expanded="false"] .rail-link[data-active="true"]::before {
+  left: 2px;
 }
 
 .rail-icon {
@@ -1822,10 +1854,6 @@ select {
   transform: translateX(0);
 }
 
-.rail-spacer {
-  flex: 1;
-}
-
 /* Footer — avatar + user info */
 .rail-footer {
   display: flex;
@@ -1833,6 +1861,11 @@ select {
   gap: 10px;
   padding: 6px 9px;
   overflow: hidden;
+}
+
+.rail[data-expanded="false"] .rail-footer {
+  justify-content: center;
+  padding: 6px 0;
 }
 
 .rail-avatar {
@@ -1874,6 +1907,10 @@ select {
 
 .rail-logout {
   margin: 0 6px 2px;
+}
+
+.rail[data-expanded="false"] .rail-logout {
+  margin: 0 8px 2px;
 }
 
 /* shift workflow builder grid to make room for rail */

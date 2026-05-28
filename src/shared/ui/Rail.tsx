@@ -167,7 +167,14 @@ export function Rail() {
   const confirm = useConfirm();
 
   const [expanded, setExpanded] = useState<boolean>(() => {
-    try { return localStorage.getItem("rail-expanded") === "true"; } catch { return false; }
+    try {
+      if (localStorage.getItem("rail-v") !== "2") {
+        localStorage.removeItem("rail-expanded");
+        localStorage.setItem("rail-v", "2");
+      }
+      const v = localStorage.getItem("rail-expanded");
+      return v === null ? true : v === "true";
+    } catch { return true; }
   });
 
   useEffect(() => {
@@ -206,7 +213,7 @@ export function Rail() {
   }
 
   return (
-    <aside className="rail" data-expanded={expanded ? "true" : undefined}>
+    <aside className="rail" data-expanded={expanded ? "true" : "false"}>
       {/* Brand row with toggle */}
       <div className="rail-brand-row">
         <div className="rail-brand" aria-hidden="true" />
@@ -248,8 +255,6 @@ export function Rail() {
           </div>
         ))}
       </nav>
-
-      <div className="rail-spacer" />
 
       {/* User footer */}
       <div className="rail-footer">

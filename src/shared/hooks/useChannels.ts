@@ -82,3 +82,63 @@ export const useDeleteChannelCredential = (tenantSlug?: string) => {
     },
   });
 };
+
+// ── WhatsApp Channels ────────────────────────────────────────────────────────
+
+import {
+  createWhatsAppChannel,
+  listWhatsAppChannels,
+  getWhatsAppQR,
+  getWhatsAppStatus,
+  deleteWhatsAppChannel,
+  type CreateWhatsAppChannelInput,
+} from "@shared/api/channels";
+
+const WA_KEY = "whatsapp_channels";
+
+export const useListWhatsAppChannels = (tenantSlug?: string) =>
+  useQuery({
+    queryKey: [WA_KEY, tenantSlug || "_all"],
+    queryFn: () => listWhatsAppChannels(tenantSlug),
+    staleTime: 0,
+    refetchInterval: 15_000,
+  });
+
+export const useWhatsAppQR = (id: string, tenantSlug?: string, enabled = true) =>
+  useQuery({
+    queryKey: [WA_KEY, "qr", id, tenantSlug || "_all"],
+    queryFn: () => getWhatsAppQR(id, tenantSlug),
+    enabled: enabled && !!id,
+    refetchInterval: 8_000,
+    staleTime: 0,
+  });
+
+export const useWhatsAppStatus = (id: string, tenantSlug?: string, enabled = true) =>
+  useQuery({
+    queryKey: [WA_KEY, "status", id, tenantSlug || "_all"],
+    queryFn: () => getWhatsAppStatus(id, tenantSlug),
+    enabled: enabled && !!id,
+    refetchInterval: 5_000,
+    staleTime: 0,
+  });
+
+export const useCreateWhatsAppChannel = (tenantSlug?: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateWhatsAppChannelInput) =>
+      createWhatsAppChannel(input, tenantSlug),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [WA_KEY] });
+    },
+  });
+};
+
+export const useDeleteWhatsAppChannel = (tenantSlug?: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteWhatsAppChannel(id, tenantSlug),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [WA_KEY] });
+    },
+  });
+};

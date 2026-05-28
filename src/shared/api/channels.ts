@@ -116,3 +116,61 @@ export const deleteChannelCredential = (id: string, tenantSlug?: string) => {
     { method: "DELETE" },
   );
 };
+
+// ── WhatsApp Channels (Evolution) ────────────────────────────────────────────
+
+export interface WhatsAppChannel {
+  id: string;
+  display_name?: string;
+  instance_name: string;
+  profile_id: string;
+  status: string;         // "open" | "connecting" | "close" | "active"
+  phone_number?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateWhatsAppChannelInput {
+  display_name: string;
+  profile_id: string;
+}
+
+export interface WhatsAppQR {
+  code: string;
+  base64: string;
+}
+
+export interface WhatsAppStatus {
+  state: string;         // "open" | "connecting" | "close"
+  phone_number?: string;
+}
+
+export const createWhatsAppChannel = (input: CreateWhatsAppChannelInput, tenantSlug?: string) => {
+  const qs = tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
+  return fetchClient<WhatsAppChannel>(`/api/v1/channels/whatsapp${qs}`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+};
+
+export const listWhatsAppChannels = (tenantSlug?: string) => {
+  const qs = tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
+  return fetchClient<WhatsAppChannel[]>(`/api/v1/channels/whatsapp${qs}`);
+};
+
+export const getWhatsAppQR = (id: string, tenantSlug?: string) => {
+  const qs = tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
+  return fetchClient<WhatsAppQR>(`/api/v1/channels/whatsapp/${encodeURIComponent(id)}/qr${qs}`);
+};
+
+export const getWhatsAppStatus = (id: string, tenantSlug?: string) => {
+  const qs = tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
+  return fetchClient<WhatsAppStatus>(`/api/v1/channels/whatsapp/${encodeURIComponent(id)}/status${qs}`);
+};
+
+export const deleteWhatsAppChannel = (id: string, tenantSlug?: string) => {
+  const qs = tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
+  return fetchClient<void>(`/api/v1/channels/whatsapp/${encodeURIComponent(id)}${qs}`, {
+    method: "DELETE",
+  });
+};

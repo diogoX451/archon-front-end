@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@app/auth-context";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { IconPlus } from "@shared/ui/icons/Icons";
@@ -11,8 +11,15 @@ import {
   useDisconnectChannelLink,
   useUpsertChannelLink,
   useChannelLinks,
+  useListWhatsAppChannels,
+  useCreateWhatsAppChannel,
+  useDeleteWhatsAppChannel,
+  useWhatsAppQR,
+  useWhatsAppStatus,
 } from "@shared/hooks/useChannels";
-import type { AuthMode, ChannelCredential, ChannelKind, CredentialStatus } from "@shared/api/channels";
+import { useListConversationProfiles } from "@shared/hooks/useConversation";
+import { useTenants } from "@shared/hooks/useTenants";
+import type { AuthMode, ChannelCredential, ChannelKind, CredentialStatus, WhatsAppChannel } from "@shared/api/channels";
 
 // ─── Credentials panel ────────────────────────────────────────────────────────
 
@@ -274,15 +281,342 @@ function LinksPanel({ tenantSlug }: { tenantSlug?: string }) {
   );
 }
 
+// ─── WhatsApp QR modal ───────────────────────────────────────────────────────
+
+interface QRModalProps {
+  channel: WhatsAppChannel;
+  tenantSlug?: string;
+  onClose: () => void;
+  onConnected: () => void;
+}
+
+function QRModal({ channel, tenantSlug, onClose, onConnected }: QRModalProps) {
+  const qrQuery = useWhatsAppQR(channel.id, tenantSlug, true);
+  const statusQuery = useWhatsAppStatus(channel.id, tenantSlug, true);
+
+  useEffect(() => {
+    if (statusQuery.data?.state === "open") {
+      onConnected();
+    }
+  }, [statusQuery.data?.state, onConnected]);
+
+  return (
+    <div style={overlayStyle} onClick={onClose}>
+      <div className="card" style={{ ...modalStyle, maxWidth: 360, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontWeight: 600 }}>Escaneie o QR code</div>
+          <button
+            type="button"
+            className="btn"
+            style={{ fontSize: 12, padding: "2px 8px" }}
+            onClick={onClose}
+            aria-label="Fechar modal"
+          >
+            ✕
+          </button>
+        </div>
+        <p className="muted" style={{ fontSize: 12, marginBottom: 16 }}>
+          Abra WhatsApp &gt; Dispositivos vinculados &gt; Vincular dispositivo
+        </p>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          {qrQuery.isLoading && (
+            <div className="muted" style={{ padding: 20 }}>Carregando QR...</div>
+          )}
+          {qrQuery.error && (
+            <div style={{ color: "var(--err)", fontSize: 13 }}>
+              Erro ao carregar QR. Tente novamente.
+            </div>
+          )}
+          {qrQuery.data && (
+            <img
+              src={qrQuery.data.base64}
+              alt="QR Code"
+              style={{ width: 240, height: 240, border: "1px solid var(--border)", borderRadius: 8 }}
+            />
+          )}
+        </div>
+        <div style={{ fontSize: 12 }}>
+          {statusQuery.data && (
+            <span className="pill" data-tone={statusQuery.data.state === "open" ? "ok" : statusQuery.data.state === "connecting" ? "warn" : "neutral"}>
+              <span className="dot" />
+              {statusQuery.data.state === "open" ? "conectado" : statusQuery.data.state === "connecting" ? "conectando" : "aguardando"}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── WhatsApp row ─────────────────────────────────────────────────────────────
+
+interface WhatsAppRowProps {
+  ch: WhatsAppChannel;
+  tenantSlug?: string;
+  onQR: (ch: WhatsAppChannel) => void;
+  onDelete: (id: string) => void;
+  busy: boolean;
+}
+
+function WhatsAppRow({ ch, tenantSlug: _tenantSlug, onQR, onDelete, busy }: WhatsAppRowProps) {
+  const statusTone = ch.status === "open" ? "ok" : ch.status === "connecting" ? "warn" : "neutral";
+  const statusLabel = ch.status === "open" ? "conectado" : ch.status === "connecting" ? "conectando" : "desconectado";
+
+  return (
+    <tr style={{ borderBottom: "1px solid var(--border)" }}>
+      <td style={{ padding: "8px 6px" }}>
+        <div style={{ fontWeight: 500, fontSize: 13 }}>{ch.display_name || ch.instance_name}</div>
+        <div className="mono muted" style={{ fontSize: 11 }}>{ch.instance_name}</div>
+      </td>
+      <td style={{ padding: "8px 6px", fontSize: 13 }}>
+        {ch.phone_number || <span className="muted">—</span>}
+      </td>
+      <td style={{ padding: "8px 6px" }}>
+        <span className="pill" data-tone={statusTone}>
+          <span className="dot" />
+          {statusLabel}
+        </span>
+      </td>
+      <td style={{ padding: "8px 6px", fontSize: 11, color: "var(--muted)" }}>
+        {new Date(ch.updated_at).toLocaleString()}
+      </td>
+      <td style={{ padding: "8px 6px" }}>
+        <div style={{ display: "flex", gap: 6 }}>
+          {ch.status !== "open" && (
+            <button
+              type="button"
+              className="btn"
+              style={{ fontSize: 12, padding: "3px 10px" }}
+              onClick={() => onQR(ch)}
+              disabled={busy}
+              title="Escanear QR para conectar"
+            >
+              QR
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn"
+            style={{ fontSize: 12, padding: "3px 10px", color: "var(--err)" }}
+            onClick={() => onDelete(ch.id)}
+            disabled={busy}
+          >
+            ✕
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ─── WhatsApp panel ───────────────────────────────────────────────────────────
+
+function WhatsAppPanel({ tenantSlug, isSuper }: { tenantSlug?: string; isSuper?: boolean }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+
+  const [displayName, setDisplayName] = useState("");
+  const [profileId, setProfileId] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [activeTenant, setActiveTenant] = useState(tenantSlug || "");
+
+  const { data: tenants } = useTenants();
+
+  // Keep in sync when parent tenantSlug changes (normal user login).
+  useEffect(() => { if (tenantSlug) setActiveTenant(tenantSlug); }, [tenantSlug]);
+
+  const effectiveTenant = activeTenant || undefined;
+
+  const [qrChannel, setQrChannel] = useState<WhatsAppChannel | null>(null);
+
+  const listQuery = useListWhatsAppChannels(effectiveTenant);
+  const createMut = useCreateWhatsAppChannel(effectiveTenant);
+  const deleteMut = useDeleteWhatsAppChannel(effectiveTenant);
+  const profilesQuery = useListConversationProfiles();
+
+  const handleConnect = async () => {
+    if (!displayName.trim()) {
+      setNameError("Nome de exibição é obrigatório.");
+      return;
+    }
+    if (!profileId) {
+      toast.error("Selecione um perfil.");
+      return;
+    }
+    setNameError("");
+    try {
+      await createMut.mutateAsync({ display_name: displayName.trim(), profile_id: profileId });
+      toast.success("Instância WhatsApp criada. Escaneie o QR para conectar.");
+      setDisplayName("");
+      setProfileId("");
+    } catch (err: any) {
+      toast.error(`Erro: ${err?.message || err}`);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({
+      title: "Remover número WhatsApp",
+      message: "Esta instância será desconectada e removida permanentemente.",
+      confirmLabel: "Remover",
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteMut.mutateAsync(id);
+      toast.success("Número removido.");
+    } catch (err: any) {
+      toast.error(`Erro: ${err?.message || err}`);
+    }
+  };
+
+  const handleConnected = () => {
+    setQrChannel(null);
+    toast.success("WhatsApp conectado!");
+    void listQuery.refetch();
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      {/* Super admin tenant selector */}
+      {isSuper && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span className="muted" style={{ fontSize: 13, whiteSpace: "nowrap" }}>Tenant:</span>
+          <select
+            className="search-input"
+            value={activeTenant}
+            onChange={(e) => setActiveTenant(e.target.value)}
+            style={{ maxWidth: 320 }}
+            aria-label="Selecionar tenant"
+          >
+            <option value="">— selecione um tenant —</option>
+            {(tenants || []).map((t: any) => (
+              <option key={t.id} value={t.slug}>{t.name} ({t.slug})</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Require tenant before showing anything else */}
+      {!effectiveTenant ? (
+        <div className="card" style={{ padding: 18 }}>
+          <p className="muted" style={{ fontSize: 13 }}>
+            {isSuper ? "Selecione um tenant acima para gerenciar canais WhatsApp." : "Tenant não identificado."}
+          </p>
+        </div>
+      ) : (
+      <>
+      {/* Add form */}
+      <div className="card" style={{ padding: 18 }}>
+        <div style={{ fontWeight: 600, marginBottom: 12 }}>Adicionar número WhatsApp</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 180px" }}>
+            <input
+              className="search-input"
+              placeholder="Nome de exibição (obrigatório)"
+              value={displayName}
+              onChange={(e) => { setDisplayName(e.target.value); setNameError(""); }}
+              aria-label="Nome de exibição"
+              style={nameError ? { borderColor: "var(--err)" } : undefined}
+            />
+            {nameError && <div style={{ color: "var(--err)", fontSize: 11 }}>{nameError}</div>}
+          </div>
+          <select
+            className="search-input"
+            value={profileId}
+            onChange={(e) => setProfileId(e.target.value)}
+            aria-label="Perfil de conversa"
+            style={{ flex: "1 1 180px" }}
+          >
+            <option value="">— Selecione um perfil —</option>
+            {(profilesQuery.data ?? []).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.description || p.id}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={handleConnect}
+            disabled={createMut.isPending}
+            style={{ whiteSpace: "nowrap" }}
+          >
+            {createMut.isPending ? "Criando…" : "Conectar"}
+          </button>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ padding: "10px 16px", borderBottom: "1px solid var(--border)", fontWeight: 600 }}>
+          Seus números WhatsApp
+        </div>
+        {listQuery.isLoading && (
+          <div className="muted" style={{ padding: 20, textAlign: "center" }}>Carregando…</div>
+        )}
+        {listQuery.error && (
+          <div style={{ color: "var(--err)", fontSize: 13, padding: 16 }}>
+            {(listQuery.error as Error).message}
+          </div>
+        )}
+        {listQuery.data && listQuery.data.length === 0 && (
+          <div className="muted" style={{ padding: 20, textAlign: "center" }}>
+            Nenhum número conectado. Adicione um acima para começar.
+          </div>
+        )}
+        {listQuery.data && listQuery.data.length > 0 && (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                  <th style={thStyle}>Nome / Instância</th>
+                  <th style={thStyle}>Telefone</th>
+                  <th style={thStyle}>Status</th>
+                  <th style={thStyle}>Atualizado</th>
+                  <th style={thStyle}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {listQuery.data.map((ch) => (
+                  <WhatsAppRow
+                    key={ch.id}
+                    ch={ch}
+                    tenantSlug={tenantSlug}
+                    onQR={setQrChannel}
+                    onDelete={handleDelete}
+                    busy={deleteMut.isPending}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {qrChannel && (
+        <QRModal
+          channel={qrChannel}
+          tenantSlug={effectiveTenant}
+          onClose={() => setQrChannel(null)}
+          onConnected={handleConnected}
+        />
+      )}
+      </>
+      )}
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function ChannelsPage() {
-  const { activeTenantSlug } = useAuth();
+  const { activeTenantSlug, isSuper } = useAuth();
   const tenantSlug = activeTenantSlug || undefined;
 
   const toast = useToast();
   const confirm = useConfirm();
-  const [tab, setTab] = useState<"credentials" | "links">("credentials");
+  const [tab, setTab] = useState<"whatsapp" | "credentials" | "links">("whatsapp");
 
   // Credential form state
   const [showCredForm, setShowCredForm] = useState(false);
@@ -367,6 +701,12 @@ export function ChannelsPage() {
 
   const busy = activateCred.isPending || deactivateCred.isPending || deleteCred.isPending;
 
+  const tabLabels: Record<typeof tab, string> = {
+    whatsapp: "WhatsApp",
+    credentials: "Credenciais",
+    links: "Vínculos",
+  };
+
   return (
     <>
       <div className="page-topbar">
@@ -386,7 +726,7 @@ export function ChannelsPage() {
         </p>
 
         <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: "1px solid var(--border)" }}>
-          {(["credentials", "links"] as const).map((t) => (
+          {(["whatsapp", "credentials", "links"] as const).map((t) => (
             <button
               type="button"
               key={t}
@@ -403,10 +743,14 @@ export function ChannelsPage() {
                 marginBottom: -1,
               }}
             >
-              {t === "credentials" ? "Credenciais" : "Vínculos"}
+              {tabLabels[t]}
             </button>
           ))}
         </div>
+
+        {tab === "whatsapp" && (
+          <WhatsAppPanel tenantSlug={tenantSlug} isSuper={isSuper} />
+        )}
 
         {tab === "credentials" && (
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
