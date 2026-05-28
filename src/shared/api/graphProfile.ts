@@ -62,6 +62,6 @@ export const getUserGraphProfile = async (userId: string): Promise<UserGraphProf
     entities: raw.entities ?? [],
     relationships: raw.relationships ?? [],
     hooks: raw.hooks ?? [],
-    hook_edges: (raw as any).hook_edges ?? [],
+    hook_edges: ((raw as any).hook_edges ?? []).filter((e: any) => e?.relation && e?.target),
   };
 };
