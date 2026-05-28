@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { AGENT_TYPES } from "./data";
 import { AgentNodeData, ConnectionData, WorkflowData } from "./types";
-import type { CanvasMeta, GuardrailsConfig } from "./profileSerializer";
+import type { CanvasMeta, GuardrailChecks, GuardrailsConfig } from "./profileSerializer";
 import { canvasToProfile, profileToCanvas } from "./profileSerializer";
 import { GLYPHS } from "@shared/ui/icons/glyphs";
 import { IconSliders, IconTerminal, IconShare, IconTrash, GlyphPlanner } from "@shared/ui/icons/Icons";
@@ -481,7 +481,7 @@ function ToolResultMappingsEditor({ mappings, onChange }: { mappings: ToolResult
   );
 }
 
-const GUARDRAIL_CHECKS: { key: keyof GuardrailsConfig["checks"] & string; label: string }[] = [
+const GUARDRAIL_CHECKS: { key: keyof GuardrailChecks & string; label: string }[] = [
   { key: "pii", label: "PII" },
   { key: "jailbreak", label: "Jailbreak" },
   { key: "hallucination", label: "Alucinação" },
@@ -505,7 +505,7 @@ function GuardrailsEditor({ value, onChange }: { value?: GuardrailsConfig; onCha
   }
   const cfg: GuardrailsConfig = value;
   const set = <K extends keyof GuardrailsConfig>(k: K, v: GuardrailsConfig[K]) => onChange({ ...cfg, [k]: v });
-  const setCheck = (key: string, v: boolean) => set("checks", { ...cfg.checks, [key]: v });
+  const setCheck = (key: keyof GuardrailChecks & string, v: boolean) => set("checks", { ...cfg.checks, [key]: v });
 
   const toolsExemptText = (cfg.tools_exempt || []).join(", ");
 

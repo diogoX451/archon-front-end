@@ -134,9 +134,11 @@ export interface PricingRow {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-function buildQS(params: Record<string, string | number | boolean | string[] | undefined>): string {
+type QueryParams = object & Record<string, string | number | boolean | string[] | undefined>;
+
+function buildQS<T extends object>(params: T): string {
   const q = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, value] of Object.entries(params as QueryParams)) {
     if (value === undefined || value === null || value === "") continue;
     if (Array.isArray(value)) {
       if (value.length > 0) q.set(key, value.join(","));

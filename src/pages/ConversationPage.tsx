@@ -904,7 +904,7 @@ export function ConversationPage() {
               <button
                 type="button"
                 className="btn primary"
-                onClick={sendMessage}
+                onClick={() => sendMessage()}
                 disabled={!selectedProfile || !draft.trim() || createTurn.isPending || !canUseConversation}
               >
                 {createTurn.isPending ? "Enviando…" : "Enviar"}
