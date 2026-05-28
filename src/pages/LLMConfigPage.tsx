@@ -391,45 +391,6 @@ function LLMAnalyticsTab({ tenantId }: { tenantId?: string }) {
           </div>
         </div>
       )}
-
-      {/* Pricing table */}
-      <div className="card" style={{ padding: 20 }}>
-        <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--ink-5, #6b7280)" }}>Tabela de preços</h3>
-        {loadingPricing ? (
-          <p className="muted" style={{ fontSize: 13 }}>Carregando…</p>
-        ) : pricing.length === 0 ? (
-          <p className="muted" style={{ fontSize: 13 }}>Sem dados de pricing.</p>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table className="table" style={{ fontSize: 13 }}>
-              <thead>
-                <tr>
-                  <th>Provider</th>
-                  <th>Modelo</th>
-                  <th style={{ textAlign: "right" }}>Entrada / 1M tokens</th>
-                  <th style={{ textAlign: "right" }}>Saída / 1M tokens</th>
-                  <th style={{ textAlign: "right" }}>Cache / 1M tokens</th>
-                  <th>Vigente desde</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pricing.map((row, i) => (
-                  <tr key={i}>
-                    <td><ProviderPill provider={row.provider} /></td>
-                    <td className="mono" style={{ fontSize: 12 }}>{row.model || <span className="muted">qualquer</span>}</td>
-                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>${(row.input_per_1m_usd ?? 0).toFixed(2)}</td>
-                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>${(row.output_per_1m_usd ?? 0).toFixed(2)}</td>
-                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                      {row.cached_input_per_1m != null ? `$${Number(row.cached_input_per_1m).toFixed(2)}` : "—"}
-                    </td>
-                    <td className="muted">{new Date(row.effective_from).toLocaleDateString("pt-BR")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
