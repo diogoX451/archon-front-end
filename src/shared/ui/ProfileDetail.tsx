@@ -99,6 +99,60 @@ function safeObject(v: unknown): Record<string, any> {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, any>) : {};
 }
 
+function EntryConditionsView({ cfg }: { cfg: Record<string, any> }) {
+  const firstIn = safeArray<string>(cfg.first_message_in);
+  const firstRegex = safeArray<string>(cfg.first_message_matches);
+  const channels = safeArray<string>(cfg.channel_in);
+  const recipients = safeArray<string>(cfg.recipient_in);
+  const onReject = typeof cfg.on_reject === "string" ? cfg.on_reject : "silent_drop";
+  const rejectReply = typeof cfg.reject_reply === "string" ? cfg.reject_reply : "";
+
+  const onRejectTone = onReject === "reply" ? "warn" : "neutral";
+  const onRejectLabel = onReject === "reply" ? "responder com mensagem" : "descartar silenciosamente";
+
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ fontSize: 11, color: "var(--ink-4)" }}>
+        Aplicado apenas na <strong>primeira mensagem</strong> de uma conversa. Todas as regras presentes são combinadas (AND); listas internas são OR.
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <span className="pill" data-tone={onRejectTone}>
+          <span className="dot" /> ao rejeitar: {onRejectLabel}
+        </span>
+        {firstIn.length > 0 && <span className="pill" data-tone="ok">{firstIn.length} mensagem(ns) exata(s)</span>}
+        {firstRegex.length > 0 && <span className="pill" data-tone="ok">{firstRegex.length} regex</span>}
+        {channels.length > 0 && <span className="pill" data-tone="ok">canais: {channels.join(", ")}</span>}
+        {recipients.length > 0 && <span className="pill" data-tone="ok">{recipients.length} destinatário(s)</span>}
+      </div>
+
+      {firstIn.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, color: "var(--ink-4)", marginBottom: 4 }}>Mensagens exatas aceitas (case-insensitive):</div>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
+            {firstIn.map((s, i) => <li key={i} style={{ fontFamily: "var(--mono)" }}>"{s}"</li>)}
+          </ul>
+        </div>
+      )}
+
+      {firstRegex.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, color: "var(--ink-4)", marginBottom: 4 }}>Padrões regex aceitos:</div>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, fontFamily: "var(--mono)" }}>
+            {firstRegex.map((s, i) => <li key={i}>/{s}/</li>)}
+          </ul>
+        </div>
+      )}
+
+      {onReject === "reply" && rejectReply && (
+        <div>
+          <div style={{ fontSize: 11, color: "var(--ink-4)", marginBottom: 4 }}>Resposta ao rejeitar:</div>
+          <div style={{ fontSize: 12, padding: "6px 8px", background: "var(--bg-2)", borderRadius: 4 }}>{rejectReply}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PlannerAgentDetail({ config }: { config: Record<string, any> }) {
   const actions = safeArray<any>(config.actions);
   const providers = safeObject(safeObject(config.metadata).providers);
@@ -219,9 +273,12 @@ export function ProfileDetail({ profile, styleInjected = false }: ProfileDetailP
   const ui = safeObject(metadata.ui);
   const plannerUI = safeObject(metadata.planner_ui);
   const dialoguePolicy = safeObject(metadata.dialogue_policy);
+  const entryConditions = safeObject(metadata.entry_conditions);
 
   const otherMeta = Object.fromEntries(
-    Object.entries(metadata).filter(([k]) => k !== "ui" && k !== "planner_ui" && k !== "dialogue_policy"),
+    Object.entries(metadata).filter(
+      ([k]) => k !== "ui" && k !== "planner_ui" && k !== "dialogue_policy" && k !== "entry_conditions",
+    ),
   );
 
   return (
@@ -277,6 +334,12 @@ export function ProfileDetail({ profile, styleInjected = false }: ProfileDetailP
       {Object.keys(dialoguePolicy).length > 0 && (
         <Section title="Dialogue policy (slots / next_step)" defaultOpen={false}>
           <JsonBlock value={dialoguePolicy} />
+        </Section>
+      )}
+
+      {Object.keys(entryConditions).length > 0 && (
+        <Section title="Entry conditions (filtro de entrada)" defaultOpen>
+          <EntryConditionsView cfg={entryConditions} />
         </Section>
       )}
 
