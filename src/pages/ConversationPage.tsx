@@ -444,7 +444,7 @@ export function ConversationPage() {
   const regenerateTurn = useRegenerateConversationTurn();
   const qc = useQueryClient();
 
-  const turnsQuery = useConversationTurns(activeConvId, undefined, { enabled: !!activeConvId });
+  const turnsQuery = useConversationTurns(activeConvId, undefined, { enabled: !!activeConvId, refetchInterval: 5000 });
   const serverTurns = turnsQuery.data?.turns || [];
   const optimisticTurns = activeConvId ? optimisticTurnsByConv[activeConvId] || [] : [];
   const turns = useMemo(
@@ -473,7 +473,11 @@ export function ConversationPage() {
     const key = `${latest.event_type}_${latest.occurred_at}_${latest.correlation_id}`;
     if (key === lastSseKeyRef.current) return;
     lastSseKeyRef.current = key;
-    if (latest.event_type === "result" || latest.event_type === "conversation_turn") {
+    if (
+      latest.event_type === "result" ||
+      latest.event_type === "conversation_turn" ||
+      latest.event_type === "other"
+    ) {
       qc.invalidateQueries({ queryKey: conversationsKeys.turns(activeConvId) });
     }
   }, [sseEvents, activeConvId, qc]);
