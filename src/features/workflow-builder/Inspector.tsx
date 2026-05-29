@@ -10,6 +10,7 @@ import type { GhostAction } from "./GhostActionNode";
 import { useKBs } from "@shared/hooks/useKBs";
 import { useMCPConfigs } from "@shared/hooks/useMCPConfigs";
 import { useMCPTools } from "@shared/hooks/useMCPTools";
+import { useMCPOAuthSubjects } from "@shared/hooks/useMCPOAuthSubjects";
 import { useAuth } from "@app/auth-context";
 import type { MCPConfig } from "@shared/api/mcpConfig";
 
@@ -125,11 +126,20 @@ function MCPActionFields({
 }) {
   const selectedServer = mcpServers.find((s) => s.name === (action.config?.mcp_name as string));
   const subject = (action.config?.oauth_subject as string) || "";
+  const isOAuth = selectedServer?.auth?.mode?.startsWith("oauth2");
+
   const { data: tools = [], isLoading: loadingTools } = useMCPTools(
     selectedServer?.id,
     subject || undefined,
     { enabled: !!selectedServer },
   );
+  const { data: oauthSubjects = [] } = useMCPOAuthSubjects(
+    selectedServer?.id,
+    { enabled: !!selectedServer && !!isOAuth },
+  );
+
+  const autoResolved = isOAuth && oauthSubjects.length === 1;
+  const multipleSubjects = isOAuth && oauthSubjects.length > 1;
 
   return (
     <>
@@ -178,14 +188,41 @@ function MCPActionFields({
           <div className="field-hint" style={{ color: "var(--warn)" }}>Nenhuma tool encontrada {"—"} servidor pode estar offline.</div>
         )}
       </Field>
-      <Field label="oauth_subject (opcional)">
-        <input
-          className="field-input"
-          value={subject}
-          onChange={(e) => onSubjectChange(e.target.value)}
-          placeholder="user@email.com ou deixar vazio"
-        />
-      </Field>
+      {isOAuth && (
+        <Field label="conta OAuth">
+          {multipleSubjects ? (
+            <select
+              className="field-select"
+              value={subject}
+              onChange={(e) => onSubjectChange(e.target.value)}
+            >
+              <option value="">— selecionar conta —</option>
+              {oauthSubjects.map((s) => (
+                <option key={s.subject} value={s.subject}>
+                  {s.display_name ? `${s.display_name} (${s.subject})` : s.subject}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className="field-input"
+              value={subject}
+              onChange={(e) => onSubjectChange(e.target.value)}
+              placeholder={autoResolved ? oauthSubjects[0].subject : "subject da conta OAuth"}
+            />
+          )}
+          {autoResolved && !subject && (
+            <div className="field-hint">
+              Auto-resolvido: <strong>{oauthSubjects[0].display_name || oauthSubjects[0].subject}</strong>. Deixe vazio para usar automaticamente.
+            </div>
+          )}
+          {multipleSubjects && !subject && (
+            <div className="field-hint" style={{ color: "var(--warn)" }}>
+              Múltiplas contas conectadas — selecione qual usar nesta action.
+            </div>
+          )}
+        </Field>
+      )}
       <div className="field-hint">name: <code>{action.name}</code></div>
     </>
   );
