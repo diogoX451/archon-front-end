@@ -106,26 +106,26 @@ export function WorkflowsPage() {
       </div>
 
       <div className="page-body">
-        <h1 className="page-h1">Execuções de Workflow</h1>
+        <h1 className="page-h1">Leads</h1>
         <p style={{ color: "var(--ink-3)", fontSize: 13, marginBottom: 24 }}>
-          Cada execução é uma instância de um workflow consumindo eventos.
+          Acompanhe os leads que conversaram com seu agente.
         </p>
 
         <div className="stat-grid">
           <div className="stat">
-            <div className="label">TOTAL</div>
+            <div className="label">TOTAL DE LEADS</div>
             <div className="value">{isLoading ? "…" : total}</div>
           </div>
           <div className="stat">
-            <div className="label">EM EXECUÇÃO</div>
+            <div className="label">EM ATENDIMENTO</div>
             <div className="value" style={{ color: "oklch(0.45 0.13 60)" }}>{running}</div>
           </div>
           <div className="stat">
-            <div className="label">TAXA DE SUCESSO</div>
+            <div className="label">TAXA DE CONCLUSÃO</div>
             <div className="value">{successRate !== null ? `${successRate}%` : "—%"}</div>
           </div>
           <div className="stat">
-            <div className="label">FALHAS</div>
+            <div className="label">COM PROBLEMA</div>
             <div className="value" style={{ color: "oklch(0.50 0.16 25)" }}>{failed}</div>
           </div>
         </div>
@@ -133,22 +133,22 @@ export function WorkflowsPage() {
         <div className="toolbar" style={{ marginBottom: 8 }}>
           <input
             className="search-input"
-            placeholder="Buscar por workflow_id, user..."
+            placeholder="Buscar lead..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="Buscar por workflow_id ou usuário"
+            aria-label="Buscar lead"
           />
           <select className="field-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">todos status</option>
-            <option value="running">executando</option>
-            <option value="waiting">aguardando</option>
+            <option value="running">em atendimento</option>
+            <option value="waiting">aguardando lead</option>
             <option value="completed">concluído</option>
-            <option value="failed">falhou</option>
-            <option value="spawning">iniciando</option>
+            <option value="failed">com problema</option>
+            <option value="spawning">começando</option>
           </select>
           <div className="grow" />
           <span style={{ color: "var(--ink-3)", fontSize: 12 }}>
-            {isLoading ? "carregando…" : `${filtered.length} execuções`}
+            {isLoading ? "carregando…" : `${filtered.length} leads`}
           </span>
         </div>
 
