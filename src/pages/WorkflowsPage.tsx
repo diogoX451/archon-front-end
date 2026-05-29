@@ -28,11 +28,11 @@ const STATUS_TONE: Record<string, string> = {
   spawning: "run",
 };
 const STATUS_LABEL: Record<string, string> = {
-  running: "executando",
+  running: "em atendimento",
   completed: "concluído",
-  waiting: "aguardando",
-  failed: "falhou",
-  spawning: "iniciando",
+  waiting: "aguardando lead",
+  failed: "com problema",
+  spawning: "começando",
 };
 
 function timeAgo(dateStr?: string): string {
@@ -99,10 +99,12 @@ export function WorkflowsPage() {
         <button type="button" className="btn" onClick={() => { refetch(); refetchAudit(); }} style={{ marginRight: 8 }}>
           Atualizar
         </button>
-        <Link to="/workflows/builder" className="btn primary">
-          <IconPlus size={14} />
-          Novo workflow
-        </Link>
+        {isSuper && (
+          <Link to="/workflows/builder" className="btn primary">
+            <IconPlus size={14} />
+            Novo workflow
+          </Link>
+        )}
       </div>
 
       <div className="page-body">
@@ -180,10 +182,10 @@ export function WorkflowsPage() {
 
         {!isLoading && total === 0 && !error && (
           <div style={{ textAlign: "center", padding: 60 }}>
-            <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>⚡</div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Nenhuma execução encontrada</div>
+            <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>💬</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Nenhum lead ainda</div>
             <div style={{ color: "var(--ink-3)", fontSize: 13 }}>
-              Execuções aparecerão aqui quando workflows forem disparados.
+              Quando alguém conversar com seu agente, vai aparecer aqui.
             </div>
           </div>
         )}
@@ -192,12 +194,12 @@ export function WorkflowsPage() {
           <table className="table" style={{ marginBottom: 32 }}>
             <thead>
               <tr>
-                <th>Workflow</th>
+                <th>{isSuper ? "Workflow" : "Lead"}</th>
                 {isSuper && <th>Tenant</th>}
                 <th>Status</th>
-                <th>Tipos</th>
-                <th className="num">Eventos</th>
-                <th>Iniciado</th>
+                {isSuper && <th>Tipos</th>}
+                <th className="num">Mensagens</th>
+                <th>Começou</th>
                 <th>Última atividade</th>
               </tr>
             </thead>
@@ -218,11 +220,13 @@ export function WorkflowsPage() {
                         {STATUS_LABEL[status] || status}
                       </span>
                     </td>
-                    <td style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                      {(s.event_types || []).map((t) => (
-                        <span key={t} className="pill" data-tone={t === "result" ? "ok" : t === "command" ? "run" : "warn"} style={{ fontSize: 11 }}>{t}</span>
-                      ))}
-                    </td>
+                    {isSuper && (
+                      <td style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {(s.event_types || []).map((t) => (
+                          <span key={t} className="pill" data-tone={t === "result" ? "ok" : t === "command" ? "run" : "warn"} style={{ fontSize: 11 }}>{t}</span>
+                        ))}
+                      </td>
+                    )}
                     <td className="num mono">{s.event_count}</td>
                     <td className="muted" style={{ whiteSpace: "nowrap" }}>{timeAgo(s.started_at)}</td>
                     <td className="muted" style={{ whiteSpace: "nowrap" }}>{timeAgo(s.last_event_at)}</td>
@@ -233,7 +237,7 @@ export function WorkflowsPage() {
           </table>
         )}
 
-        {Object.keys(byType).length > 0 && (
+        {isSuper && Object.keys(byType).length > 0 && (
           <div style={{ marginBottom: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
             {Object.entries(byType).map(([k, v]) => (
               <span key={k} className="pill" data-tone="run">{k}: {v}</span>
@@ -241,6 +245,8 @@ export function WorkflowsPage() {
           </div>
         )}
 
+        {isSuper && (
+        <>
         <div style={{ marginBottom: 16, color: "var(--ink-3)", fontSize: 12 }}>
           Visão de auditoria do sistema (todos os tenants).
         </div>
@@ -330,6 +336,8 @@ export function WorkflowsPage() {
               ))}
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
     </>

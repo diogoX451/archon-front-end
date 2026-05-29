@@ -135,7 +135,7 @@ export function AccountPrivacyPage() {
           <dd style={dd}>{data.user.email}</dd>
           <dt style={dt}>Conta criada em</dt>
           <dd style={dd}>{new Date(data.user.created_at).toLocaleString("pt-BR")}</dd>
-          <dt style={dt}>Tenant</dt>
+          <dt style={dt}>Empresa</dt>
           <dd style={dd}>{data.tenant.name} <span style={{ color: "var(--ink-3)" }}>({data.tenant.slug})</span></dd>
           {data.tenant.document && (
             <>

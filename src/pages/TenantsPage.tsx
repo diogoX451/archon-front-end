@@ -84,21 +84,21 @@ export function TenantsPage() {
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }}></div>
         <button type="button" className="btn primary" onClick={() => setShowCreate(true)}>
-          <IconPlus size={14} /> Novo tenant
+          <IconPlus size={14} /> Nova empresa
         </button>
       </div>
 
       <div className="page-body">
-        <h1 className="page-h1">Tenants</h1>
+        <h1 className="page-h1">Empresas</h1>
     
         <div className="stat-grid">
-          <div className="stat"><div className="label">Tenants ativos</div><div className="value">{isLoading ? "…" : activeCount}</div></div>
+          <div className="stat"><div className="label">Empresas ativas</div><div className="value">{isLoading ? "…" : activeCount}</div></div>
           <div className="stat"><div className="label">Total</div><div className="value">{isLoading ? "…" : tenants?.length || 0}</div></div>
         </div>
 
         {error && (
           <div className="card" style={{ borderColor: "var(--err)", color: "var(--err)", marginBottom: 20 }}>
-            Erro ao carregar tenants: {error.message}
+            Erro ao carregar empresas: {error.message}
           </div>
         )}
 

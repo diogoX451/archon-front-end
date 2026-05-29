@@ -365,7 +365,7 @@ export function HandoffsPage() {
             flexShrink: 0,
           }}>
             <span style={{ fontWeight: 600, fontSize: 15, flex: 1 }}>
-              Handoffs
+              Atendimentos
               {data && (
                 <span style={{
                   marginLeft: 8,

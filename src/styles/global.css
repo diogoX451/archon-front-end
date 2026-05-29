@@ -2111,6 +2111,135 @@ select {
   text-align: right;
 }
 
+/* ========== MCP Config table ========== */
+.mcp-config-table {
+  table-layout: fixed;
+  min-width: 1120px;
+}
+
+.mcp-config-table col.mcp-col-name {
+  width: 120px;
+}
+
+.mcp-config-table col.mcp-col-transport {
+  width: 150px;
+}
+
+.mcp-config-table col.mcp-col-url {
+  width: 260px;
+}
+
+.mcp-config-table col.mcp-col-auth {
+  width: 170px;
+}
+
+.mcp-config-table col.mcp-col-oauth {
+  width: 100px;
+}
+
+.mcp-config-table col.mcp-col-status {
+  width: 90px;
+}
+
+.mcp-config-table col.mcp-col-updated {
+  width: 130px;
+}
+
+.mcp-config-table col.mcp-col-actions {
+  width: 140px;
+}
+
+.mcp-config-url-link {
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.mcp-config-url-link:hover {
+  text-decoration: underline;
+}
+
+.mcp-oauth-toggle {
+  min-width: 86px;
+}
+
+.mcp-oauth-detail-row td {
+  padding-top: 0;
+  padding-bottom: 14px;
+  background: var(--surface);
+}
+
+.mcp-oauth-detail-panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.mcp-oauth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.mcp-subject-list-compact {
+  display: grid;
+  gap: 8px;
+}
+
+.mcp-subject-row {
+  padding-top: 8px;
+}
+
+.mcp-subject-row + .mcp-subject-row {
+  border-top: 1px dashed var(--line);
+}
+
+.mcp-subject-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.mcp-subject-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.mcp-scopes-list-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.mcp-scope-pill {
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.mcp-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mcp-col-updated {
+  white-space: nowrap;
+}
+
 /* ========== Pills / badges ========== */
 .pill {
   display: inline-flex;

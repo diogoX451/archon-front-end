@@ -189,10 +189,10 @@ function SubjectList({ subjects, onRefresh, onRevoke, busySubject }: {
     return <div className="muted" style={{ fontSize: 13 }}>Nenhuma conta OAuth conectada.</div>;
   }
   return (
-    <div style={{ display: "grid", gap: 8 }}>
+    <div className="mcp-subject-list-compact">
       {subjects.map((s) => (
-        <div key={s.subject} className="card" style={{ padding: 12, borderRadius: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+        <div key={s.subject} className="mcp-subject-row">
+          <div className="mcp-subject-row-head">
             <div>
               <div className="mono" style={{ fontWeight: 700 }}>{s.display_name || s.subject}</div>
               <div className="muted" style={{ fontSize: 12 }}>{s.subject}</div>
@@ -201,64 +201,18 @@ function SubjectList({ subjects, onRefresh, onRevoke, busySubject }: {
                 {s.needs_reauth ? " · precisa reconectar" : ""}
               </div>
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
+            <div className="mcp-subject-row-actions">
               <button type="button" className="btn" disabled={busySubject === s.subject} onClick={() => onRefresh(s.subject)}>Refresh</button>
               <button type="button" className="btn" style={{ color: "var(--err)" }} disabled={busySubject === s.subject} onClick={() => onRevoke(s.subject)}>Revogar</button>
             </div>
           </div>
           {(s.scopes_granted || []).length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-              {(s.scopes_granted || []).map((scope) => <span key={scope} className="pill" style={{ fontSize: 12 }}>{scope}</span>)}
+            <div className="mcp-scopes-list-compact">
+              {(s.scopes_granted || []).map((scope) => <span key={scope} className="pill mcp-scope-pill">{scope}</span>)}
             </div>
           )}
         </div>
       ))}
-    </div>
-  );
-}
-
-function OAuthStatusPanel({ cfg, onConnect, onClientCredentials, onRefreshDiscovery, onRegister, onRefreshSubject, onRevokeSubject, busyAction, busySubject }: {
-  cfg: MCPConfig;
-  onConnect: (cfg: MCPConfig) => void;
-  onClientCredentials: (cfg: MCPConfig) => void;
-  onRefreshDiscovery: (cfg: MCPConfig) => void;
-  onRegister: (cfg: MCPConfig) => void;
-  onRefreshSubject: (cfg: MCPConfig, subject: string) => void;
-  onRevokeSubject: (cfg: MCPConfig, subject: string) => void;
-  busyAction: string | null;
-  busySubject: string | null;
-}) {
-  const mode = cfg.auth?.mode;
-  const isOAuth = mode === "oauth2_authorization_code" || mode === "oauth2_client_credentials";
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["mcp-oauth-status", cfg.id],
-    queryFn: () => getMCPOAuthStatus(cfg.id),
-    enabled: isOAuth && !!cfg.id,
-    retry: 1,
-  });
-
-  if (!isOAuth) return <span className="muted" style={{ fontSize: 13 }}>n/a</span>;
-
-  return (
-    <div style={{ minWidth: 320, display: "grid", gap: 10 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {mode === "oauth2_authorization_code" && <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onConnect(cfg)}>Conectar conta</button>}
-        {mode === "oauth2_client_credentials" && <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onClientCredentials(cfg)}>Gerar token service</button>}
-        <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onRefreshDiscovery(cfg)}>Discovery</button>
-        <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onRegister(cfg)}>DCR</button>
-      </div>
-      {isLoading ? (
-        <div className="muted" style={{ fontSize: 13 }}>Carregando status OAuth…</div>
-      ) : isError ? (
-        <div className="muted" style={{ fontSize: 13 }}>Status OAuth indisponivel.</div>
-      ) : (
-        <SubjectList
-          subjects={data?.subjects || []}
-          busySubject={busySubject}
-          onRefresh={(subject) => onRefreshSubject(cfg, subject)}
-          onRevoke={(subject) => onRevokeSubject(cfg, subject)}
-        />
-      )}
     </div>
   );
 }
@@ -291,34 +245,86 @@ function ConfigRow({
   busySubject: string | null;
 }) {
   const mode = cfg.auth?.mode || (cfg.auth_token ? "static_bearer" : "none");
+  const [oauthOpen, setOauthOpen] = useState(false);
+  const isOAuth = mode === "oauth2_authorization_code" || mode === "oauth2_client_credentials";
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["mcp-oauth-status", cfg.id],
+    queryFn: () => getMCPOAuthStatus(cfg.id),
+    enabled: isOAuth && !!cfg.id && oauthOpen,
+    retry: 1,
+  });
+
+  const subjects = data?.subjects || [];
+
   return (
-    <tr>
-      <td className="mono" style={{ fontWeight: 600 }}>{cfg.name}</td>
-      <td><TransportPill transport={cfg.transport} /></td>
-      <td className="mono muted" style={{ wordBreak: "break-all" }}>{cfg.url}</td>
-      <td><span className="pill" data-tone={authTone(mode)} style={{ fontSize: 13 }}>{authModeLabel(mode)}</span></td>
-      <td>
-        <OAuthStatusPanel
-          cfg={cfg}
-          busyAction={busyAction}
-          busySubject={busySubject}
-          onConnect={onConnect}
-          onClientCredentials={onClientCredentials}
-          onRefreshDiscovery={onRefreshDiscovery}
-          onRegister={onRegister}
-          onRefreshSubject={onRefreshSubject}
-          onRevokeSubject={onRevokeSubject}
-        />
-      </td>
-      <td><span className="pill" data-tone={cfg.enabled ? "ok" : "warn"} style={{ fontSize: 13 }}>{cfg.enabled ? "ativo" : "desativado"}</span></td>
-      <td className="muted" style={{ fontSize: 14 }}>{new Date(cfg.updated_at).toLocaleString()}</td>
-      <td>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button type="button" className="btn" disabled={busyName === cfg.name} onClick={() => onEdit(cfg)}>Editar</button>
-          <button type="button" className="btn" style={{ color: "var(--err)", fontSize: 14 }} disabled={busyName === cfg.name} onClick={() => onDelete(cfg.name)}>Remover</button>
-        </div>
-      </td>
-    </tr>
+    <>
+      <tr>
+        <td className="mono mcp-col-name" style={{ fontWeight: 600 }}>{cfg.name}</td>
+        <td><TransportPill transport={cfg.transport} /></td>
+        <td className="mono muted mcp-config-url">
+          <a href={cfg.url} target="_blank" rel="noreferrer" className="mcp-config-url-link" title={cfg.url}>
+            {cfg.url}
+          </a>
+        </td>
+        <td><span className="pill" data-tone={authTone(mode)} style={{ fontSize: 13 }}>{authModeLabel(mode)}</span></td>
+        <td>
+          {isOAuth ? (
+            <button
+              type="button"
+              className="btn mcp-oauth-toggle"
+              onClick={() => setOauthOpen((v) => !v)}
+              aria-expanded={oauthOpen}
+            >
+              {oauthOpen ? "Ocultar" : "Detalhes"}
+            </button>
+          ) : (
+            <span className="muted" style={{ fontSize: 13 }}>n/a</span>
+          )}
+        </td>
+        <td><span className="pill" data-tone={cfg.enabled ? "ok" : "warn"} style={{ fontSize: 13 }}>{cfg.enabled ? "ativo" : "desativado"}</span></td>
+        <td className="muted mcp-col-updated" style={{ fontSize: 14 }}>{new Date(cfg.updated_at).toLocaleString()}</td>
+        <td>
+          <div className="mcp-row-actions">
+            <button type="button" className="btn" disabled={busyName === cfg.name} onClick={() => onEdit(cfg)}>Editar</button>
+            <button type="button" className="btn" style={{ color: "var(--err)", fontSize: 14 }} disabled={busyName === cfg.name} onClick={() => onDelete(cfg.name)}>Remover</button>
+          </div>
+        </td>
+      </tr>
+
+      {isOAuth && oauthOpen && (
+        <tr className="mcp-oauth-detail-row">
+          <td colSpan={8}>
+            <div className="mcp-oauth-detail-panel">
+              <div className="mcp-oauth-actions">
+                {mode === "oauth2_authorization_code" && <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onConnect(cfg)}>Conectar conta</button>}
+                {mode === "oauth2_client_credentials" && <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onClientCredentials(cfg)}>Gerar token service</button>}
+                <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onRefreshDiscovery(cfg)}>Discovery</button>
+                <button type="button" className="btn" disabled={busyAction === cfg.id} onClick={() => onRegister(cfg)}>DCR</button>
+                {!isLoading && !isError && (
+                  <span className="muted" style={{ marginLeft: 4, fontSize: 13 }}>
+                    {subjects.length} conta{subjects.length === 1 ? "" : "s"} conectada{subjects.length === 1 ? "" : "s"}
+                  </span>
+                )}
+              </div>
+
+              {isLoading ? (
+                <div className="muted" style={{ fontSize: 13 }}>Carregando status OAuth…</div>
+              ) : isError ? (
+                <div className="muted" style={{ fontSize: 13 }}>Status OAuth indisponivel.</div>
+              ) : (
+                <SubjectList
+                  subjects={subjects}
+                  busySubject={busySubject}
+                  onRefresh={(subject) => onRefreshSubject(cfg, subject)}
+                  onRevoke={(subject) => onRevokeSubject(cfg, subject)}
+                />
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -747,7 +753,17 @@ export function MCPConfigPage() {
           <div className="empty-state"><div className="big">Nenhum MCP server cadastrado</div>Cadastre um servidor para que os agentes possam consumir suas tools.</div>
         ) : (
           <div className="table-wrap">
-            <table className="table">
+            <table className="table mcp-config-table">
+              <colgroup>
+                <col className="mcp-col-name" />
+                <col className="mcp-col-transport" />
+                <col className="mcp-col-url" />
+                <col className="mcp-col-auth" />
+                <col className="mcp-col-oauth" />
+                <col className="mcp-col-status" />
+                <col className="mcp-col-updated" />
+                <col className="mcp-col-actions" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Nome</th>

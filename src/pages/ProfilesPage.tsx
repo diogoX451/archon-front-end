@@ -144,7 +144,7 @@ export function ProfilesPage() {
             <tr>
               <th>Nome</th>
               <th>Email</th>
-              <th>Tenant</th>
+              <th>Empresa</th>
               <th>Perfil</th>
               <th>Status</th>
               <th>Ações</th>

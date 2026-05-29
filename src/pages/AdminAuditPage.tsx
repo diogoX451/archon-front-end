@@ -233,7 +233,7 @@ export function AdminAuditPage() {
               <thead>
                 <tr>
                   <th>Quando</th>
-                  {isSuper && <th>Tenant</th>}
+                  {isSuper && <th>Empresa</th>}
                   <th>Ator</th>
                   <th>Método</th>
                   <th>Rota</th>

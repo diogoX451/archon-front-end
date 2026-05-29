@@ -135,7 +135,7 @@ const links: RailLink[] = [
   { to: "/dashboard",       labelKey: "nav.overview",     icon: IconOverview,     group: "main" },
   { to: "/conversation",    labelKey: "nav.conversation",  icon: IconConversation, group: "main" },
   { to: "/handoffs",        labelKey: "nav.handoffs",      icon: IconHandoffs,     perms: ["workflow_list", "conversation_turn"], group: "main" },
-  { to: "/workflows",       labelKey: "nav.workflows",     icon: IconWorkflows,    perms: ["workflow_list"], tourTarget: "nav-workflows", group: "main" },
+  // { to: "/workflows",       labelKey: "nav.workflows",     icon: IconWorkflows,    perms: ["workflow_list"], tourTarget: "nav-workflows", group: "main" },
   { to: "/templates",       labelKey: "nav.agents",        icon: IconAgents,       perms: ["conversation_profile_list"], tourTarget: "nav-agents", group: "main" },
   // Observe — monitoring & knowledge
   // { to: "/events",          labelKey: "nav.executions",    icon: IconExecutions,   perms: ["workflow_list"], tourTarget: "nav-events", group: "observe" },
