@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { getPublicCard, type BusinessCard, type CreateContactInput } from "@shared/api/crm";
 
@@ -178,6 +178,80 @@ function SaveContactSection({ card }: { card: BusinessCard }) {
   );
 }
 
+// ── Save owner contact section ────────────────────────────────────────────
+
+function SaveOwnerContactSection({ card }: { card: BusinessCard }) {
+  const [saved, setSaved] = useState(false);
+
+  const downloadVCard = () => {
+    const vcf = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `FN:${card.name}`,
+      card.company ? `ORG:${card.company}` : "",
+      card.role ? `TITLE:${card.role}` : "",
+      card.email ? `EMAIL:${card.email}` : "",
+      card.phone ? `TEL:${card.phone}` : "",
+      card.site ? `URL:${card.site}` : "",
+      "END:VCARD",
+    ].filter(Boolean).join("\r\n");
+
+    const blob = new Blob([vcf], { type: "text/vcard" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${card.name.replace(/\s+/g, "-").toLowerCase()}.vcf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const shareCard = async () => {
+    if (!navigator.share) { downloadVCard(); return; }
+    try {
+      await navigator.share({
+        title: card.name,
+        text: [card.role, card.company].filter(Boolean).join(" · "),
+        url: card.public_url || window.location.href,
+      });
+    } catch {
+      // user cancelled or not supported
+    }
+  };
+
+  const btnBase: React.CSSProperties = {
+    flex: 1, padding: "12px 14px", borderRadius: 10,
+    border: "none", fontSize: 13, fontWeight: 600,
+    cursor: "pointer", display: "flex", alignItems: "center",
+    justifyContent: "center", gap: 7,
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button
+          onClick={downloadVCard}
+          style={{ ...btnBase, background: "#111", color: "#fff" }}
+        >
+          📥 {saved ? "Salvo!" : "Salvar contato"}
+        </button>
+        {typeof navigator.share !== "undefined" && (
+          <button
+            onClick={shareCard}
+            style={{ ...btnBase, background: "#f9fafb", color: "#111", border: "1px solid #e5e7eb" }}
+          >
+            🔗 Compartilhar
+          </button>
+        )}
+      </div>
+      <p style={{ fontSize: 10, color: "#9ca3af", margin: 0, textAlign: "center" }}>
+        Baixa o arquivo .vcf e abre no celular para salvar na agenda
+      </p>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export function PublicCardPage() {
@@ -230,7 +304,14 @@ export function PublicCardPage() {
           </div>
         )}
         <div style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>Trocar contato</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>Salvar este contato</div>
+          <SaveOwnerContactSection card={card} />
+        </div>
+        <div style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>Compartilhe o seu contato</div>
+          <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>
+            Deixe {card.name.split(" ")[0]} te conhecer também.
+          </p>
           <SaveContactSection card={card} />
         </div>
       </div>
