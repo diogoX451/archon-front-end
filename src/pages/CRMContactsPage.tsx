@@ -4,60 +4,95 @@ import type { ContactStatus, Contact } from "@shared/api/crm";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
 const STATUS_LABEL: Record<ContactStatus, string> = {
-  novo: "Novo",
+  novo:       "Novo",
   em_contato: "Em contato",
-  cliente: "Cliente",
-  arquivado: "Arquivado",
+  cliente:    "Cliente",
+  arquivado:  "Arquivado",
 };
 
-const STATUS_COLORS: Record<ContactStatus, { bg: string; color: string }> = {
-  novo:       { bg: "#dbeafe", color: "#1d4ed8" },
-  em_contato: { bg: "#fef3c7", color: "#b45309" },
-  cliente:    { bg: "#dcfce7", color: "#15803d" },
-  arquivado:  { bg: "#f3f4f6", color: "#6b7280" },
+const STATUS_BADGE: Record<ContactStatus, { bg: string; color: string }> = {
+  novo:       { bg: "var(--accent-soft)", color: "var(--accent-ink)" },
+  em_contato: { bg: "var(--warn-soft)",   color: "oklch(0.56 0.14 75)" },
+  cliente:    { bg: "var(--ok-soft)",     color: "oklch(0.46 0.13 150)" },
+  arquivado:  { bg: "var(--bg)",          color: "var(--ink-3)" },
 };
 
 const PIPELINE: ContactStatus[] = ["novo", "em_contato", "cliente", "arquivado"];
 
 function StatusBadge({ status }: { status: ContactStatus }) {
-  const c = STATUS_COLORS[status];
+  const s = STATUS_BADGE[status];
   return (
     <span style={{
-      padding: "2px 9px", borderRadius: 99, fontSize: 11,
-      fontWeight: 600, letterSpacing: "0.04em",
-      background: c.bg, color: c.color,
+      padding: "2px 8px",
+      borderRadius: 99,
+      fontSize: 11,
+      fontWeight: 600,
+      letterSpacing: "0.03em",
+      background: s.bg,
+      color: s.color,
+      whiteSpace: "nowrap",
     }}>
       {STATUS_LABEL[status]}
     </span>
   );
 }
 
-function ContactRow({ contact, onStatus }: { contact: Contact; onStatus: (id: string, status: ContactStatus) => void }) {
+function ContactRow({ contact, onStatus }: {
+  contact: Contact;
+  onStatus: (id: string, status: ContactStatus) => void;
+}) {
   const del = useDeleteContact();
+
   return (
-    <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
-      <td style={{ padding: "10px 12px", fontWeight: 500 }}>{contact.name}</td>
-      <td style={{ padding: "10px 12px", color: "#6b7280", fontSize: 13 }}>{contact.company || "—"}</td>
-      <td style={{ padding: "10px 12px", color: "#6b7280", fontSize: 13 }}>{contact.email || "—"}</td>
-      <td style={{ padding: "10px 12px", color: "#6b7280", fontSize: 13 }}>{contact.phone || "—"}</td>
-      <td style={{ padding: "10px 12px" }}>
+    <tr style={{ borderBottom: "1px solid var(--line)" }}>
+      <td style={{ padding: "10px 16px", fontWeight: 500, color: "var(--ink)", fontSize: 13 }}>
+        {contact.name}
+      </td>
+      <td style={{ padding: "10px 16px", color: "var(--ink-3)", fontSize: 13 }}>
+        {contact.company || <span style={{ color: "var(--ink-4)" }}>—</span>}
+      </td>
+      <td style={{ padding: "10px 16px", color: "var(--ink-3)", fontSize: 13 }}>
+        {contact.email || <span style={{ color: "var(--ink-4)" }}>—</span>}
+      </td>
+      <td style={{ padding: "10px 16px", color: "var(--ink-3)", fontSize: 13 }}>
+        {contact.phone || <span style={{ color: "var(--ink-4)" }}>—</span>}
+      </td>
+      <td style={{ padding: "10px 16px" }}>
         <StatusBadge status={contact.status} />
       </td>
-      <td style={{ padding: "10px 12px" }}>
+      <td style={{ padding: "10px 16px" }}>
         <select
           value={contact.status}
-          style={{ fontSize: 12, padding: "3px 6px", borderRadius: 6, border: "1px solid #e5e7eb" }}
           onChange={e => onStatus(contact.id, e.target.value as ContactStatus)}
+          style={{
+            fontSize: 12,
+            padding: "4px 8px",
+            borderRadius: "var(--r-2)",
+            border: "1px solid var(--line)",
+            background: "var(--surface)",
+            color: "var(--ink)",
+            fontFamily: "var(--font-sans)",
+            cursor: "pointer",
+            outline: "none",
+          }}
         >
           {PIPELINE.map(s => (
             <option key={s} value={s}>{STATUS_LABEL[s]}</option>
           ))}
         </select>
       </td>
-      <td style={{ padding: "10px 12px" }}>
+      <td style={{ padding: "10px 16px" }}>
         <button
           onClick={() => del.mutate(contact.id)}
-          style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 13 }}
+          style={{
+            background: "none",
+            border: "none",
+            color: "var(--err)",
+            cursor: "pointer",
+            fontSize: 12,
+            fontFamily: "var(--font-sans)",
+            padding: "2px 4px",
+          }}
         >
           Remover
         </button>
@@ -69,77 +104,143 @@ function ContactRow({ contact, onStatus }: { contact: Contact; onStatus: (id: st
 export function CRMContactsPage() {
   const [filter, setFilter] = useState<ContactStatus | "">("");
   const [search, setSearch] = useState("");
-  const { data: contacts = [], isLoading, error } = useContacts({ status: filter || undefined, q: search || undefined });
+
+  const { data: contacts = [], isLoading, error } = useContacts({
+    status: filter || undefined,
+    q: search || undefined,
+  });
   const { data: stats } = useCRMStats();
   const updateContact = useUpdateContact();
 
-  const handleStatus = (id: string, status: ContactStatus) => {
-    updateContact.mutate({ id, input: { status } });
+  const inputStyle: React.CSSProperties = {
+    fontFamily: "var(--font-sans)",
+    fontSize: 13,
+    color: "var(--ink)",
+    background: "var(--surface)",
+    border: "1px solid var(--line)",
+    borderRadius: "var(--r-2)",
+    padding: "7px 12px",
+    outline: "none",
   };
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 1100 }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       <DynamicBreadcrumbs />
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, flex: 1 }}>Contatos CRM</h1>
-        {stats && (
-          <div style={{ display: "flex", gap: 12 }}>
-            {(["novo", "em_contato", "cliente"] as const).map(s => (
-              <div key={s} style={{
-                padding: "6px 12px", borderRadius: 8,
-                background: STATUS_COLORS[s].bg, color: STATUS_COLORS[s].color,
-                fontSize: 12, fontWeight: 600,
+
+      <div style={{ flex: 1, overflow: "auto", padding: "24px 28px" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+          <h1 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink)", margin: 0, flex: 1 }}>
+            Contatos CRM
+          </h1>
+          {stats && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {(["novo", "em_contato", "cliente"] as const).map(s => (
+                <span key={s} style={{
+                  padding: "3px 10px",
+                  borderRadius: 99,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: STATUS_BADGE[s].bg,
+                  color: STATUS_BADGE[s].color,
+                }}>
+                  {STATUS_LABEL[s]}: {stats[s]}
+                </span>
+              ))}
+              <span style={{
+                padding: "3px 10px",
+                borderRadius: 99,
+                fontSize: 11,
+                fontWeight: 600,
+                background: "var(--bg)",
+                color: "var(--ink-3)",
+                border: "1px solid var(--line)",
               }}>
-                {STATUS_LABEL[s]}: {stats[s]}
-              </div>
-            ))}
-            <div style={{ padding: "6px 12px", borderRadius: 8, background: "#f3f4f6", color: "#374151", fontSize: 12, fontWeight: 600 }}>
-              Total: {stats.total}
+                Total: {stats.total}
+              </span>
             </div>
+          )}
+        </div>
+
+        {/* Filters */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <input
+            placeholder="Buscar por nome, empresa, email..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ ...inputStyle, flex: 1 }}
+          />
+          <select
+            value={filter}
+            onChange={e => setFilter(e.target.value as ContactStatus | "")}
+            style={{ ...inputStyle, minWidth: 160 }}
+          >
+            <option value="">Todos os status</option>
+            {PIPELINE.map(s => (
+              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* States */}
+        {isLoading && (
+          <p style={{ color: "var(--ink-3)", fontSize: 13 }}>Carregando...</p>
+        )}
+        {error && (
+          <p style={{ color: "var(--err)", fontSize: 13 }}>Erro ao carregar contatos.</p>
+        )}
+        {!isLoading && contacts.length === 0 && (
+          <div style={{
+            padding: "48px 0",
+            textAlign: "center",
+            color: "var(--ink-4)",
+            fontSize: 13,
+          }}>
+            Nenhum contato encontrado.
+          </div>
+        )}
+
+        {/* Table */}
+        {contacts.length > 0 && (
+          <div style={{
+            background: "var(--surface)",
+            borderRadius: "var(--r-4)",
+            border: "1px solid var(--line)",
+            overflow: "hidden",
+            boxShadow: "var(--shadow-1)",
+          }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "var(--bg)", borderBottom: "1px solid var(--line)" }}>
+                  {["Nome", "Empresa", "Email", "Telefone", "Status", "Mover", ""].map(h => (
+                    <th key={h} style={{
+                      padding: "9px 16px",
+                      textAlign: "left",
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: "var(--ink-3)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.07em",
+                      fontFamily: "var(--font-sans)",
+                    }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {contacts.map(c => (
+                  <ContactRow
+                    key={c.id}
+                    contact={c}
+                    onStatus={(id, status) => updateContact.mutate({ id, input: { status } })}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
-
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <input
-          placeholder="Buscar por nome, empresa, email..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 13 }}
-        />
-        <select
-          value={filter}
-          onChange={e => setFilter(e.target.value as ContactStatus | "")}
-          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 13 }}
-        >
-          <option value="">Todos os status</option>
-          {PIPELINE.map(s => (
-            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-          ))}
-        </select>
-      </div>
-
-      {isLoading && <p style={{ color: "#9ca3af" }}>Carregando...</p>}
-      {error && <p style={{ color: "#ef4444" }}>Erro ao carregar contatos.</p>}
-      {!isLoading && contacts.length === 0 && (
-        <p style={{ color: "#9ca3af", textAlign: "center", padding: 40 }}>Nenhum contato encontrado.</p>
-      )}
-      {contacts.length > 0 && (
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-          <thead>
-            <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-              {["Nome", "Empresa", "Email", "Telefone", "Status", "Mover", ""].map(h => (
-                <th key={h} style={{ padding: "10px 12px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {contacts.map(c => (
-              <ContactRow key={c.id} contact={c} onStatus={handleStatus} />
-            ))}
-          </tbody>
-        </table>
-      )}
     </div>
   );
 }
