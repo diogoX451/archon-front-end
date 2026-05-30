@@ -28,6 +28,7 @@ import { DpoPage } from "@pages/legal/DpoPage";
 import { HandoffsPage } from "@pages/HandoffsPage";
 import { CRMContactsPage } from "@pages/CRMContactsPage";
 import { CRMCardsPage } from "@pages/CRMCardsPage";
+import { PublicCardPage } from "@pages/PublicCardPage";
 import { WorkflowBuilder } from "@features/workflow-builder";
 import { AuthProvider } from "./auth-context";
 import { ProtectedRoute } from "./protected-route";
@@ -51,6 +52,8 @@ export function AppRouter() {
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/dpo" element={<DpoPage />} />
+          {/* Public business card — no auth */}
+          <Route path="/c/:slug" element={<PublicCardPage />} />
           <Route
             path="/workflows/builder"
             element={
