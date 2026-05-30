@@ -100,6 +100,22 @@ export const IconHandoffs = (p: IconProps) => (
   </svg>
 );
 
+export const IconCRM = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2" />
+    <path d="M8 21h8M12 17v4" />
+    <circle cx="9" cy="10" r="2" />
+    <path d="M15 8h2M15 12h2" />
+  </svg>
+);
+
+export const IconCard = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <line x1="2" y1="10" x2="22" y2="10" />
+  </svg>
+);
+
 // Logout icon
 export const IconLogout = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -135,6 +151,8 @@ const links: RailLink[] = [
   { to: "/dashboard",       labelKey: "nav.overview",     icon: IconOverview,     group: "main" },
   { to: "/conversation",    labelKey: "nav.conversation",  icon: IconConversation, group: "main" },
   { to: "/handoffs",        labelKey: "nav.handoffs",      icon: IconHandoffs,     perms: ["workflow_list", "conversation_turn"], group: "main" },
+  { to: "/crm/contacts",   labelKey: "nav.crmContacts",    icon: IconCRM,          group: "main" },
+  { to: "/crm/cards",      labelKey: "nav.crmCards",       icon: IconCard,         group: "main" },
   // { to: "/workflows",       labelKey: "nav.workflows",     icon: IconWorkflows,    perms: ["workflow_list"], tourTarget: "nav-workflows", group: "main" },
   { to: "/templates",       labelKey: "nav.agents",        icon: IconAgents,       perms: ["conversation_profile_list"], tourTarget: "nav-agents", group: "main" },
   // Observe — monitoring & knowledge

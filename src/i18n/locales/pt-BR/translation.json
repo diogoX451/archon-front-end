@@ -16,7 +16,9 @@
     "auditLog": "Auditoria",
     "myPrivacy": "Minha Privacidade",
     "logout": "Sair",
-    "handoffs": "Atendimentos"
+    "handoffs": "Atendimentos",
+    "crmContacts": "Contatos CRM",
+    "crmCards": "Cartões de Visita"
   },
   "nav_logout_confirm": {
     "title": "Sair da conta",

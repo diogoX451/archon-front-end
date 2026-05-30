@@ -29,7 +29,8 @@ export function LoginPage() {
     );
   }
   if (user) {
-    const redirectTo = (location.state as { from?: string } | null)?.from || "/dashboard";
+    const rawFrom = (location.state as { from?: string } | null)?.from;
+    const redirectTo = rawFrom?.startsWith("/") ? rawFrom : "/dashboard";
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -44,8 +45,9 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      const redirectTo = (location.state as { from?: string } | null)?.from || "/dashboard";
-      navigate(redirectTo, { replace: true });
+      const rawFrom2 = (location.state as { from?: string } | null)?.from;
+      const redirectTo2 = rawFrom2?.startsWith("/") ? rawFrom2 : "/dashboard";
+      navigate(redirectTo2, { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 401) setError("Email ou senha incorretos");

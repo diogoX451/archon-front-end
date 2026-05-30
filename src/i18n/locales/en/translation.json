@@ -16,7 +16,9 @@
     "auditLog": "Audit Log",
     "myPrivacy": "My Privacy",
     "logout": "Logout",
-    "handoffs": "Handoffs"
+    "handoffs": "Handoffs",
+    "crmContacts": "CRM Contacts",
+    "crmCards": "Business Cards"
   },
   "nav_logout_confirm": {
     "title": "Sign out",
