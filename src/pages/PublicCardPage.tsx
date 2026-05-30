@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { getPublicCard, type BusinessCard, type CreateContactInput } from "@shared/api/crm";
+import { getPublicCard, type BusinessCard, type CreateContactInput, type CardLinkType } from "@shared/api/crm";
+
+const LINK_ICONS: Record<CardLinkType, string> = {
+  instagram: "📷", linkedin: "💼", twitter: "𝕏",
+  whatsapp: "💬", email: "✉️", phone: "📞",
+  website: "🌐", custom: "🔗",
+};
 
 // ── Theme palette ─────────────────────────────────────────────────────────
 
@@ -22,55 +28,95 @@ function CardHero({ card }: { card: BusinessCard }) {
     ? { bg: card.colors.bg, text: card.colors.text, accent: card.colors.accent, muted: "rgba(240,236,228,0.5)", line: "rgba(255,255,255,0.1)" }
     : (THEMES[card.theme] ?? THEMES.onyx);
 
+  const accent = card.accent_color || c.accent;
   const tag = [card.company, card.role].filter(Boolean).join(" · ");
   const contacts = [card.email, card.phone, card.site].filter(Boolean);
   const centered = card.layout === "centered";
+  const initials = card.name.split(" ").slice(0, 2).map(n => n[0]?.toUpperCase() ?? "").join("");
 
   return (
     <div style={{
       background: c.bg,
       borderRadius: 20,
-      padding: "32px 36px",
+      padding: "28px 32px",
       aspectRatio: "1.75",
       display: "flex",
       flexDirection: "column",
       justifyContent: centered ? "center" : card.layout === "minimal" ? "flex-end" : "space-between",
       alignItems: centered ? "center" : "flex-start",
       textAlign: centered ? "center" : "left",
-      boxShadow: "0 32px 64px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15)",
+      boxShadow: "0 32px 64px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.15)",
       width: "100%",
+      position: "relative",
     }}>
+      {/* Avatar */}
+      {card.avatar_url ? (
+        <div style={{ position: "absolute", top: 24, right: 28 }}>
+          <img src={card.avatar_url} alt={card.name} style={{
+            width: 44, height: 44, borderRadius: "50%", objectFit: "cover",
+            border: `2px solid ${accent}`,
+          }} />
+        </div>
+      ) : null}
+
       {!centered && tag && (
-        <div style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: c.accent, opacity: 0.8 }}>
+        <div style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.85 }}>
           {tag}
         </div>
       )}
+
       <div>
-        <div style={{ fontSize: "clamp(22px, 6vw, 32px)", fontWeight: 600, color: c.text, lineHeight: 1.1, letterSpacing: "-0.02em" }}>
+        <div style={{ fontSize: "clamp(20px, 5.5vw, 30px)", fontWeight: 600, color: c.text, lineHeight: 1.1, letterSpacing: "-0.02em" }}>
           {card.name}
         </div>
         {centered && tag && (
-          <div style={{ fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", color: c.accent, opacity: 0.75, marginTop: 8 }}>
+          <div style={{ fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", color: accent, opacity: 0.8, marginTop: 8 }}>
             {tag}
           </div>
         )}
       </div>
-      {contacts.length > 0 && (
-        <div style={{
-          paddingTop: centered ? 0 : 12,
-          borderTop: centered ? "none" : `1px solid ${c.line}`,
-          display: "flex",
-          flexWrap: "wrap",
-          gap: centered ? 6 : 14,
-          flexDirection: centered ? "column" : "row",
-          alignItems: centered ? "center" : "flex-start",
-          marginTop: centered ? 12 : 0,
-        }}>
-          {contacts.map(p => (
-            <span key={p} style={{ fontSize: 10, color: c.accent, opacity: 0.75, letterSpacing: 0.3 }}>{p}</span>
-          ))}
-        </div>
-      )}
+
+      <div>
+        {contacts.length > 0 && (
+          <div style={{
+            paddingTop: centered ? 0 : 10,
+            borderTop: centered ? "none" : `1px solid ${c.line}`,
+            display: "flex", flexWrap: "wrap",
+            gap: centered ? 6 : 12,
+            flexDirection: centered ? "column" : "row",
+            alignItems: centered ? "center" : "flex-start",
+            marginTop: centered ? 12 : 0,
+          }}>
+            {contacts.map(p => (
+              <span key={p} style={{ fontSize: 10, color: accent, opacity: 0.75, letterSpacing: 0.3 }}>{p}</span>
+            ))}
+          </div>
+        )}
+
+        {/* Social links chips */}
+        {(card.links?.length ?? 0) > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: contacts.length > 0 ? 8 : (centered ? 12 : 0) }}>
+            {card.links!.map((link, i) => (
+              <a
+                key={i}
+                href={link.url}
+                target="_blank"
+                rel="noreferrer"
+                title={link.label}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "2px 8px", borderRadius: 99,
+                  background: `${accent}22`, color: accent,
+                  fontSize: 10, fontWeight: 500, textDecoration: "none",
+                  border: `1px solid ${accent}33`,
+                }}
+              >
+                {LINK_ICONS[link.type as CardLinkType]} {link.label}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -316,9 +362,10 @@ export function PublicCardPage() {
     );
   }
 
-  const theme = card.colors
+  const base = card.colors
     ? { bg: card.colors.bg, text: card.colors.text, accent: card.colors.accent, muted: "rgba(240,236,228,0.45)", line: "rgba(255,255,255,0.08)" }
     : (THEMES[card.theme] ?? THEMES.onyx);
+  const theme = { ...base, accent: card.accent_color || base.accent };
 
   const panelStyle: React.CSSProperties = {
     background: `color-mix(in srgb, ${theme.bg} 60%, rgba(255,255,255,0.08))`,

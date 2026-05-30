@@ -62,6 +62,14 @@ export interface CardColors {
   border: string;
 }
 
+export type CardLinkType = "instagram" | "linkedin" | "twitter" | "whatsapp" | "email" | "phone" | "website" | "custom";
+
+export interface CardLink {
+  type: CardLinkType;
+  label: string;
+  url: string;
+}
+
 export interface BusinessCard {
   id: string;
   tenant_id: string;
@@ -72,6 +80,9 @@ export interface BusinessCard {
   email?: string;
   phone?: string;
   site?: string;
+  avatar_url?: string;
+  links?: CardLink[];
+  accent_color?: string;
   theme: CardTheme;
   layout: CardLayout;
   font: CardFont;
@@ -91,6 +102,9 @@ export interface CreateCardInput {
   email?: string;
   phone?: string;
   site?: string;
+  avatar_url?: string;
+  links?: CardLink[];
+  accent_color?: string;
   theme?: CardTheme;
   layout?: CardLayout;
   font?: CardFont;
@@ -104,6 +118,9 @@ export interface UpdateCardInput {
   email?: string;
   phone?: string;
   site?: string;
+  avatar_url?: string;
+  links?: CardLink[];
+  accent_color?: string;
   theme?: CardTheme;
   layout?: CardLayout;
   font?: CardFont;
