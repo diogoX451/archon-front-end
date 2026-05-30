@@ -2,71 +2,72 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { getPublicCard, type BusinessCard, type CreateContactInput } from "@shared/api/crm";
 
-// ── Theme ──────────────────────────────────────────────────────────────
+// ── Theme palette ─────────────────────────────────────────────────────────
 
-const THEMES: Record<string, { bg: string; text: string; accent: string; border: string }> = {
-  onyx:   { bg: "#111111", text: "#f0ece4", accent: "#888888", border: "rgba(255,255,255,0.08)" },
-  bone:   { bg: "#f0ebe2", text: "#2a2420", accent: "#8a7a6a", border: "rgba(0,0,0,0.10)" },
-  forest: { bg: "#1e3a2a", text: "#d4e8da", accent: "#7ab990", border: "rgba(255,255,255,0.10)" },
-  slate:  { bg: "#1e2a3a", text: "#cdd8e8", accent: "#7aa0c8", border: "rgba(255,255,255,0.10)" },
-  clay:   { bg: "#c8452a", text: "#fdf0ec", accent: "#ffc4b8", border: "rgba(255,255,255,0.20)" },
-  chalk:  { bg: "#ffffff", text: "#111111", accent: "#999999", border: "rgba(0,0,0,0.08)" },
-  dusk:   { bg: "#3a1e4a", text: "#e8d8f0", accent: "#c8a0d8", border: "rgba(255,255,255,0.12)" },
-  custom: { bg: "#1a1a1a", text: "#f0ece4", accent: "#888888", border: "rgba(255,255,255,0.10)" },
+const THEMES: Record<string, { bg: string; text: string; accent: string; muted: string; line: string }> = {
+  onyx:   { bg: "#111111", text: "#f0ece4", accent: "#888888", muted: "rgba(240,236,228,0.45)", line: "rgba(255,255,255,0.08)" },
+  bone:   { bg: "#f0ebe2", text: "#2a2420", accent: "#8a7a6a", muted: "rgba(42,36,32,0.45)",   line: "rgba(0,0,0,0.08)" },
+  forest: { bg: "#1e3a2a", text: "#d4e8da", accent: "#7ab990", muted: "rgba(212,232,218,0.45)", line: "rgba(255,255,255,0.10)" },
+  slate:  { bg: "#1e2a3a", text: "#cdd8e8", accent: "#7aa0c8", muted: "rgba(205,216,232,0.45)", line: "rgba(255,255,255,0.10)" },
+  clay:   { bg: "#c8452a", text: "#fdf0ec", accent: "#ffc4b8", muted: "rgba(253,240,236,0.50)", line: "rgba(255,255,255,0.15)" },
+  chalk:  { bg: "#f8f6f1", text: "#111111", accent: "#999999", muted: "rgba(17,17,17,0.40)",    line: "rgba(0,0,0,0.07)" },
+  dusk:   { bg: "#3a1e4a", text: "#e8d8f0", accent: "#c8a0d8", muted: "rgba(232,216,240,0.45)", line: "rgba(255,255,255,0.10)" },
+  custom: { bg: "#111111", text: "#f0ece4", accent: "#888888", muted: "rgba(240,236,228,0.45)", line: "rgba(255,255,255,0.08)" },
 };
 
 // ── Card visual ───────────────────────────────────────────────────────────
 
-function CardVisual({ card }: { card: BusinessCard }) {
+function CardHero({ card }: { card: BusinessCard }) {
   const c = card.colors
-    ? { bg: card.colors.bg, text: card.colors.text, accent: card.colors.accent, border: card.colors.border }
+    ? { bg: card.colors.bg, text: card.colors.text, accent: card.colors.accent, muted: "rgba(240,236,228,0.5)", line: "rgba(255,255,255,0.1)" }
     : (THEMES[card.theme] ?? THEMES.onyx);
 
-  const tag = [card.company, card.role].filter(Boolean).join(" · ") || "";
+  const tag = [card.company, card.role].filter(Boolean).join(" · ");
   const contacts = [card.email, card.phone, card.site].filter(Boolean);
-
   const centered = card.layout === "centered";
-  const minimal  = card.layout === "minimal";
 
   return (
     <div style={{
-      background: c.bg, borderRadius: 20, padding: "32px 38px",
-      aspectRatio: "1.75", display: "flex", flexDirection: "column",
-      justifyContent: minimal ? "flex-end" : centered ? "center" : "space-between",
+      background: c.bg,
+      borderRadius: 20,
+      padding: "32px 36px",
+      aspectRatio: "1.75",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: centered ? "center" : card.layout === "minimal" ? "flex-end" : "space-between",
       alignItems: centered ? "center" : "flex-start",
       textAlign: centered ? "center" : "left",
-      boxShadow: "0 24px 60px rgba(0,0,0,0.20)",
+      boxShadow: "0 32px 64px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15)",
       width: "100%",
     }}>
-      {!minimal && tag && (
-        <div style={{ fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", color: c.accent, opacity: 0.75 }}>
+      {!centered && tag && (
+        <div style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: c.accent, opacity: 0.8 }}>
           {tag}
         </div>
       )}
       <div>
-        <div style={{ fontSize: "clamp(22px, 5vw, 30px)", fontWeight: 600, color: c.text, lineHeight: 1.1, marginBottom: 4 }}>
+        <div style={{ fontSize: "clamp(22px, 6vw, 32px)", fontWeight: 600, color: c.text, lineHeight: 1.1, letterSpacing: "-0.02em" }}>
           {card.name}
         </div>
-        {minimal && tag && (
-          <div style={{ fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: c.accent, opacity: 0.65 }}>
+        {centered && tag && (
+          <div style={{ fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", color: c.accent, opacity: 0.75, marginTop: 8 }}>
             {tag}
           </div>
-        )}
-        {!minimal && card.company && (
-          <div style={{ fontSize: 13, color: c.accent, opacity: 0.7 }}>{card.company}</div>
         )}
       </div>
       {contacts.length > 0 && (
         <div style={{
-          marginTop: centered ? 16 : "auto",
-          paddingTop: minimal ? 0 : 14,
-          borderTop: minimal ? "none" : `1px solid ${c.border}`,
-          display: "flex", flexDirection: centered ? "column" : "row",
-          flexWrap: "wrap", gap: centered ? 4 : 12,
+          paddingTop: centered ? 0 : 12,
+          borderTop: centered ? "none" : `1px solid ${c.line}`,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: centered ? 6 : 14,
+          flexDirection: centered ? "column" : "row",
           alignItems: centered ? "center" : "flex-start",
+          marginTop: centered ? 12 : 0,
         }}>
           {contacts.map(p => (
-            <span key={p} style={{ fontSize: 10, color: c.accent, opacity: 0.8 }}>{p}</span>
+            <span key={p} style={{ fontSize: 10, color: c.accent, opacity: 0.75, letterSpacing: 0.3 }}>{p}</span>
           ))}
         </div>
       )}
@@ -74,135 +75,28 @@ function CardVisual({ card }: { card: BusinessCard }) {
   );
 }
 
-// ── Save contact flow ─────────────────────────────────────────────────────
+// ── Save owner contact ────────────────────────────────────────────────────
 
-function SaveContactSection({ card }: { card: BusinessCard }) {
-  const [mode, setMode] = useState<"idle" | "picker" | "manual" | "done">("idle");
-  const [form, setForm] = useState<{ name: string; email: string; phone: string; company: string }>({
-    name: card.name, email: card.email ?? "", phone: card.phone ?? "", company: card.company ?? "",
-  });
-  const [saving, setSaving] = useState(false);
-
-  const tryContactPicker = async () => {
-    const nav = navigator as Navigator & { contacts?: { select: (f: string[], opts: object) => Promise<Array<{name?: string[]; email?: string[]; tel?: string[]; organization?: string[]}>> } };
-    if (!nav.contacts) { setMode("manual"); return; }
-    try {
-      const res = await nav.contacts.select(["name","email","tel","organization"], { multiple: false });
-      if (!res?.length) return;
-      const ct = res[0];
-      setForm({
-        name: ct.name?.[0] ?? "",
-        email: ct.email?.[0] ?? "",
-        phone: ct.tel?.[0] ?? "",
-        company: ct.organization?.[0] ?? "",
-      });
-      setMode("manual");
-    } catch {
-      setMode("manual");
-    }
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name.trim()) return;
-    setSaving(true);
-    try {
-      const input: CreateContactInput & { source: string } = {
-        name: form.name, email: form.email, phone: form.phone,
-        company: form.company, source: "cartao",
-      };
-      await fetch("/api/v1/crm/contacts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      setMode("done");
-    } catch {
-      // best-effort
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const inputStyle = {
-    width: "100%", padding: "10px 14px", borderRadius: 10,
-    border: "1px solid #e5e7eb", fontSize: 14,
-    fontFamily: "inherit", outline: "none", boxSizing: "border-box" as const,
-  };
-
-  if (mode === "done") {
-    return (
-      <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "16px 20px", textAlign: "center", color: "#15803d", fontSize: 14, fontWeight: 600 }}>
-        ✓ Contato salvo com sucesso!
-      </div>
-    );
-  }
-
-  if (mode === "manual") {
-    return (
-      <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Preencha seus dados para salvar o contato:</p>
-        {(["name","email","phone","company"] as const).map(f => (
-          <input key={f} placeholder={f === "name" ? "Nome *" : f === "email" ? "Email" : f === "phone" ? "Telefone" : "Empresa"}
-            value={form[f]} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
-            required={f === "name"} style={inputStyle}
-          />
-        ))}
-        <button type="submit" disabled={saving} style={{
-          padding: "12px", borderRadius: 10, border: "none",
-          background: "#111", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
-        }}>
-          {saving ? "Salvando..." : "Salvar contato"}
-        </button>
-        <button type="button" onClick={() => setMode("idle")} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 13 }}>Cancelar</button>
-      </form>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <button onClick={tryContactPicker} style={{
-        padding: "12px 16px", borderRadius: 10, border: "none",
-        background: "#111", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer",
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-      }}>
-        📱 Importar da agenda
-      </button>
-      <button onClick={() => setMode("manual")} style={{
-        padding: "12px 16px", borderRadius: 10, border: "1px solid #e5e7eb",
-        background: "#fff", color: "#111", fontSize: 14, fontWeight: 500, cursor: "pointer",
-      }}>
-        ✍️ Digitar dados
-      </button>
-    </div>
-  );
-}
-
-// ── Save owner contact section ────────────────────────────────────────────
-
-function SaveOwnerContactSection({ card }: { card: BusinessCard }) {
+function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof THEMES[string] }) {
   const [saved, setSaved] = useState(false);
 
   const downloadVCard = () => {
     const vcf = [
-      "BEGIN:VCARD",
-      "VERSION:3.0",
+      "BEGIN:VCARD", "VERSION:3.0",
       `FN:${card.name}`,
       card.company ? `ORG:${card.company}` : "",
-      card.role ? `TITLE:${card.role}` : "",
-      card.email ? `EMAIL:${card.email}` : "",
-      card.phone ? `TEL:${card.phone}` : "",
-      card.site ? `URL:${card.site}` : "",
+      card.role    ? `TITLE:${card.role}` : "",
+      card.email   ? `EMAIL:${card.email}` : "",
+      card.phone   ? `TEL:${card.phone}` : "",
+      card.site    ? `URL:${card.site}` : "",
       "END:VCARD",
     ].filter(Boolean).join("\r\n");
 
-    const blob = new Blob([vcf], { type: "text/vcard" });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
+    a.href = URL.createObjectURL(new Blob([vcf], { type: "text/vcard" }));
     a.download = `${card.name.replace(/\s+/g, "-").toLowerCase()}.vcf`;
     a.click();
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(a.href);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -215,39 +109,179 @@ function SaveOwnerContactSection({ card }: { card: BusinessCard }) {
         text: [card.role, card.company].filter(Boolean).join(" · "),
         url: card.public_url || window.location.href,
       });
-    } catch {
-      // user cancelled or not supported
-    }
-  };
-
-  const btnBase: React.CSSProperties = {
-    flex: 1, padding: "12px 14px", borderRadius: 10,
-    border: "none", fontSize: 13, fontWeight: 600,
-    cursor: "pointer", display: "flex", alignItems: "center",
-    justifyContent: "center", gap: 7,
+    } catch { /* cancelled */ }
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 8 }}>
         <button
           onClick={downloadVCard}
-          style={{ ...btnBase, background: "#111", color: "#fff" }}
+          style={{
+            flex: 1,
+            padding: "11px 14px",
+            borderRadius: 10,
+            border: "none",
+            background: theme.text,
+            color: theme.bg,
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            letterSpacing: "-0.01em",
+          }}
         >
-          📥 {saved ? "Salvo!" : "Salvar contato"}
+          {saved ? "✓ Salvo!" : "Salvar contato"}
         </button>
         {typeof navigator.share !== "undefined" && (
           <button
             onClick={shareCard}
-            style={{ ...btnBase, background: "#f9fafb", color: "#111", border: "1px solid #e5e7eb" }}
+            style={{
+              padding: "11px 16px",
+              borderRadius: 10,
+              border: `1px solid ${theme.line}`,
+              background: "transparent",
+              color: theme.text,
+              fontSize: 13,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              opacity: 0.75,
+            }}
           >
-            🔗 Compartilhar
+            ↗
           </button>
         )}
       </div>
-      <p style={{ fontSize: 10, color: "#9ca3af", margin: 0, textAlign: "center" }}>
-        Baixa o arquivo .vcf e abre no celular para salvar na agenda
+      <p style={{ fontSize: 11, color: theme.muted, margin: 0, textAlign: "center" }}>
+        Baixa o .vcf e abre no celular para salvar na agenda
       </p>
+    </div>
+  );
+}
+
+// ── Share your contact ────────────────────────────────────────────────────
+
+function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof THEMES[string] }) {
+  const [mode, setMode] = useState<"idle" | "manual" | "done">("idle");
+  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "" });
+  const [saving, setSaving] = useState(false);
+
+  const tryPicker = async () => {
+    const nav = navigator as Navigator & { contacts?: { select: (f: string[], opts: object) => Promise<Array<{name?: string[]; email?: string[]; tel?: string[]; organization?: string[]}>> } };
+    if (!nav.contacts) { setMode("manual"); return; }
+    try {
+      const res = await nav.contacts.select(["name","email","tel","organization"], { multiple: false });
+      if (!res?.length) return;
+      const ct = res[0];
+      setForm({ name: ct.name?.[0]??"", email: ct.email?.[0]??"", phone: ct.tel?.[0]??"", company: ct.organization?.[0]??"" });
+      setMode("manual");
+    } catch { setMode("manual"); }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      const input: CreateContactInput & { source: string } = { ...form, source: "cartao" };
+      await fetch("/api/v1/crm/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      setMode("done");
+    } catch { /* best-effort */ } finally { setSaving(false); }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 8,
+    border: `1px solid ${theme.line}`,
+    background: "rgba(255,255,255,0.06)",
+    color: theme.text,
+    fontSize: 13,
+    fontFamily: "inherit",
+    outline: "none",
+    boxSizing: "border-box" as const,
+  };
+
+  if (mode === "done") {
+    return (
+      <div style={{ textAlign: "center", padding: "8px 0", fontSize: 13, color: theme.accent, fontWeight: 500 }}>
+        ✓ Contato compartilhado com {card.name.split(" ")[0]}
+      </div>
+    );
+  }
+
+  if (mode === "manual") {
+    return (
+      <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <p style={{ fontSize: 12, color: theme.muted, margin: 0 }}>
+          Seus dados para {card.name.split(" ")[0]} salvar:
+        </p>
+        {(["name","email","phone","company"] as const).map(f => (
+          <input
+            key={f}
+            placeholder={f === "name" ? "Seu nome *" : f === "email" ? "Email" : f === "phone" ? "Telefone" : "Empresa"}
+            value={form[f]}
+            onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
+            required={f === "name"}
+            style={inputStyle}
+          />
+        ))}
+        <button type="submit" disabled={saving} style={{
+          padding: "11px",
+          borderRadius: 10,
+          border: "none",
+          background: theme.text,
+          color: theme.bg,
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}>
+          {saving ? "Enviando..." : "Compartilhar contato"}
+        </button>
+        <button type="button" onClick={() => setMode("idle")} style={{
+          background: "none", border: "none", color: theme.muted, cursor: "pointer", fontSize: 12, fontFamily: "inherit",
+        }}>
+          Cancelar
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <p style={{ fontSize: 12, color: theme.muted, margin: 0 }}>
+        Deixe {card.name.split(" ")[0]} te conhecer também.
+      </p>
+      <button onClick={tryPicker} style={{
+        padding: "11px",
+        borderRadius: 10,
+        border: `1px solid ${theme.line}`,
+        background: "rgba(255,255,255,0.06)",
+        color: theme.text,
+        fontSize: 13,
+        fontWeight: 500,
+        cursor: "pointer",
+        fontFamily: "inherit",
+      }}>
+        Importar da agenda
+      </button>
+      <button onClick={() => setMode("manual")} style={{
+        padding: "11px",
+        borderRadius: 10,
+        border: `1px solid ${theme.line}`,
+        background: "transparent",
+        color: theme.muted,
+        fontSize: 13,
+        cursor: "pointer",
+        fontFamily: "inherit",
+      }}>
+        Digitar dados
+      </button>
     </div>
   );
 }
@@ -262,57 +296,80 @@ export function PublicCardPage() {
 
   useEffect(() => {
     if (!slug) return;
-    getPublicCard(slug)
-      .then(setCard)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+    getPublicCard(slug).then(setCard).catch(() => setError(true)).finally(() => setLoading(false));
   }, [slug]);
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: 32, height: 32, border: "3px solid #e5e7eb", borderTopColor: "#111", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <div style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: "#111" }}>
+        <div style={{ width: 24, height: 24, border: "2px solid rgba(255,255,255,0.15)", borderTopColor: "rgba(255,255,255,0.7)", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
       </div>
     );
   }
 
   if (error || !card) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", flexDirection: "column", gap: 8 }}>
-        <div style={{ fontSize: 40 }}>404</div>
-        <div>Cartão não encontrado.</div>
+      <div style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: "#111", color: "rgba(255,255,255,0.3)", flexDirection: "column", gap: 6, fontFamily: "system-ui" }}>
+        <span style={{ fontSize: 32 }}>404</span>
+        <span style={{ fontSize: 13 }}>Cartão não encontrado</span>
       </div>
     );
   }
 
-  const theme = THEMES[card.theme] ?? THEMES.onyx;
+  const theme = card.colors
+    ? { bg: card.colors.bg, text: card.colors.text, accent: card.colors.accent, muted: "rgba(240,236,228,0.45)", line: "rgba(255,255,255,0.08)" }
+    : (THEMES[card.theme] ?? THEMES.onyx);
+
+  const panelStyle: React.CSSProperties = {
+    background: `color-mix(in srgb, ${theme.bg} 60%, rgba(255,255,255,0.08))`,
+    border: `1px solid ${theme.line}`,
+    borderRadius: 16,
+    padding: "20px 22px",
+    backdropFilter: "blur(8px)",
+  };
 
   return (
     <div style={{
-      minHeight: "100vh", background: theme.bg,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 24, fontFamily: "'Inter', system-ui, sans-serif",
+      minHeight: "100svh",
+      background: theme.bg,
+      display: "flex",
+      alignItems: "flex-start",
+      justifyContent: "center",
+      padding: "40px 20px 60px",
+      fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif",
     }}>
-      <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 24 }}>
-        <CardVisual card={card} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      <div style={{ width: "100%", maxWidth: 440, display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Card */}
+        <CardHero card={card} />
+
+        {/* QR Code */}
         {card.qr_data_url && (
-          <div style={{ background: "#fff", borderRadius: 16, padding: "16px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <img src={card.qr_data_url} alt="QR Code vCard" style={{ width: 140, height: 140, borderRadius: 8 }} />
-            <span style={{ fontSize: 11, color: "#9ca3af", letterSpacing: "0.05em", textTransform: "uppercase" }}>
-              Escaneie para salvar contato
+          <div style={{ ...panelStyle, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "20px" }}>
+            <div style={{ background: "#fff", padding: 12, borderRadius: 12, lineHeight: 0 }}>
+              <img src={card.qr_data_url} alt="QR Code vCard" style={{ width: 120, height: 120, display: "block" }} />
+            </div>
+            <span style={{ fontSize: 10, color: theme.muted, letterSpacing: 2, textTransform: "uppercase" }}>
+              Escaneie para salvar
             </span>
           </div>
         )}
-        <div style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>Salvar este contato</div>
-          <SaveOwnerContactSection card={card} />
+
+        {/* Save owner */}
+        <div style={{ ...panelStyle }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, marginBottom: 14 }}>
+            Salvar contato de {card.name.split(" ")[0]}
+          </div>
+          <SaveOwnerSection card={card} theme={theme} />
         </div>
-        <div style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>Compartilhe o seu contato</div>
-          <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>
-            Deixe {card.name.split(" ")[0]} te conhecer também.
-          </p>
-          <SaveContactSection card={card} />
+
+        {/* Share yours */}
+        <div style={{ ...panelStyle }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, marginBottom: 14 }}>
+            Compartilhe o seu contato
+          </div>
+          <ShareYourContact card={card} theme={theme} />
         </div>
       </div>
     </div>
