@@ -221,6 +221,14 @@ export function PublicCardPage() {
     }}>
       <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 24 }}>
         <CardVisual card={card} />
+        {card.qr_data_url && (
+          <div style={{ background: "#fff", borderRadius: 16, padding: "16px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <img src={card.qr_data_url} alt="QR Code vCard" style={{ width: 140, height: 140, borderRadius: 8 }} />
+            <span style={{ fontSize: 11, color: "#9ca3af", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              Escaneie para salvar contato
+            </span>
+          </div>
+        )}
         <div style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>Trocar contato</div>
           <SaveContactSection card={card} />

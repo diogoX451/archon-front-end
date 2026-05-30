@@ -62,6 +62,7 @@ function CardAnalyticsInline({ cardId }: { cardId: string }) {
 function CardItem({ card }: { card: BusinessCard }) {
   const del = useDeleteCard();
   const [copied, setCopied] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const copyLink = () => {
     const url = card.public_url || `${window.location.origin}/c/${card.slug}`;
@@ -87,6 +88,12 @@ function CardItem({ card }: { card: BusinessCard }) {
         </div>
       </div>
       <CardAnalyticsInline cardId={card.id} />
+      {showQR && card.qr_data_url && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "10px 0", borderTop: "1px solid #f3f4f6" }}>
+          <img src={card.qr_data_url} alt="QR Code" style={{ width: 120, height: 120, borderRadius: 6 }} />
+          <span style={{ fontSize: 10, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>vCard QR</span>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
         <button
           onClick={copyLink}
@@ -98,6 +105,18 @@ function CardItem({ card }: { card: BusinessCard }) {
         >
           {copied ? "✓ Copiado!" : "Copiar link"}
         </button>
+        {card.qr_data_url && (
+          <button
+            onClick={() => setShowQR(v => !v)}
+            style={{
+              padding: "7px 10px", borderRadius: 8,
+              border: "1px solid #e5e7eb", background: showQR ? "#111" : "#f9fafb",
+              color: showQR ? "#fff" : "#111", fontSize: 12, cursor: "pointer", fontWeight: 500,
+            }}
+          >
+            QR
+          </button>
+        )}
         <a
           href={card.public_url || `/c/${card.slug}`}
           target="_blank"

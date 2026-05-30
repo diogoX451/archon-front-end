@@ -79,6 +79,7 @@ export interface BusinessCard {
   slug: string;
   active: boolean;
   public_url?: string;
+  qr_data_url?: string;
   created_at: string;
   updated_at: string;
 }
