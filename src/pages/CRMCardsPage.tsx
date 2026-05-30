@@ -241,7 +241,7 @@ export function CRMCardsPage() {
                   {f === "name" ? "Nome *" : f}
                 </label>
                 <input
-                  value={(form as Record<string, string>)[f] ?? ""}
+                  value={(form as unknown as Record<string, string>)[f] ?? ""}
                   onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
                   required={f === "name"}
                   style={inputStyle}
