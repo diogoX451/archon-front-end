@@ -1981,11 +1981,30 @@ select {
   .stat .value {
     font-size: 22px;
   }
+  /* Dashboard responsive grids */
+  .dash-cols {
+    grid-template-columns: 1fr !important;
+  }
+  .dash-quick-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .dash-right-col {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .dash-right-col > * {
+    flex: 1 1 calc(50% - 6px) !important;
+    min-width: 0 !important;
+  }
 }
 
 @media (max-width: 480px) {
-  .stat-grid {
-    grid-template-columns: 1fr 1fr;
+  .dash-right-col {
+    flex-direction: column !important;
+  }
+  .dash-right-col > * {
+    flex: none !important;
   }
 }
 

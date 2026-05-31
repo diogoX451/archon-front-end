@@ -3,6 +3,8 @@ import { useCRMStats } from "@shared/hooks/useCRM";
 import { useHandoffsList } from "@shared/hooks/useHandoffs";
 import { useConversationsList } from "@shared/hooks/useConversationsHistory";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { IconConversation } from "@shared/ui/icons/Icons";
+import { IconHandoffs, IconCRM, IconCard } from "@shared/ui/Rail";
 import { useNavigate } from "react-router-dom";
 
 function timeAgo(dateStr?: string): string {
@@ -46,7 +48,15 @@ function StatCard({
   );
 }
 
-function QuickLink({ label, to, icon }: { label: string; to: string; icon: string }) {
+type QuickLinkIcon = typeof IconConversation;
+
+function QuickLink({
+  label, to, Icon,
+}: {
+  label: string;
+  to: string;
+  Icon: QuickLinkIcon;
+}) {
   const nav = useNavigate();
   return (
     <button
@@ -71,7 +81,7 @@ function QuickLink({ label, to, icon }: { label: string; to: string; icon: strin
       onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
       onMouseLeave={e => (e.currentTarget.style.background = "var(--surface)")}
     >
-      <span style={{ fontSize: 16 }}>{icon}</span>
+      <Icon size={15} style={{ flexShrink: 0, opacity: 0.7 }} />
       {label}
     </button>
   );
@@ -88,6 +98,21 @@ export function DashboardPage() {
   const handoffs = handoffsData?.handoffs ?? [];
   const pendingHandoffs = handoffs.filter(h => h.Status === "pending" || h.Status === "active").length;
   const isHealthy = health?.status === "healthy";
+
+  const cardStyle = {
+    background: "var(--surface)",
+    border: "1px solid var(--line)",
+    borderRadius: "var(--r-3)",
+    overflow: "hidden",
+  } as const;
+
+  const sectionLabel = {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "var(--ink-3)",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.08em",
+  };
 
   return (
     <div className="page">
@@ -118,7 +143,7 @@ export function DashboardPage() {
             onClick={() => nav("/conversation")}
           />
           <StatCard
-            label="Contatos CRM"
+            label="Contatos"
             value={stats?.total ?? "—"}
             sub={stats ? `${stats.novo} novos` : undefined}
             onClick={() => nav("/crm/contacts")}
@@ -154,11 +179,8 @@ export function DashboardPage() {
 
         {/* Pipeline bar */}
         {stats && stats.total > 0 && (
-          <div style={{
-            background: "var(--surface)", border: "1px solid var(--line)",
-            borderRadius: "var(--r-3)", padding: "16px 18px", marginBottom: 20,
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+          <div style={{ ...cardStyle, padding: "16px 18px", marginBottom: 20, overflow: "visible" }}>
+            <div style={{ ...sectionLabel, marginBottom: 10 }}>
               Pipeline · Receita Previsível
             </div>
             <div style={{ display: "flex", gap: 2, height: 8, borderRadius: 99, overflow: "hidden", marginBottom: 10 }}>
@@ -186,19 +208,12 @@ export function DashboardPage() {
           </div>
         )}
 
-        {/* Two-column: conversations + handoffs/quick actions */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-          marginBottom: 20,
-        }}>
+        {/* Two-column: conversations + right column — uses CSS class for responsive collapse */}
+        <div className="dash-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
           {/* Recent conversations */}
-          <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-3)", overflow: "hidden" }}>
+          <div style={cardStyle}>
             <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Últimas conversas
-              </span>
+              <span style={sectionLabel}>Últimas conversas</span>
               <button onClick={() => nav("/conversation")} style={{ background: "none", border: "none", color: "oklch(0.55 0.13 248)", fontSize: 11, cursor: "pointer", fontFamily: "var(--font-sans)", fontWeight: 600 }}>
                 ver todas →
               </button>
@@ -226,12 +241,12 @@ export function DashboardPage() {
             ))}
           </div>
 
-          {/* Right column: handoffs + quick actions */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Right column — uses CSS class for mobile stacking */}
+          <div className="dash-right-col" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {/* Handoffs */}
-            <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-3)", overflow: "hidden" }}>
+            <div style={cardStyle}>
               <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Atendimentos</span>
+                <span style={sectionLabel}>Atendimentos</span>
                 {pendingHandoffs > 0 && (
                   <span style={{ background: "var(--warn-soft)", color: "oklch(0.56 0.14 75)", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99 }}>
                     {pendingHandoffs} pendentes
@@ -262,16 +277,14 @@ export function DashboardPage() {
               ))}
             </div>
 
-            {/* Quick actions */}
-            <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-3)", padding: "14px" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
-                Ações rápidas
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <QuickLink label="Contatos" to="/crm/contacts" icon="👤" />
-                <QuickLink label="Cartões" to="/crm/cards" icon="🃏" />
-                <QuickLink label="Conversas" to="/conversation" icon="💬" />
-                <QuickLink label="Atendimentos" to="/handoffs" icon="🤝" />
+            {/* Quick actions — platform icons */}
+            <div style={{ ...cardStyle, padding: "14px" }}>
+              <div style={{ ...sectionLabel, marginBottom: 10 }}>Ações rápidas</div>
+              <div className="dash-quick-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <QuickLink label="Contatos" to="/crm/contacts" Icon={IconCRM} />
+                <QuickLink label="Cartões" to="/crm/cards" Icon={IconCard} />
+                <QuickLink label="Conversas" to="/conversation" Icon={IconConversation} />
+                <QuickLink label="Atendimentos" to="/handoffs" Icon={IconHandoffs} />
               </div>
             </div>
           </div>
