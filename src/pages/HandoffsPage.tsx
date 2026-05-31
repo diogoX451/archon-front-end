@@ -340,8 +340,11 @@ export function HandoffsPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      <DynamicBreadcrumbs />
+    <div className="page">
+      <div className="page-topbar">
+        <DynamicBreadcrumbs />
+        <div style={{ flex: 1 }} />
+      </div>
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* Sidebar — handoff list */}

@@ -315,26 +315,23 @@ export function CRMCardsPage() {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      <DynamicBreadcrumbs />
-
-      <div style={{ flex: 1, overflow: "auto", padding: "24px 28px" }}>
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-          <h1 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink)", margin: 0, flex: 1 }}>
-            Cartões de Visita
-          </h1>
-          <button
-            onClick={() => { setForm(INITIAL); setEditingId(null); setShowForm(v => !v); }}
-            style={{
-              padding: "7px 14px", borderRadius: "var(--r-3)",
-              border: "none", background: "var(--ink)", color: "#fff",
-              fontSize: 12, fontWeight: 600, fontFamily: "var(--font-sans)", cursor: "pointer",
-            }}
-          >
-            {showForm && !editingId ? "Cancelar" : "+ Novo cartão"}
-          </button>
-        </div>
+    <div className="page">
+      <div className="page-topbar">
+        <DynamicBreadcrumbs />
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={() => { setForm(INITIAL); setEditingId(null); setShowForm(v => !v); }}
+          style={{
+            padding: "7px 14px", borderRadius: "var(--r-3)",
+            border: "none", background: "var(--ink)", color: "#fff",
+            fontSize: 12, fontWeight: 600, fontFamily: "var(--font-sans)", cursor: "pointer",
+          }}
+        >
+          {showForm && !editingId ? "Cancelar" : "+ Novo cartão"}
+        </button>
+      </div>
+      <div className="page-body">
+        <h1 className="page-h1">Cartões de Visita</h1>
 
         {/* Editor */}
         {showForm && (
