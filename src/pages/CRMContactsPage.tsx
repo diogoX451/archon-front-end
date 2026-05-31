@@ -124,10 +124,13 @@ export function CRMContactsPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      <DynamicBreadcrumbs />
+    <>
+      <div className="page-topbar">
+        <DynamicBreadcrumbs />
+        <div style={{ flex: 1 }} />
+      </div>
 
-      <div style={{ flex: 1, overflow: "auto", padding: "24px 28px" }}>
+      <div className="page-body">
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
           <h1 style={{ fontSize: 18, fontWeight: 600, color: "var(--ink)", margin: 0, flex: 1 }}>
@@ -241,6 +244,6 @@ export function CRMContactsPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

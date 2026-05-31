@@ -24,12 +24,16 @@ type CrumbKey = { key: string; params?: Record<string, string> };
 function buildCrumbKeys(pathname: string, search: string): CrumbKey[] {
   const q = new URLSearchParams(search);
   if (pathname === "/") return [{ key: "breadcrumbs.overview" }, { key: "breadcrumbs.dashboard" }];
+  if (pathname === "/dashboard") return [{ key: "breadcrumbs.overview" }, { key: "breadcrumbs.dashboard" }];
   if (pathname.startsWith("/conversation")) {
     const out: CrumbKey[] = [{ key: "breadcrumbs.conversation" }];
     const conv = q.get("conv");
     if (conv) out.push({ key: "breadcrumbs.conv", params: { id: shortId(conv) } });
     return out;
   }
+  if (pathname.startsWith("/handoffs")) return [{ key: "breadcrumbs.handoffs" }];
+  if (pathname.startsWith("/crm/contacts")) return [{ key: "breadcrumbs.crm" }, { key: "breadcrumbs.crmContacts" }];
+  if (pathname.startsWith("/crm/cards")) return [{ key: "breadcrumbs.crm" }, { key: "breadcrumbs.crmCards" }];
   if (pathname === "/workflows") return [{ key: "breadcrumbs.workflows" }, { key: "breadcrumbs.workflowList" }];
   if (pathname.startsWith("/workflows/result")) {
     const out: CrumbKey[] = [{ key: "breadcrumbs.workflows" }, { key: "breadcrumbs.workflowResult" }];
@@ -53,9 +57,14 @@ function buildCrumbKeys(pathname: string, search: string): CrumbKey[] {
   if (pathname.startsWith("/events")) return [{ key: "breadcrumbs.executions" }, { key: "breadcrumbs.observability" }];
   if (pathname.startsWith("/rag")) return [{ key: "breadcrumbs.rag" }, { key: "breadcrumbs.ragBases" }];
   if (pathname.startsWith("/profiles")) return [{ key: "breadcrumbs.users" }, { key: "breadcrumbs.usersManagement" }];
+  if (pathname.startsWith("/roles")) return [{ key: "breadcrumbs.admin" }, { key: "breadcrumbs.roles" }];
+  if (pathname.startsWith("/permissions")) return [{ key: "breadcrumbs.admin" }, { key: "breadcrumbs.permissions" }];
   if (pathname.startsWith("/tenants")) return [{ key: "breadcrumbs.tenants" }, { key: "breadcrumbs.tenantsOrgs" }];
   if (pathname.startsWith("/admin-audit")) return [{ key: "breadcrumbs.admin" }, { key: "breadcrumbs.adminAuditLog" }];
+  if (pathname.startsWith("/channels")) return [{ key: "breadcrumbs.config" }, { key: "breadcrumbs.channels" }];
   if (pathname.startsWith("/llm-config")) return [{ key: "breadcrumbs.admin" }, { key: "breadcrumbs.llmConfig" }];
+  if (pathname.startsWith("/mcp-config")) return [{ key: "breadcrumbs.config" }, { key: "breadcrumbs.mcpServers" }];
+  if (pathname.startsWith("/account/privacy")) return [{ key: "breadcrumbs.account" }, { key: "breadcrumbs.myPrivacy" }];
   const segments = pathname.split("/").filter(Boolean);
   return segments.map((seg) => ({ key: `__raw__${titleize(seg)}` }));
 }

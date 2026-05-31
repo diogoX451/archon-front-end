@@ -31,6 +31,10 @@
     "dashboard": "General panel",
     "conversation": "Conversations",
     "conv": "conv {{id}}",
+    "handoffs": "Handoffs",
+    "crm": "CRM",
+    "crmContacts": "Contacts",
+    "crmCards": "Business cards",
     "workflows": "Workflows",
     "workflowList": "List",
     "workflowResult": "Result",
@@ -46,11 +50,18 @@
     "ragBases": "Bases",
     "users": "Users",
     "usersManagement": "Management",
+    "roles": "Roles",
+    "permissions": "Permissions",
     "tenants": "Companies",
     "tenantsOrgs": "Organizations",
+    "config": "Configuration",
+    "channels": "Channels",
+    "mcpServers": "MCP Servers",
     "admin": "Admin",
     "adminAuditLog": "Audit Log",
-    "llmConfig": "LLM Configuration"
+    "llmConfig": "LLM Configuration",
+    "account": "Account",
+    "myPrivacy": "My privacy"
   },
   "tour": {
     "nav": {
