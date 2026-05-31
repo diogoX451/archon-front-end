@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useCards, useDeleteCard, useCreateCard, useUpdateCard, useCardAnalytics } from "@shared/hooks/useCRM";
+import { API_BASE_URL } from "@shared/api/client";
+import { getToken } from "@shared/api/token";
 import type { BusinessCard, CreateCardInput, CardLink, CardLinkType } from "@shared/api/crm";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
@@ -270,6 +272,29 @@ export function CRMCardsPage() {
   const [form, setForm] = useState<CreateCardInput>(INITIAL);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadAvatar = async (file: File) => {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const token = getToken();
+      const res = await fetch(`${API_BASE_URL}/api/v1/uploads/avatar`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json() as { url: string };
+      setForm(p => ({ ...p, avatar_url: data.url }));
+    } catch (e) {
+      alert("Erro ao fazer upload: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "7px 10px", borderRadius: "var(--r-2)",
@@ -359,13 +384,30 @@ export function CRMCardsPage() {
                     </div>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={labelStyle}>URL da Foto</label>
-                    <input
-                      value={form.avatar_url ?? ""}
-                      onChange={e => setForm(p => ({ ...p, avatar_url: e.target.value }))}
-                      placeholder="https://..."
-                      style={inputStyle}
-                    />
+                    <label style={labelStyle}>Foto</label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <input
+                        value={form.avatar_url ?? ""}
+                        onChange={e => setForm(p => ({ ...p, avatar_url: e.target.value }))}
+                        placeholder="https://... ou faça upload →"
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = ""; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        style={{ padding: "6px 12px", borderRadius: "var(--r-2)", border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)", fontFamily: "var(--font-sans)", fontSize: 12, cursor: uploading ? "wait" : "pointer", flexShrink: 0 }}
+                      >
+                        {uploading ? "..." : "📷 Upload"}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
