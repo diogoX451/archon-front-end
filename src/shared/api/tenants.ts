@@ -1,11 +1,15 @@
 import { fetchClient } from "./client";
 
+export type PlanTier = "free" | "starter" | "growth" | "enterprise";
+
 export interface Tenant {
   id: string;
   slug: string;
   name: string;
   document?: string;
   active: boolean;
+  plan?: PlanTier;
+  plan_expires_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +27,11 @@ export interface UpdateTenantInput {
 
 export interface UpdateTenantStatusInput {
   active: boolean;
+}
+
+export interface UpdateTenantPlanInput {
+  plan: PlanTier;
+  plan_expires_at?: string | null;
 }
 
 export const listTenants = () => fetchClient<Tenant[]>("/api/v1/tenants");
@@ -44,3 +53,9 @@ export const updateTenantStatus = (id: string, input: UpdateTenantStatusInput) =
     method: "PATCH",
     body: JSON.stringify(input),
   });
+
+export const updateTenantPlan = (id: string, input: UpdateTenantPlanInput) =>
+  fetchClient<{ id: string; plan: PlanTier; plan_expires_at?: string | null }>(
+    `/api/v1/tenants/${id}/plan`,
+    { method: "PATCH", body: JSON.stringify(input) }
+  );

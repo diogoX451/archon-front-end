@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@app/auth-context";
 import { canAny } from "@shared/authz";
 import { useHandoffsList, useCloseHandoff, useAssignHandoff } from "@shared/hooks/useHandoffs";
 import { useConversationTurns } from "@shared/hooks/useConversationsHistory";
-import { handoffStatusLabel, handoffReasonLabel, type Handoff } from "@shared/api/handoffs";
+import { handoffStatusLabel, handoffReasonLabel, type Handoff, type HandoffStatus } from "@shared/api/handoffs";
 import { getActiveTenantSlug } from "@shared/api/token";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
@@ -16,31 +16,56 @@ function fmtDate(iso: string | null | undefined): string {
   }
 }
 
+function fmtRelativeDate(iso: string | null | undefined): string {
+  if (!iso) return "agora";
+  const ts = new Date(iso).getTime();
+  if (Number.isNaN(ts)) return "agora";
+  const diffMs = Date.now() - ts;
+  const min = Math.floor(diffMs / 60_000);
+  if (min < 1) return "agora";
+  if (min < 60) return `${min} min atrás`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} h atrás`;
+  const d = Math.floor(h / 24);
+  return `${d} d atrás`;
+}
+
+type StatusMeta = { label: string; bg: string; color: string; dot: string };
+const STATUS_META: Record<HandoffStatus, StatusMeta> = {
+  active: { label: "Em atendimento", bg: "#e6f9ee", color: "#1a7a40", dot: "#1a7a40" },
+  pending: { label: "Pendente", bg: "#fff7e6", color: "#b45309", dot: "#b45309" },
+  closed: { label: "Encerrado", bg: "#f3f4f6", color: "#6b7280", dot: "#6b7280" },
+};
+
+function statusMeta(handoff: Handoff): StatusMeta {
+  const s = handoffStatusLabel(handoff);
+  return STATUS_META[s] ?? STATUS_META.pending;
+}
+
+function reasonPt(handoff: Handoff): string {
+  const label = handoffReasonLabel(handoff);
+  if (label === "Guardrail") return "Bloqueio de segurança";
+  return "Lead qualificado";
+}
+
 function StatusBadge({ handoff }: { handoff: Handoff }) {
-  const status = handoffStatusLabel(handoff);
-  const colors: Record<string, { bg: string; color: string }> = {
-    active: { bg: "#e6f9ee", color: "#1a7a40" },
-    pending: { bg: "#fff7e6", color: "#b45309" },
-    closed: { bg: "#f3f4f6", color: "#6b7280" },
-  };
-  const style = colors[status] ?? colors.closed;
+  const meta = statusMeta(handoff);
   return (
     <span style={{
       display: "inline-flex",
       alignItems: "center",
       gap: 5,
-      padding: "2px 8px",
+      padding: "3px 9px",
       borderRadius: 99,
       fontSize: 11,
       fontWeight: 600,
-      letterSpacing: "0.04em",
-      textTransform: "uppercase",
-      ...style,
+      letterSpacing: "0.01em",
+      background: meta.bg,
+      color: meta.color,
+      border: "1px solid color-mix(in srgb, currentColor 16%, transparent)",
     }}>
-      {status === "active" && (
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1a7a40", display: "inline-block" }} />
-      )}
-      {status}
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: meta.dot, display: "inline-block" }} />
+      {meta.label}
     </span>
   );
 }
@@ -163,7 +188,7 @@ function HandoffDetail({
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
             <StatusBadge handoff={handoff} />
-            <span style={{ fontSize: 11, opacity: 0.5 }}>{handoffReasonLabel(handoff)}</span>
+            <span style={{ fontSize: 11, opacity: 0.6 }}>{reasonPt(handoff)}</span>
           </div>
         </div>
         {!isClosed && (
@@ -319,22 +344,41 @@ function HandoffDetail({
 export function HandoffsPage() {
   const { isSuper, hasPermission } = useAuth();
   const [selected, setSelected] = useState<Handoff | null>(null);
-  const [filter, setFilter] = useState<"active" | "all">("active");
+  const [filter, setFilter] = useState<"active" | "pending" | "closed" | "all">("active");
+  const [query, setQuery] = useState("");
 
   const canView = canAny({ isSuper, hasPermission }, ["workflow_list", "conversation_turn"]);
   const { data, isLoading, error, refetch } = useHandoffsList({
     refetchInterval: 10_000,
   });
 
-  const handoffs = (data?.handoffs ?? []).filter((h) => {
-    const status = handoffStatusLabel(h);
-    return filter === "all" || status === "active";
-  });
+  const allHandoffs = data?.handoffs ?? [];
+  const metrics = useMemo(() => {
+    const active = allHandoffs.filter((h) => handoffStatusLabel(h) === "active").length;
+    const pending = allHandoffs.filter((h) => handoffStatusLabel(h) === "pending").length;
+    const closed = allHandoffs.filter((h) => handoffStatusLabel(h) === "closed").length;
+    return { active, pending, closed, total: allHandoffs.length };
+  }, [allHandoffs]);
+  const handoffs = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allHandoffs.filter((h) => {
+      const status = handoffStatusLabel(h);
+      if (filter !== "all" && status !== filter) return false;
+      if (!q) return true;
+      const haystack = `${h.ConversationID} ${h.AssignedTo || ""} ${reasonPt(h)}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [allHandoffs, filter, query]);
+
+  useEffect(() => {
+    if (!selected) return;
+    if (!allHandoffs.some((h) => h.ID === selected.ID)) setSelected(null);
+  }, [allHandoffs, selected]);
 
   if (!canView) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", opacity: 0.5, fontSize: 14 }}>
-        Sem permissão para visualizar handoffs.
+        Sem permissão para visualizar atendimentos.
       </div>
     );
   }
@@ -346,7 +390,41 @@ export function HandoffsPage() {
         <div style={{ flex: 1 }} />
       </div>
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 48px)" }}>
+        <div style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          alignItems: "center",
+          padding: "12px 16px",
+          borderBottom: "1px solid var(--line)",
+          background: "var(--surface)",
+        }}>
+          <span className="pill" data-tone={filter === "active" ? "ok" : undefined}><span className="dot" />Em atendimento: {metrics.active}</span>
+          <span className="pill" data-tone={filter === "pending" ? "warn" : undefined}><span className="dot" />Pendentes: {metrics.pending}</span>
+          <span className="pill" data-tone={filter === "closed" ? "run" : undefined}><span className="dot" />Encerrados: {metrics.closed}</span>
+          <span className="pill">Total: {metrics.total}</span>
+          <div style={{ flex: 1 }} />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por conversa, atendente ou motivo..."
+            style={{
+              width: "min(420px, 100%)",
+              minWidth: 220,
+              padding: "7px 10px",
+              borderRadius: "var(--r-2)",
+              border: "1px solid var(--line)",
+              background: "var(--bg)",
+              color: "var(--ink)",
+              fontSize: 13,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", flex: 1, overflow: "hidden", minHeight: 0 }}>
         {/* Sidebar — handoff list */}
         <div style={{
           width: selected ? 320 : "100%",
@@ -384,7 +462,7 @@ export function HandoffsPage() {
             </span>
             <button
               type="button"
-              onClick={() => setFilter(filter === "active" ? "all" : "active")}
+              onClick={() => setFilter((f) => (f === "all" ? "active" : "all"))}
               style={{
                 padding: "4px 10px",
                 fontSize: 12,
@@ -395,8 +473,26 @@ export function HandoffsPage() {
                 cursor: "pointer",
               }}
             >
-              {filter === "active" ? "Mostrar todos" : "Só ativos"}
+              {filter === "all" ? "Só em atendimento" : "Mostrar todos"}
             </button>
+            <select
+              aria-label="Filtrar status"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as typeof filter)}
+              style={{
+                padding: "4px 10px",
+                fontSize: 12,
+                borderRadius: 6,
+                border: "1px solid var(--border, #e5e7eb)",
+                background: "var(--surface)",
+                color: "var(--ink)",
+              }}
+            >
+              <option value="active">Em atendimento</option>
+              <option value="pending">Pendentes</option>
+              <option value="closed">Encerrados</option>
+              <option value="all">Todos</option>
+            </select>
             <button
               type="button"
               onClick={() => refetch()}
@@ -428,12 +524,12 @@ export function HandoffsPage() {
             )}
             {error && (
               <div style={{ padding: 20, fontSize: 13, color: "#dc2626", textAlign: "center" }}>
-                Erro ao carregar handoffs.
+                Erro ao carregar atendimentos.
               </div>
             )}
             {!isLoading && !error && handoffs.length === 0 && (
               <div style={{ padding: 32, opacity: 0.4, fontSize: 13, textAlign: "center" }}>
-                {filter === "active" ? "Nenhum handoff ativo no momento." : "Nenhum handoff encontrado."}
+                {filter === "active" ? "Nenhum atendimento ativo no momento." : "Nenhum atendimento encontrado."}
               </div>
             )}
             {handoffs.map((h) => {
@@ -447,7 +543,7 @@ export function HandoffsPage() {
                   style={{
                     width: "100%",
                     textAlign: "left",
-                    padding: "12px 16px",
+                    padding: "13px 16px",
                     borderBottom: "1px solid var(--border, #e5e7eb)",
                     background: isSelected ? "var(--bg-secondary, #f3f4f6)" : "transparent",
                     border: "none",
@@ -475,14 +571,14 @@ export function HandoffsPage() {
                     <StatusBadge handoff={h} />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, opacity: 0.55 }}>
-                    <span>{handoffReasonLabel(h)}</span>
+                    <span>{reasonPt(h)}</span>
                     {h.AssignedTo && (
                       <>
                         <span>·</span>
                         <span>{h.AssignedTo}</span>
                       </>
                     )}
-                    <span style={{ marginLeft: "auto" }}>{fmtDate(isActive ? h.ActivatedAt : h.ClosedAt)}</span>
+                    <span style={{ marginLeft: "auto" }}>{fmtRelativeDate(isActive ? h.ActivatedAt : h.ClosedAt)}</span>
                   </div>
                   {h.ClosingSummary && (
                     <div style={{ fontSize: 11, opacity: 0.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -505,6 +601,7 @@ export function HandoffsPage() {
             />
           </div>
         )}
+      </div>
       </div>
     </>
   );
