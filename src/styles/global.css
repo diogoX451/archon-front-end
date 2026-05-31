@@ -1958,6 +1958,37 @@ select {
   margin: 0 auto;
 }
 
+@media (max-width: 768px) {
+  .page {
+    padding-left: 0;
+  }
+  .page-topbar {
+    padding: 0 16px;
+  }
+  .page-body {
+    padding: 20px 16px;
+  }
+  .page-h1 {
+    font-size: 22px;
+  }
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .stat {
+    padding: 12px 14px;
+  }
+  .stat .value {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (min-width: 1800px) {
   .page-body {
     max-width: 1600px;

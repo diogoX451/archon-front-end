@@ -1,177 +1,282 @@
 import { useGetHealth } from "@shared/hooks/useHealth";
-import { useListWorkflows } from "@shared/hooks/useWorkflows";
-import type { WorkflowState } from "@shared/api/types";
+import { useCRMStats } from "@shared/hooks/useCRM";
+import { useHandoffsList } from "@shared/hooks/useHandoffs";
+import { useConversationsList } from "@shared/hooks/useConversationsHistory";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
-
-const STATUS_TONE: Record<string, string> = { running: "run", completed: "ok", waiting: "warn", failed: "err", spawning: "run" };
-
-function deriveStatus(wf: WorkflowState): string {
-  if (wf.status) return String(wf.status);
-  if (!wf.agents || Object.keys(wf.agents).length === 0) return "spawning";
-  const agents = Object.values(wf.agents);
-  if (agents.some((a) => a.state === "failed")) return "failed";
-  if (agents.every((a) => a.state === "completed")) return "completed";
-  if (agents.some((a) => a.state === "waiting")) return "waiting";
-  return "running";
-}
+import { useNavigate } from "react-router-dom";
 
 function timeAgo(dateStr?: string): string {
   if (!dateStr) return "—";
   const diff = Date.now() - new Date(dateStr).getTime();
-  if (diff < 60_000) return `há ${Math.floor(diff / 1000)}s`;
-  if (diff < 3_600_000) return `há ${Math.floor(diff / 60_000)}m`;
-  if (diff < 86_400_000) return `há ${Math.floor(diff / 3_600_000)}h`;
-  return `há ${Math.floor(diff / 86_400_000)}d`;
+  if (diff < 60_000) return `${Math.floor(diff / 1000)}s`;
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h`;
+  return `${Math.floor(diff / 86_400_000)}d`;
 }
 
-function durationMs(wf: WorkflowState): string | null {
-  if (!wf.created_at || !wf.updated_at) return null;
-  const status = deriveStatus(wf);
-  if (status !== "completed" && status !== "failed") return null;
-  const diff = new Date(wf.updated_at).getTime() - new Date(wf.created_at).getTime();
-  if (diff <= 0) return null;
-  return `${diff}ms`;
+function StatCard({
+  label, value, sub, tone, onClick,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  tone?: "ok" | "warn" | "err" | "run";
+  onClick?: () => void;
+}) {
+  const colors: Record<string, string> = {
+    ok: "var(--ok)",
+    warn: "var(--warn)",
+    err: "var(--err)",
+    run: "oklch(0.55 0.13 248)",
+  };
+  return (
+    <div
+      className="stat"
+      onClick={onClick}
+      style={{ cursor: onClick ? "pointer" : "default", transition: "box-shadow 0.15s" }}
+      onMouseEnter={e => { if (onClick) (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-2)"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = ""; }}
+    >
+      <div className="label">{label}</div>
+      <div className="value" style={tone ? { color: colors[tone] } : undefined}>
+        {value}
+      </div>
+      {sub && <div className="delta">{sub}</div>}
+    </div>
+  );
+}
+
+function QuickLink({ label, to, icon }: { label: string; to: string; icon: string }) {
+  const nav = useNavigate();
+  return (
+    <button
+      onClick={() => nav(to)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 14px",
+        borderRadius: "var(--r-3)",
+        border: "1px solid var(--line)",
+        background: "var(--surface)",
+        color: "var(--ink)",
+        fontSize: 13,
+        fontWeight: 500,
+        fontFamily: "var(--font-sans)",
+        cursor: "pointer",
+        textAlign: "left",
+        transition: "background 0.15s",
+        width: "100%",
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
+      onMouseLeave={e => (e.currentTarget.style.background = "var(--surface)")}
+    >
+      <span style={{ fontSize: 16 }}>{icon}</span>
+      {label}
+    </button>
+  );
 }
 
 export function DashboardPage() {
+  const nav = useNavigate();
   const { data: health } = useGetHealth({ refetchInterval: 30_000 });
-  const { data: workflows } = useListWorkflows();
+  const { data: stats } = useCRMStats();
+  const { data: handoffsData } = useHandoffsList({ refetchInterval: 30_000 });
+  const { data: convsPage } = useConversationsList(undefined, { limit: 8, refetchInterval: 30_000 });
 
-  const total = workflows?.length ?? 0;
-  const runningCount = workflows?.filter((w) => deriveStatus(w) === "running").length ?? 0;
-  const completedCount = workflows?.filter((w) => deriveStatus(w) === "completed").length ?? 0;
-  const successRate = total > 0 ? ((completedCount / total) * 100).toFixed(1) : "—";
-  const recentWorkflows = workflows?.slice(0, 5) ?? [];
+  const convs = convsPage?.items ?? [];
+  const handoffs = handoffsData?.handoffs ?? [];
+  const pendingHandoffs = handoffs.filter(h => h.Status === "pending" || h.Status === "active").length;
+  const isHealthy = health?.status === "healthy";
 
   return (
-    <>
+    <div className="page">
       <div className="page-topbar">
         <DynamicBreadcrumbs />
-        <div style={{ flex: 1 }}></div>
-        {health && (
-          <span
-            className="pill"
-            data-tone={health.status === "healthy" ? "ok" : "err"}
-            style={{ fontSize: 11 }}
-          >
-            <span className="dot"></span>
-            API {health.status} · {health.version}
-          </span>
-        )}
+        <div style={{ flex: 1 }} />
+        <span className="pill" data-tone={isHealthy ? "ok" : "err"} style={{ fontSize: 11 }}>
+          <span className="dot" />
+          {isHealthy ? "online" : "offline"}
+        </span>
       </div>
 
       <div className="page-body">
-        <h1 className="page-h1">Archon Control Plane</h1>
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <h1 className="page-h1">Visão geral</h1>
+          <p style={{ color: "var(--ink-3)", fontSize: 14, margin: "4px 0 0" }}>
+            Conversas, contatos e atendimentos em tempo real.
+          </p>
+        </div>
 
+        {/* Stat cards */}
         <div className="stat-grid">
-          <div className="stat">
-            <div className="label">Workflows ativos</div>
-            <div className="value">{total}</div>
-            <div className="delta">via API</div>
-          </div>
-          <div className="stat">
-            <div className="label">Em execução</div>
-            <div className="value" style={{ color: "oklch(0.45 0.13 60)" }}>{runningCount}</div>
-          </div>
-          <div className="stat">
-            <div className="label">Taxa de sucesso</div>
-            <div className="value">{successRate}%</div>
-          </div>
-          <div className="stat">
-            <div className="label">API Status</div>
-            <div className="value" style={{ color: health?.status === "healthy" ? "oklch(0.45 0.13 155)" : "oklch(0.50 0.16 25)" }}>
-              {health ? health.status : "…"}
-            </div>
-            <div className="delta">{health ? `v${health.version}` : "conectando"}</div>
-          </div>
+          <StatCard
+            label="Conversas"
+            value={convs.length > 0 ? convs.length : "—"}
+            sub="salvas"
+            onClick={() => nav("/conversation")}
+          />
+          <StatCard
+            label="Contatos CRM"
+            value={stats?.total ?? "—"}
+            sub={stats ? `${stats.novo} novos` : undefined}
+            onClick={() => nav("/crm/contacts")}
+          />
+          <StatCard
+            label="Em negociação"
+            value={stats?.em_contato ?? "—"}
+            tone={stats && stats.em_contato > 0 ? "run" : undefined}
+            sub="pipeline"
+            onClick={() => nav("/crm/contacts")}
+          />
+          <StatCard
+            label="Clientes"
+            value={stats?.cliente ?? "—"}
+            tone={stats && stats.cliente > 0 ? "ok" : undefined}
+            sub="convertidos"
+            onClick={() => nav("/crm/contacts")}
+          />
+          <StatCard
+            label="Atendimentos"
+            value={pendingHandoffs > 0 ? pendingHandoffs : (handoffs.length || "—")}
+            tone={pendingHandoffs > 0 ? "warn" : undefined}
+            sub={pendingHandoffs > 0 ? "aguardando" : "total"}
+            onClick={() => nav("/handoffs")}
+          />
+          <StatCard
+            label="Cartões"
+            value="ver →"
+            sub="de visita"
+            onClick={() => nav("/crm/cards")}
+          />
         </div>
 
-        <div className="section-head"><h2>Fluxo Recomendado</h2></div>
-        <div className="card-grid">
-          <div className="card">
-            <div className="card-header">
-              <div className="card-glyph" style={{ background: "oklch(0.95 0.025 248)", borderColor: "oklch(0.85 0.06 248)", color: "oklch(0.40 0.12 248)" }}>
-                <strong>1</strong>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div className="card-title">Dispare um evento</div>
-                <div className="card-sub">Execuções ou Conversation</div>
-              </div>
+        {/* Pipeline bar */}
+        {stats && stats.total > 0 && (
+          <div style={{
+            background: "var(--surface)", border: "1px solid var(--line)",
+            borderRadius: "var(--r-3)", padding: "16px 18px", marginBottom: 20,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+              Pipeline · Receita Previsível
             </div>
-            <div className="card-desc">
-              Acione workflows através da página de Execuções ou do chat Conversation. O bus NATS irá rotear o evento para os agentes corretos.
+            <div style={{ display: "flex", gap: 2, height: 8, borderRadius: 99, overflow: "hidden", marginBottom: 10 }}>
+              {[
+                { key: "novo", color: "oklch(0.55 0.13 248)", pct: (stats.novo / stats.total) * 100 },
+                { key: "em_contato", color: "var(--warn)", pct: (stats.em_contato / stats.total) * 100 },
+                { key: "cliente", color: "var(--ok)", pct: (stats.cliente / stats.total) * 100 },
+                { key: "arquivado", color: "var(--line-strong)", pct: (stats.arquivado / stats.total) * 100 },
+              ].map(s => (
+                <div key={s.key} style={{ width: `${s.pct}%`, background: s.color, minWidth: s.pct > 0 ? 4 : 0, borderRadius: 99 }} />
+              ))}
             </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <div className="card-glyph" style={{ background: "oklch(0.95 0.03 155)", borderColor: "oklch(0.82 0.08 155)", color: "oklch(0.36 0.10 155)" }}>
-                <strong>2</strong>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div className="card-title">Acompanhe a execução</div>
-                <div className="card-sub">Workflow Builder</div>
-              </div>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              {[
+                { label: "Novo", count: stats.novo, color: "oklch(0.55 0.13 248)" },
+                { label: "Em contato", count: stats.em_contato, color: "oklch(0.56 0.14 75)" },
+                { label: "Cliente", count: stats.cliente, color: "oklch(0.46 0.13 150)" },
+                { label: "Arquivado", count: stats.arquivado, color: "var(--ink-4)" },
+              ].map(s => (
+                <span key={s.label} style={{ fontSize: 12, color: s.color, fontWeight: 600 }}>
+                  {s.label} <span style={{ color: "var(--ink)", fontWeight: 700 }}>{s.count}</span>
+                </span>
+              ))}
             </div>
-            <div className="card-desc">
-              Abra o editor visual para observar os nós em execução em tempo real. Inspecione agentes, conexões e logs de eventos no Event Bus.
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <div className="card-glyph" style={{ background: "oklch(0.95 0.03 35)", borderColor: "oklch(0.82 0.10 35)", color: "oklch(0.42 0.14 35)" }}>
-                <strong>3</strong>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div className="card-title">Verifique os resultados</div>
-                <div className="card-sub">Logs e payloads</div>
-              </div>
-            </div>
-            <div className="card-desc">
-              Cada execução gera um payload de resultado final. Confira a saída, latências e status de cada agente envolvido na cadeia.
-            </div>
-          </div>
-        </div>
-
-        <div className="section-head"><h2>Atividade Recente</h2></div>
-        {recentWorkflows.length > 0 ? (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Workflow ID</th>
-                <th>Tenant</th>
-                <th>Status</th>
-                <th className="num">Duração</th>
-                <th>Quando</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentWorkflows.map((wf) => {
-                const status = deriveStatus(wf);
-                const dur = durationMs(wf);
-                return (
-                  <tr key={wf.id} style={{ cursor: "pointer" }}>
-                    <td className="mono" style={{ fontSize: 12 }}>{wf.id}</td>
-                    <td className="muted mono">{wf.tenant_id || "—"}</td>
-                    <td>
-                      <span className="pill" data-tone={STATUS_TONE[status] || "warn"}>
-                        <span className="dot"></span>{status}
-                      </span>
-                    </td>
-                    <td className="num mono">{dur || <span className="muted">{"—"}</span>}</td>
-                    <td className="muted">{timeAgo(wf.created_at)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div style={{ textAlign: "center", padding: 32, color: "var(--ink-3)", fontSize: 13 }}>
-            {workflows === undefined ? "Carregando…" : "Nenhuma atividade recente. Dispare um workflow para começar."}
           </div>
         )}
+
+        {/* Two-column: conversations + handoffs/quick actions */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 16,
+          marginBottom: 20,
+        }}>
+          {/* Recent conversations */}
+          <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-3)", overflow: "hidden" }}>
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Últimas conversas
+              </span>
+              <button onClick={() => nav("/conversation")} style={{ background: "none", border: "none", color: "oklch(0.55 0.13 248)", fontSize: 11, cursor: "pointer", fontFamily: "var(--font-sans)", fontWeight: 600 }}>
+                ver todas →
+              </button>
+            </div>
+            {convs.length === 0 ? (
+              <div style={{ padding: "28px 16px", textAlign: "center", color: "var(--ink-4)", fontSize: 13 }}>Nenhuma conversa ainda</div>
+            ) : convs.slice(0, 6).map(c => (
+              <div
+                key={c.id}
+                onClick={() => nav("/conversation")}
+                style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", cursor: "pointer", display: "flex", flexDirection: "column", gap: 2 }}
+                onMouseEnter={e => (e.currentTarget.style.background = "var(--bg)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "70%" }}>
+                    {c.preview || c.conversation_id}
+                  </span>
+                  <span style={{ fontSize: 10, color: "var(--ink-4)", flexShrink: 0 }}>{timeAgo(c.last_message_at || c.updated_at)}</span>
+                </div>
+                <span style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  {c.message_count} msg · {c.profile_id}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Right column: handoffs + quick actions */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {/* Handoffs */}
+            <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-3)", overflow: "hidden" }}>
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Atendimentos</span>
+                {pendingHandoffs > 0 && (
+                  <span style={{ background: "var(--warn-soft)", color: "oklch(0.56 0.14 75)", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99 }}>
+                    {pendingHandoffs} pendentes
+                  </span>
+                )}
+              </div>
+              {handoffs.length === 0 ? (
+                <div style={{ padding: "16px", textAlign: "center", color: "var(--ink-4)", fontSize: 12 }}>Sem atendimentos</div>
+              ) : handoffs.slice(0, 4).map(h => (
+                <div
+                  key={h.ID}
+                  onClick={() => nav("/handoffs")}
+                  style={{ padding: "10px 16px", borderBottom: "1px solid var(--line)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--bg)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "")}
+                >
+                  <span style={{ fontSize: 12, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                    {(h.CorrelationID || h.ID || "").substring(0, 22)}
+                  </span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 99, flexShrink: 0, marginLeft: 8,
+                    background: h.Status === "active" ? "var(--ok-soft)" : h.Status === "pending" ? "var(--warn-soft)" : "var(--bg)",
+                    color: h.Status === "active" ? "var(--ok)" : h.Status === "pending" ? "var(--warn)" : "var(--ink-3)",
+                  }}>
+                    {h.Status}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Quick actions */}
+            <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-3)", padding: "14px" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                Ações rápidas
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <QuickLink label="Contatos" to="/crm/contacts" icon="👤" />
+                <QuickLink label="Cartões" to="/crm/cards" icon="🃏" />
+                <QuickLink label="Conversas" to="/conversation" icon="💬" />
+                <QuickLink label="Atendimentos" to="/handoffs" icon="🤝" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
