@@ -115,7 +115,7 @@ export function DashboardPage() {
   };
 
   return (
-    <div className="page">
+    <>
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }} />
@@ -290,6 +290,6 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

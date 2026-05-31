@@ -40,6 +40,18 @@ export default defineConfig(function (_a) {
                     target: apiTarget,
                     changeOrigin: true,
                 },
+                "/c": {
+                    target: apiTarget,
+                    changeOrigin: true,
+                    // Browser page loads (Accept: text/html) are served by React Router.
+                    // Only proxy XHR/fetch calls (the PublicCardPage component fetching JSON).
+                    bypass: function (req) {
+                        var _a;
+                        if ((_a = req.headers.accept) === null || _a === void 0 ? void 0 : _a.includes("text/html"))
+                            return req.url;
+                        return null;
+                    },
+                },
             },
         },
     };

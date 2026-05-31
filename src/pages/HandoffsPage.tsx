@@ -340,7 +340,7 @@ export function HandoffsPage() {
   }
 
   return (
-    <div className="page">
+    <>
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }} />
@@ -506,6 +506,6 @@ export function HandoffsPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
