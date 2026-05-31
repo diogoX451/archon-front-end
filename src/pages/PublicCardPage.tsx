@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { getPublicCard, type BusinessCard, type CreateContactInput, type CardLinkType } from "@shared/api/crm";
+import { API_BASE_URL } from "@shared/api/client";
 
 const LINK_ICONS: Record<CardLinkType, string> = {
   instagram: "📷", linkedin: "💼", twitter: "𝕏",
@@ -207,8 +208,15 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
 
 // ── Share your contact ────────────────────────────────────────────────────
 
+// Contact Picker API (navigator.contacts) is only available on Android Chrome.
+// Safari and iOS do not support it. We detect support and go straight to the
+// manual form on unsupported browsers so the feature always works.
+const hasContactPicker = typeof navigator !== "undefined" &&
+  !!(navigator as Navigator & { contacts?: unknown }).contacts;
+
 function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof THEMES[string] }) {
-  const [mode, setMode] = useState<"idle" | "manual" | "done">("idle");
+  // Start in "manual" on Safari/iOS/desktop; "idle" only when picker is available.
+  const [mode, setMode] = useState<"idle" | "manual" | "done">(hasContactPicker ? "idle" : "manual");
   const [form, setForm] = useState({ name: "", email: "", phone: "", company: "" });
   const [saving, setSaving] = useState(false);
 
@@ -230,10 +238,10 @@ function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof T
     setSaving(true);
     try {
       const input: CreateContactInput & { source: string } = { ...form, source: "cartao" };
-      await fetch("/api/v1/crm/contacts", {
+      await fetch(`${API_BASE_URL}/api/v1/crm/contacts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, tenant_id: card.tenant_id }),
       });
       setMode("done");
     } catch { /* best-effort */ } finally { setSaving(false); }

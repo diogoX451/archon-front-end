@@ -179,7 +179,13 @@ function CardItem({ card }: { card: BusinessCard }) {
           <button onClick={() => setShowQR(v => !v)} style={{ ...btn, flex: "0 0 auto", background: showQR ? "var(--ink)" : "var(--surface)", color: showQR ? "#fff" : "var(--ink)" }}>QR</button>
         )}
         <a href={card.public_url || `/c/${card.slug}`} target="_blank" rel="noreferrer" style={btn}>Ver</a>
-        <button onClick={() => del.mutate(card.id)} style={{ ...btn, flex: "0 0 auto", color: "var(--err)", borderColor: "transparent" }}>×</button>
+        <button
+          onClick={() => { if (confirm(`Deletar cartão "${card.name}"?`)) del.mutate(card.id); }}
+          style={{ ...btn, flex: "0 0 auto", color: "var(--err)", borderColor: "var(--err)", opacity: 0.7 }}
+          title="Deletar cartão"
+        >
+          Deletar
+        </button>
       </div>
     </div>
   );
