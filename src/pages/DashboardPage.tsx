@@ -209,7 +209,7 @@ export function DashboardPage() {
         )}
 
         {/* Two-column: conversations + right column — uses CSS class for responsive collapse */}
-        <div className="dash-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        <div className="dash-cols" style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 16, marginBottom: 20 }}>
           {/* Recent conversations */}
           <div style={cardStyle}>
             <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
