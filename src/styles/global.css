@@ -1783,6 +1783,13 @@ select {
   box-sizing: border-box;
 }
 
+.rail[data-expanded="false"] .rail-group-label {
+  opacity: 0;
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 .rail[data-expanded="false"] .rail-link {
   justify-content: center;
   gap: 0;
