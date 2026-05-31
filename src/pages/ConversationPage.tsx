@@ -426,6 +426,7 @@ export function ConversationPage() {
 
   const { data: profiles, isLoading: profilesLoading, error: profilesError } = useListConversationProfiles();
   const createTurn = useCreateConversationTurn();
+  const sendingRef = useRef(false);
   const { data: convsPage, isLoading: convsLoading } = useConversationsList(undefined, { limit: 50 });
   const allConversations = convsPage?.items || [];
   const conversations = useMemo(() => {
@@ -544,6 +545,11 @@ export function ConversationPage() {
   const sendMessage = (overrideText?: string) => {
     const text = (overrideText ?? draft).trim();
     if (!text || !selectedProfile) return;
+    // Guard against double-fire: Enter keydown + button click in same tick,
+    // or React StrictMode double-invocation.
+    if (sendingRef.current || createTurn.isPending) return;
+    sendingRef.current = true;
+    setTimeout(() => { sendingRef.current = false; }, 1000);
     if (!overrideText) setDraft("");
     let convId = activeConvId;
     if (!convId) {
