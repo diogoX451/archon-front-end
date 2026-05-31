@@ -4,9 +4,11 @@ import {
   listTenants,
   updateTenant,
   updateTenantStatus,
+  updateTenantPlan,
   type CreateTenantInput,
   type UpdateTenantInput,
   type UpdateTenantStatusInput,
+  type UpdateTenantPlanInput,
 } from "@shared/api/tenants";
 
 export const useTenants = () =>
@@ -39,6 +41,16 @@ export const useUpdateTenantStatus = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateTenantStatusInput }) => updateTenantStatus(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tenants"] });
+    },
+  });
+};
+
+export const useUpdateTenantPlan = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateTenantPlanInput }) => updateTenantPlan(id, input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tenants"] });
     },
