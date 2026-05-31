@@ -186,5 +186,8 @@ export const deleteCard = (id: string) =>
 export const getCardAnalytics = (id: string) =>
   fetchClient<CardAnalytics>(`/api/v1/crm/cards/${id}/analytics`);
 
-export const getPublicCard = (slug: string) =>
-  fetch(`/c/${slug}`).then(r => { if (!r.ok) throw new Error("not found"); return r.json() as Promise<BusinessCard>; });
+export const getPublicCard = (slug: string) => {
+  // Use absolute API URL to work regardless of the frontend domain (Vercel ≠ api.almexa.com.br).
+  const base = (import.meta.env.VITE_ARCHON_API_URL || import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+  return fetch(`${base}/c/${slug}`).then(r => { if (!r.ok) throw new Error("not found"); return r.json() as Promise<BusinessCard>; });
+};
