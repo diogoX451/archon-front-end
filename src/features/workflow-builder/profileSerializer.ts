@@ -297,7 +297,7 @@ export function profileToCanvas(profile: ConversationProfileV2): { workflow: Wor
       description: profile.description,
       user_id_prefix: profile.user_id_prefix,
       user_id: profile.user_id,
-      tenant_slug: profile.tenant_id,
+      tenant_slug: undefined,
       executor_type: executorType,
       memory_hook_rules: memoryHookRules,
       memory_tool_result_mappings: memoryToolResultMappings,
