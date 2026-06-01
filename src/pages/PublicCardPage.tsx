@@ -22,27 +22,59 @@ const THEMES: Record<string, { bg: string; text: string; accent: string; muted: 
   custom: { bg: "#111111", text: "#f0ece4", accent: "#888888", muted: "rgba(240,236,228,0.45)", line: "rgba(255,255,255,0.08)" },
 };
 
+const isLightColor = (color: string) => {
+  const hex = color.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return false;
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 160;
+};
+
+const getCardTheme = (card: BusinessCard) => {
+  const base = card.colors
+    ? {
+        bg: card.colors.bg,
+        text: card.colors.text,
+        accent: card.colors.accent,
+        muted: isLightColor(card.colors.bg) ? "rgba(17,17,17,0.48)" : "rgba(240,236,228,0.52)",
+        line: isLightColor(card.colors.bg) ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.10)",
+      }
+    : (THEMES[card.theme] ?? THEMES.onyx);
+
+  return { ...base, accent: card.accent_color || base.accent };
+};
+
+const escapeVCardValue = (value: string) =>
+  value
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+
+const buildVCard = (card: BusinessCard) => [
+  "BEGIN:VCARD",
+  "VERSION:3.0",
+  `FN:${escapeVCardValue(card.name)}`,
+  card.company ? `ORG:${escapeVCardValue(card.company)}` : "",
+  card.role ? `TITLE:${escapeVCardValue(card.role)}` : "",
+  card.email ? `EMAIL;TYPE=INTERNET:${escapeVCardValue(card.email)}` : "",
+  card.phone ? `TEL;TYPE=CELL:${escapeVCardValue(card.phone)}` : "",
+  card.site ? `URL:${escapeVCardValue(card.site)}` : "",
+  "END:VCARD",
+].filter(Boolean).join("\r\n");
+
 // ── Card visual ───────────────────────────────────────────────────────────
 
 function CardHero({ card }: { card: BusinessCard }) {
-  const c = card.colors
-    ? { bg: card.colors.bg, text: card.colors.text, accent: card.colors.accent, muted: "rgba(240,236,228,0.5)", line: "rgba(255,255,255,0.1)" }
-    : (THEMES[card.theme] ?? THEMES.onyx);
-
-  const accent = card.accent_color || c.accent;
+  const c = getCardTheme(card);
+  const accent = c.accent;
   const tag = [card.company, card.role].filter(Boolean).join(" · ");
   const contacts = [card.email, card.phone, card.site].filter(Boolean);
   const centered = card.layout === "centered";
   const initials = card.name.split(" ").slice(0, 2).map(n => n[0]?.toUpperCase() ?? "").join("");
 
-  const heroLight = (() => {
-    const hex = c.bg.replace("#", "");
-    if (hex.length < 6) return false;
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    return (r * 299 + g * 587 + b * 114) / 1000 > 160;
-  })();
+  const heroLight = isLightColor(c.bg);
 
   return (
     <div style={{
@@ -139,22 +171,15 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
   const [saved, setSaved] = useState(false);
 
   const downloadVCard = () => {
-    const vcf = [
-      "BEGIN:VCARD", "VERSION:3.0",
-      `FN:${card.name}`,
-      card.company ? `ORG:${card.company}` : "",
-      card.role    ? `TITLE:${card.role}` : "",
-      card.email   ? `EMAIL:${card.email}` : "",
-      card.phone   ? `TEL:${card.phone}` : "",
-      card.site    ? `URL:${card.site}` : "",
-      "END:VCARD",
-    ].filter(Boolean).join("\r\n");
-
+    const vcf = buildVCard(card);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([vcf], { type: "text/vcard" }));
+    const url = URL.createObjectURL(new Blob([vcf], { type: "text/vcard;charset=utf-8" }));
+    a.href = url;
     a.download = `${card.name.replace(/\s+/g, "-").toLowerCase()}.vcf`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(a.href);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -162,6 +187,14 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
   const shareCard = async () => {
     if (!navigator.share) { downloadVCard(); return; }
     try {
+      const file = new File([buildVCard(card)], `${card.name.replace(/\s+/g, "-").toLowerCase()}.vcf`, { type: "text/vcard" });
+      if ("canShare" in navigator && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: `Contato de ${card.name}`,
+          files: [file],
+        });
+        return;
+      }
       await navigator.share({
         title: card.name,
         text: [card.role, card.company].filter(Boolean).join(" · "),
@@ -174,6 +207,7 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", gap: 8 }}>
         <button
+          type="button"
           onClick={downloadVCard}
           style={{
             flex: 1,
@@ -193,7 +227,9 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
         </button>
         {typeof navigator.share !== "undefined" && (
           <button
+            type="button"
             onClick={shareCard}
+            aria-label={`Compartilhar contato de ${card.name}`}
             style={{
               padding: "11px 16px",
               borderRadius: 10,
@@ -211,7 +247,7 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
         )}
       </div>
       <p style={{ fontSize: 11, color: theme.muted, margin: 0, textAlign: "center" }}>
-        Baixa o .vcf e abre no celular para salvar na agenda
+        Abre o contato no celular quando o navegador permitir
       </p>
     </div>
   );
@@ -322,7 +358,7 @@ function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof T
       <p style={{ fontSize: 12, color: theme.muted, margin: 0 }}>
         Deixe {card.name.split(" ")[0]} te conhecer também.
       </p>
-      <button onClick={tryPicker} style={{
+      <button type="button" onClick={tryPicker} style={{
         padding: "11px",
         borderRadius: 10,
         border: `1px solid ${theme.line}`,
@@ -335,7 +371,7 @@ function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof T
       }}>
         Importar da agenda
       </button>
-      <button onClick={() => setMode("manual")} style={{
+      <button type="button" onClick={() => setMode("manual")} style={{
         padding: "11px",
         borderRadius: 10,
         border: `1px solid ${theme.line}`,
@@ -381,20 +417,10 @@ export function PublicCardPage() {
     );
   }
 
-  const base = card.colors
-    ? { bg: card.colors.bg, text: card.colors.text, accent: card.colors.accent, muted: "rgba(240,236,228,0.45)", line: "rgba(255,255,255,0.08)" }
-    : (THEMES[card.theme] ?? THEMES.onyx);
-  const theme = { ...base, accent: card.accent_color || base.accent };
+  const theme = getCardTheme(card);
 
   // Detect light bg — luminance heuristic on hex color
-  const isLight = (() => {
-    const hex = theme.bg.replace("#", "");
-    if (hex.length < 6) return false;
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    return (r * 299 + g * 587 + b * 114) / 1000 > 160;
-  })();
+  const isLight = isLightColor(theme.bg);
 
   // For light themes: darken page bg so the white card pops; for dark: keep as-is
   const pageBgColor = isLight

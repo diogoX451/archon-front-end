@@ -57,7 +57,9 @@ const CARD_THEMES: Record<string, { bg: string; text: string; accent: string }> 
 };
 
 function CardPreview({ card }: { card: Partial<BusinessCard> & { name: string } }) {
-  const c = CARD_THEMES[card.theme ?? "onyx"] ?? CARD_THEMES.onyx;
+  const c = card.colors
+    ? { bg: card.colors.bg, text: card.colors.text, accent: card.colors.accent }
+    : (CARD_THEMES[card.theme ?? "onyx"] ?? CARD_THEMES.onyx);
   const accent = card.accent_color || c.accent;
   const initials = card.name.split(" ").slice(0, 2).map(n => n[0]?.toUpperCase() ?? "").join("");
 
@@ -70,7 +72,7 @@ function CardPreview({ card }: { card: Partial<BusinessCard> & { name: string } 
       {/* top */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
         {card.avatar_url ? (
-          <img src={card.avatar_url} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: `2px solid ${accent}`, flexShrink: 0 }} />
+          <img src={card.avatar_url} alt={card.name} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: `2px solid ${accent}`, flexShrink: 0 }} />
         ) : (
           <div style={{ width: 36, height: 36, borderRadius: "50%", background: accent, opacity: 0.3, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: c.text }}>
             {initials}
@@ -174,12 +176,13 @@ function CardItem({ card }: { card: BusinessCard }) {
       )}
 
       <div style={{ display: "flex", gap: 6 }}>
-        <button onClick={copyLink} style={btn}>{copied ? "✓" : "Copiar"}</button>
+        <button type="button" onClick={copyLink} style={btn}>{copied ? "✓" : "Copiar"}</button>
         {card.qr_data_url && (
-          <button onClick={() => setShowQR(v => !v)} style={{ ...btn, flex: "0 0 auto", background: showQR ? "var(--ink)" : "var(--surface)", color: showQR ? "#fff" : "var(--ink)" }}>QR</button>
+          <button type="button" onClick={() => setShowQR(v => !v)} style={{ ...btn, flex: "0 0 auto", background: showQR ? "var(--ink)" : "var(--surface)", color: showQR ? "#fff" : "var(--ink)" }}>QR</button>
         )}
         <a href={card.public_url || `/c/${card.slug}`} target="_blank" rel="noreferrer" style={btn}>Ver</a>
         <button
+          type="button"
           onClick={() => { if (confirm(`Deletar cartão "${card.name}"?`)) del.mutate(card.id); }}
           style={{ ...btn, flex: "0 0 auto", color: "var(--err)", borderColor: "var(--err)", opacity: 0.7 }}
           title="Deletar cartão"
@@ -237,14 +240,14 @@ function LinkEditor({ links, onChange }: { links: CardLink[]; onChange: (links: 
             style={{ ...inputStyle, flex: 1 }}
             placeholder={LINK_DEFAULTS[link.type]?.placeholder ?? "URL"}
           />
-          <button onClick={() => remove(i)} style={{ background: "none", border: "none", color: "var(--err)", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>×</button>
+          <button type="button" onClick={() => remove(i)} aria-label={`Remover link ${link.label}`} style={{ background: "none", border: "none", color: "var(--err)", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>×</button>
         </div>
       ))}
 
       {adding ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {(Object.keys(LINK_DEFAULTS) as CardLinkType[]).map(type => (
-            <button key={type} onClick={() => { add(type); setAdding(false); }} style={{
+            <button key={type} type="button" onClick={() => { add(type); setAdding(false); }} style={{
               padding: "5px 10px", borderRadius: "var(--r-2)",
               border: "1px solid var(--line)", background: "var(--surface)",
               color: "var(--ink)", fontSize: 11, cursor: "pointer",
@@ -253,10 +256,10 @@ function LinkEditor({ links, onChange }: { links: CardLink[]; onChange: (links: 
               {LINK_ICONS[type]} {LINK_DEFAULTS[type].label}
             </button>
           ))}
-          <button onClick={() => setAdding(false)} style={{ background: "none", border: "none", color: "var(--ink-3)", cursor: "pointer", fontSize: 11 }}>Cancelar</button>
+          <button type="button" onClick={() => setAdding(false)} style={{ background: "none", border: "none", color: "var(--ink-3)", cursor: "pointer", fontSize: 11 }}>Cancelar</button>
         </div>
       ) : (
-        <button onClick={() => setAdding(true)} style={{
+        <button type="button" onClick={() => setAdding(true)} style={{
           padding: "6px 10px", borderRadius: "var(--r-2)",
           border: "1px dashed var(--line)", background: "transparent",
           color: "var(--ink-3)", fontSize: 11, cursor: "pointer",
@@ -351,6 +354,7 @@ export function CRMCardsPage() {
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }} />
         <button
+          type="button"
           onClick={() => { setForm(INITIAL); setEditingId(null); setShowForm(v => !v); }}
           style={{
             padding: "7px 14px", borderRadius: "var(--r-3)",
@@ -381,7 +385,7 @@ export function CRMCardsPage() {
                   <div style={{ flexShrink: 0 }}>
                     <div style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", background: "var(--bg)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {form.avatar_url ? (
-                        <img src={form.avatar_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <img src={form.avatar_url} alt={form.name || "Avatar do cartão"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       ) : (
                         <span style={{ fontSize: 20, color: "var(--ink-4)" }}>
                           {form.name.split(" ").slice(0,2).map(n => n[0]?.toUpperCase() ?? "").join("") || "?"}
@@ -441,7 +445,8 @@ export function CRMCardsPage() {
                       <button
                         key={t.id}
                         type="button"
-                        onClick={() => setForm(p => ({ ...p, theme: t.id as CreateCardInput["theme"] }))}
+                        onClick={() => setForm(p => ({ ...p, theme: t.id as CreateCardInput["theme"], colors: undefined }))}
+                        aria-label={`Selecionar tema ${t.label}`}
                         title={t.label}
                         style={{
                           width: 32, height: 32, borderRadius: "var(--r-2)",
@@ -465,6 +470,7 @@ export function CRMCardsPage() {
                         key={a.color}
                         type="button"
                         onClick={() => setForm(p => ({ ...p, accent_color: a.color }))}
+                        aria-label={`Selecionar destaque ${a.label}`}
                         title={a.label}
                         style={{
                           width: 28, height: 28, borderRadius: "50%",
@@ -556,6 +562,7 @@ export function CRMCardsPage() {
             <div key={c.id} style={{ position: "relative" }}>
               <CardItem card={c} />
               <button
+                type="button"
                 onClick={() => handleEdit(c)}
                 style={{
                   position: "absolute", top: 10, right: 10,
