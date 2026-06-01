@@ -56,7 +56,7 @@ function CardHero({ card }: { card: BusinessCard }) {
       alignItems: centered ? "center" : "flex-start",
       textAlign: centered ? "center" : "left",
       boxShadow: heroLight
-        ? `0 24px 48px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06), inset 0 0 0 1px rgba(0,0,0,0.07)`
+        ? `0 8px 40px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.06)`
         : "0 32px 64px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.15)",
       width: "100%",
       position: "relative",
@@ -396,23 +396,29 @@ export function PublicCardPage() {
     return (r * 299 + g * 587 + b * 114) / 1000 > 160;
   })();
 
+  // For light themes: darken page bg so the white card pops; for dark: keep as-is
+  const pageBgColor = isLight
+    ? (() => {
+        const hex = theme.bg.replace("#", "");
+        const r = Math.max(0, parseInt(hex.slice(0, 2), 16) - 22);
+        const g = Math.max(0, parseInt(hex.slice(2, 4), 16) - 20);
+        const b = Math.max(0, parseInt(hex.slice(4, 6), 16) - 18);
+        return `rgb(${r},${g},${b})`;
+      })()
+    : theme.bg;
+
   const panelStyle: React.CSSProperties = {
-    background: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.07)",
-    border: `1px solid ${isLight ? "rgba(0,0,0,0.08)" : theme.line}`,
+    background: isLight ? theme.bg : "rgba(255,255,255,0.07)",
+    border: `1px solid ${isLight ? "rgba(0,0,0,0.07)" : theme.line}`,
     borderRadius: 16,
     padding: "20px 22px",
+    boxShadow: isLight ? "0 2px 12px rgba(0,0,0,0.07)" : "none",
   };
-
-  // For light themes, add a subtle radial gradient to break the flat look
-  const pageBg = isLight
-    ? `radial-gradient(ellipse 80% 60% at 50% 0%, ${theme.accent}18 0%, ${theme.bg} 65%)`
-    : `radial-gradient(ellipse 80% 55% at 50% 0%, ${theme.accent}14 0%, ${theme.bg} 70%)`;
 
   return (
     <div style={{
       minHeight: "100svh",
-      background: pageBg,
-      backgroundColor: theme.bg,
+      background: pageBgColor,
       display: "flex",
       alignItems: "flex-start",
       justifyContent: "center",
