@@ -22,6 +22,106 @@ const THEMES: Record<string, { bg: string; text: string; accent: string; muted: 
   custom: { bg: "#111111", text: "#f0ece4", accent: "#888888", muted: "rgba(240,236,228,0.45)", line: "rgba(255,255,255,0.08)" },
 };
 
+type CardThemeValues = typeof THEMES[string];
+type PageThemeValues = CardThemeValues & {
+  actionBg: string;
+  actionText: string;
+  fieldBg: string;
+  surfaceBg: string;
+};
+
+type Copy = {
+  notFound: string;
+  qrAlt: string;
+  scanToSave: string;
+  saveContactOf: (name: string) => string;
+  saveContact: string;
+  saved: string;
+  shareContactAria: (name: string) => string;
+  saveHint: string;
+  shareYourContact: string;
+  sharedWith: (name: string) => string;
+  yourDetailsFor: (name: string) => string;
+  placeholders: Record<"name" | "email" | "phone" | "company", string>;
+  sending: string;
+  shareContact: string;
+  cancel: string;
+  introduceYourself: (name: string) => string;
+  importFromContacts: string;
+  typeDetails: string;
+};
+
+const COPIES: Record<"pt" | "en" | "es", Copy> = {
+  pt: {
+    notFound: "Cartão não encontrado",
+    qrAlt: "QR Code vCard",
+    scanToSave: "Escaneie para salvar",
+    saveContactOf: name => `Salvar contato de ${name}`,
+    saveContact: "Salvar contato",
+    saved: "Salvo!",
+    shareContactAria: name => `Compartilhar contato de ${name}`,
+    saveHint: "Abre o contato no celular quando o navegador permitir",
+    shareYourContact: "Compartilhe o seu contato",
+    sharedWith: name => `Contato compartilhado com ${name}`,
+    yourDetailsFor: name => `Seus dados para ${name} salvar:`,
+    placeholders: { name: "Seu nome *", email: "Email", phone: "Telefone", company: "Empresa" },
+    sending: "Enviando...",
+    shareContact: "Compartilhar contato",
+    cancel: "Cancelar",
+    introduceYourself: name => `Deixe ${name} te conhecer também.`,
+    importFromContacts: "Importar da agenda",
+    typeDetails: "Digitar dados",
+  },
+  en: {
+    notFound: "Card not found",
+    qrAlt: "vCard QR Code",
+    scanToSave: "Scan to save",
+    saveContactOf: name => `Save ${name}'s contact`,
+    saveContact: "Save contact",
+    saved: "Saved!",
+    shareContactAria: name => `Share ${name}'s contact`,
+    saveHint: "Opens the contact on mobile when the browser allows it",
+    shareYourContact: "Share your contact",
+    sharedWith: name => `Contact shared with ${name}`,
+    yourDetailsFor: name => `Your details for ${name} to save:`,
+    placeholders: { name: "Your name *", email: "Email", phone: "Phone", company: "Company" },
+    sending: "Sending...",
+    shareContact: "Share contact",
+    cancel: "Cancel",
+    introduceYourself: name => `Let ${name} know you too.`,
+    importFromContacts: "Import from contacts",
+    typeDetails: "Type details",
+  },
+  es: {
+    notFound: "Tarjeta no encontrada",
+    qrAlt: "Código QR vCard",
+    scanToSave: "Escanea para guardar",
+    saveContactOf: name => `Guardar contacto de ${name}`,
+    saveContact: "Guardar contacto",
+    saved: "Guardado!",
+    shareContactAria: name => `Compartir contacto de ${name}`,
+    saveHint: "Abre el contacto en el móvil cuando el navegador lo permite",
+    shareYourContact: "Comparte tu contacto",
+    sharedWith: name => `Contacto compartido con ${name}`,
+    yourDetailsFor: name => `Tus datos para que ${name} los guarde:`,
+    placeholders: { name: "Tu nombre *", email: "Email", phone: "Teléfono", company: "Empresa" },
+    sending: "Enviando...",
+    shareContact: "Compartir contacto",
+    cancel: "Cancelar",
+    introduceYourself: name => `Deja que ${name} también te conozca.`,
+    importFromContacts: "Importar de contactos",
+    typeDetails: "Escribir datos",
+  },
+};
+
+const getCopy = () => {
+  if (typeof navigator === "undefined") return COPIES.pt;
+  const lang = navigator.language.toLowerCase();
+  if (lang.startsWith("en")) return COPIES.en;
+  if (lang.startsWith("es")) return COPIES.es;
+  return COPIES.pt;
+};
+
 const isLightColor = (color: string) => {
   const hex = color.replace("#", "");
   if (!/^[0-9a-f]{6}$/i.test(hex)) return false;
@@ -43,6 +143,20 @@ const getCardTheme = (card: BusinessCard) => {
     : (THEMES[card.theme] ?? THEMES.onyx);
 
   return { ...base, accent: card.accent_color || base.accent };
+};
+
+const getPageTheme = (theme: CardThemeValues): PageThemeValues => {
+  const light = isLightColor(theme.bg);
+  return {
+    ...theme,
+    text: light ? "#171717" : theme.text,
+    muted: light ? "rgba(23,23,23,0.62)" : theme.muted,
+    line: light ? "rgba(23,23,23,0.12)" : theme.line,
+    actionBg: light ? "#171717" : theme.text,
+    actionText: light ? "#ffffff" : theme.bg,
+    fieldBg: light ? "#ffffff" : "rgba(255,255,255,0.06)",
+    surfaceBg: light ? "#ffffff" : "rgba(255,255,255,0.07)",
+  };
 };
 
 const escapeVCardValue = (value: string) =>
@@ -104,7 +218,7 @@ function CardHero({ card }: { card: BusinessCard }) {
       ) : null}
 
       {!centered && tag && (
-        <div style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.85 }}>
+        <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.85 }}>
           {tag}
         </div>
       )}
@@ -114,7 +228,7 @@ function CardHero({ card }: { card: BusinessCard }) {
           {card.name}
         </div>
         {centered && tag && (
-          <div style={{ fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", color: accent, opacity: 0.8, marginTop: 8 }}>
+          <div style={{ fontSize: 12, letterSpacing: 2.5, textTransform: "uppercase", color: accent, opacity: 0.8, marginTop: 8 }}>
             {tag}
           </div>
         )}
@@ -132,7 +246,7 @@ function CardHero({ card }: { card: BusinessCard }) {
             marginTop: centered ? 12 : 0,
           }}>
             {contacts.map(p => (
-              <span key={p} style={{ fontSize: 10, color: accent, opacity: 0.75, letterSpacing: 0.3 }}>{p}</span>
+              <span key={p} style={{ fontSize: 12, color: accent, opacity: 0.85, letterSpacing: 0.3 }}>{p}</span>
             ))}
           </div>
         )}
@@ -140,9 +254,9 @@ function CardHero({ card }: { card: BusinessCard }) {
         {/* Social links chips */}
         {(card.links?.length ?? 0) > 0 && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: contacts.length > 0 ? 8 : (centered ? 12 : 0) }}>
-            {card.links!.map((link, i) => (
+            {card.links!.map(link => (
               <a
-                key={i}
+                key={`${link.type}-${link.label}-${link.url}`}
                 href={link.url}
                 target="_blank"
                 rel="noreferrer"
@@ -151,7 +265,7 @@ function CardHero({ card }: { card: BusinessCard }) {
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "2px 8px", borderRadius: 99,
                   background: `${accent}22`, color: accent,
-                  fontSize: 10, fontWeight: 500, textDecoration: "none",
+                  fontSize: 12, fontWeight: 500, textDecoration: "none",
                   border: `1px solid ${accent}33`,
                 }}
               >
@@ -167,7 +281,7 @@ function CardHero({ card }: { card: BusinessCard }) {
 
 // ── Save owner contact ────────────────────────────────────────────────────
 
-function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof THEMES[string] }) {
+function SaveOwnerSection({ card, theme, copy }: { card: BusinessCard; theme: PageThemeValues; copy: Copy }) {
   const [saved, setSaved] = useState(false);
 
   const downloadVCard = () => {
@@ -214,8 +328,8 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
             padding: "11px 14px",
             borderRadius: 10,
             border: "none",
-            background: theme.text,
-            color: theme.bg,
+            background: theme.actionBg,
+            color: theme.actionText,
             fontSize: 13,
             fontWeight: 600,
             cursor: "pointer",
@@ -223,13 +337,13 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
             letterSpacing: "-0.01em",
           }}
         >
-          {saved ? "✓ Salvo!" : "Salvar contato"}
+          {saved ? `✓ ${copy.saved}` : copy.saveContact}
         </button>
         {typeof navigator.share !== "undefined" && (
           <button
             type="button"
             onClick={shareCard}
-            aria-label={`Compartilhar contato de ${card.name}`}
+            aria-label={copy.shareContactAria(card.name)}
             style={{
               padding: "11px 16px",
               borderRadius: 10,
@@ -246,8 +360,8 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
           </button>
         )}
       </div>
-      <p style={{ fontSize: 11, color: theme.muted, margin: 0, textAlign: "center" }}>
-        Abre o contato no celular quando o navegador permitir
+      <p style={{ fontSize: 12, color: theme.muted, margin: 0, textAlign: "center" }}>
+        {copy.saveHint}
       </p>
     </div>
   );
@@ -261,7 +375,7 @@ function SaveOwnerSection({ card, theme }: { card: BusinessCard; theme: typeof T
 const hasContactPicker = typeof navigator !== "undefined" &&
   !!(navigator as Navigator & { contacts?: unknown }).contacts;
 
-function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof THEMES[string] }) {
+function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: PageThemeValues; copy: Copy }) {
   // Start in "manual" on Safari/iOS/desktop; "idle" only when picker is available.
   const [mode, setMode] = useState<"idle" | "manual" | "done">(hasContactPicker ? "idle" : "manual");
   const [form, setForm] = useState({ name: "", email: "", phone: "", company: "" });
@@ -299,7 +413,7 @@ function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof T
     padding: "10px 12px",
     borderRadius: 8,
     border: `1px solid ${theme.line}`,
-    background: "rgba(255,255,255,0.06)",
+    background: theme.fieldBg,
     color: theme.text,
     fontSize: 13,
     fontFamily: "inherit",
@@ -310,7 +424,7 @@ function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof T
   if (mode === "done") {
     return (
       <div style={{ textAlign: "center", padding: "8px 0", fontSize: 13, color: theme.accent, fontWeight: 500 }}>
-        ✓ Contato compartilhado com {card.name.split(" ")[0]}
+        ✓ {copy.sharedWith(card.name.split(" ")[0])}
       </div>
     );
   }
@@ -319,12 +433,13 @@ function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof T
     return (
       <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <p style={{ fontSize: 12, color: theme.muted, margin: 0 }}>
-          Seus dados para {card.name.split(" ")[0]} salvar:
+          {copy.yourDetailsFor(card.name.split(" ")[0])}
         </p>
         {(["name","email","phone","company"] as const).map(f => (
           <input
             key={f}
-            placeholder={f === "name" ? "Seu nome *" : f === "email" ? "Email" : f === "phone" ? "Telefone" : "Empresa"}
+            aria-label={copy.placeholders[f].replace(" *", "")}
+            placeholder={copy.placeholders[f]}
             value={form[f]}
             onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
             required={f === "name"}
@@ -335,20 +450,22 @@ function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof T
           padding: "11px",
           borderRadius: 10,
           border: "none",
-          background: theme.text,
-          color: theme.bg,
+          background: theme.actionBg,
+          color: theme.actionText,
           fontSize: 13,
           fontWeight: 600,
           cursor: "pointer",
           fontFamily: "inherit",
         }}>
-          {saving ? "Enviando..." : "Compartilhar contato"}
+          {saving ? copy.sending : copy.shareContact}
         </button>
-        <button type="button" onClick={() => setMode("idle")} style={{
-          background: "none", border: "none", color: theme.muted, cursor: "pointer", fontSize: 12, fontFamily: "inherit",
-        }}>
-          Cancelar
-        </button>
+        {hasContactPicker && (
+          <button type="button" onClick={() => setMode("idle")} style={{
+            background: "none", border: "none", color: theme.muted, cursor: "pointer", fontSize: 12, fontFamily: "inherit",
+          }}>
+            {copy.cancel}
+          </button>
+        )}
       </form>
     );
   }
@@ -356,20 +473,20 @@ function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof T
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       <p style={{ fontSize: 12, color: theme.muted, margin: 0 }}>
-        Deixe {card.name.split(" ")[0]} te conhecer também.
+        {copy.introduceYourself(card.name.split(" ")[0])}
       </p>
       <button type="button" onClick={tryPicker} style={{
         padding: "11px",
         borderRadius: 10,
         border: `1px solid ${theme.line}`,
-        background: "rgba(255,255,255,0.06)",
+        background: theme.fieldBg,
         color: theme.text,
         fontSize: 13,
         fontWeight: 500,
         cursor: "pointer",
         fontFamily: "inherit",
       }}>
-        Importar da agenda
+        {copy.importFromContacts}
       </button>
       <button type="button" onClick={() => setMode("manual")} style={{
         padding: "11px",
@@ -381,7 +498,7 @@ function ShareYourContact({ card, theme }: { card: BusinessCard; theme: typeof T
         cursor: "pointer",
         fontFamily: "inherit",
       }}>
-        Digitar dados
+        {copy.typeDetails}
       </button>
     </div>
   );
@@ -409,42 +526,40 @@ export function PublicCardPage() {
   }
 
   if (error || !card) {
+    const copy = getCopy();
     return (
       <div style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: "#111", color: "rgba(255,255,255,0.3)", flexDirection: "column", gap: 6, fontFamily: "system-ui" }}>
         <span style={{ fontSize: 32 }}>404</span>
-        <span style={{ fontSize: 13 }}>Cartão não encontrado</span>
+        <span style={{ fontSize: 13 }}>{copy.notFound}</span>
       </div>
     );
   }
 
-  const theme = getCardTheme(card);
+  const cardTheme = getCardTheme(card);
+  const theme = getPageTheme(cardTheme);
+  const copy = getCopy();
 
   // Detect light bg — luminance heuristic on hex color
-  const isLight = isLightColor(theme.bg);
+  const isLight = isLightColor(cardTheme.bg);
 
-  // For light themes: darken page bg so the white card pops; for dark: keep as-is
+  // Keep light brand colors on the card itself; use neutral surfaces for readable controls.
   const pageBgColor = isLight
-    ? (() => {
-        const hex = theme.bg.replace("#", "");
-        const r = Math.max(0, parseInt(hex.slice(0, 2), 16) - 22);
-        const g = Math.max(0, parseInt(hex.slice(2, 4), 16) - 20);
-        const b = Math.max(0, parseInt(hex.slice(4, 6), 16) - 18);
-        return `rgb(${r},${g},${b})`;
-      })()
-    : theme.bg;
+    ? "linear-gradient(180deg, #f8f7f3 0%, #f1efe9 100%)"
+    : cardTheme.bg;
 
   const panelStyle: React.CSSProperties = {
-    background: isLight ? theme.bg : "rgba(255,255,255,0.07)",
-    border: `1px solid ${isLight ? "rgba(0,0,0,0.07)" : theme.line}`,
+    background: theme.surfaceBg,
+    border: `1px solid ${theme.line}`,
     borderRadius: 16,
     padding: "20px 22px",
-    boxShadow: isLight ? "0 2px 12px rgba(0,0,0,0.07)" : "none",
+    boxShadow: isLight ? "0 14px 34px rgba(27,27,23,0.08), 0 1px 3px rgba(27,27,23,0.06)" : "none",
   };
 
   return (
     <div style={{
       minHeight: "100svh",
       background: pageBgColor,
+      color: theme.text,
       display: "flex",
       alignItems: "flex-start",
       justifyContent: "center",
@@ -461,10 +576,10 @@ export function PublicCardPage() {
         {card.qr_data_url && (
           <div style={{ ...panelStyle, display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "20px" }}>
             <div style={{ background: "#fff", padding: 12, borderRadius: 12, lineHeight: 0 }}>
-              <img src={card.qr_data_url} alt="QR Code vCard" style={{ width: 120, height: 120, display: "block" }} />
+              <img src={card.qr_data_url} alt={copy.qrAlt} style={{ width: 120, height: 120, display: "block" }} />
             </div>
-            <span style={{ fontSize: 10, color: theme.muted, letterSpacing: 2, textTransform: "uppercase" }}>
-              Escaneie para salvar
+            <span style={{ fontSize: 12, color: theme.muted, letterSpacing: 2, textTransform: "uppercase" }}>
+              {copy.scanToSave}
             </span>
           </div>
         )}
@@ -472,17 +587,17 @@ export function PublicCardPage() {
         {/* Save owner */}
         <div style={{ ...panelStyle }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, marginBottom: 14 }}>
-            Salvar contato de {card.name.split(" ")[0]}
+            {copy.saveContactOf(card.name.split(" ")[0])}
           </div>
-          <SaveOwnerSection card={card} theme={theme} />
+          <SaveOwnerSection card={card} theme={theme} copy={copy} />
         </div>
 
         {/* Share yours */}
         <div style={{ ...panelStyle }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, marginBottom: 14 }}>
-            Compartilhe o seu contato
+            {copy.shareYourContact}
           </div>
-          <ShareYourContact card={card} theme={theme} />
+          <ShareYourContact card={card} theme={theme} copy={copy} />
         </div>
       </div>
     </div>
