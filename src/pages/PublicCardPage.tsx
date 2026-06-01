@@ -132,13 +132,14 @@ const isLightColor = (color: string) => {
 };
 
 const getCardTheme = (card: BusinessCard) => {
-  const base = card.colors
+  const customColors = card.theme === "custom" ? card.colors : undefined;
+  const base = customColors?.bg
     ? {
-        bg: card.colors.bg,
-        text: card.colors.text,
-        accent: card.colors.accent,
-        muted: isLightColor(card.colors.bg) ? "rgba(17,17,17,0.48)" : "rgba(240,236,228,0.52)",
-        line: isLightColor(card.colors.bg) ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.10)",
+        bg: customColors.bg,
+        text: customColors.text,
+        accent: customColors.accent,
+        muted: isLightColor(customColors.bg) ? "rgba(17,17,17,0.48)" : "rgba(240,236,228,0.52)",
+        line: isLightColor(customColors.bg) ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.10)",
       }
     : (THEMES[card.theme] ?? THEMES.onyx);
 
@@ -177,6 +178,12 @@ const buildVCard = (card: BusinessCard) => [
   card.site ? `URL:${escapeVCardValue(card.site)}` : "",
   "END:VCARD",
 ].filter(Boolean).join("\r\n");
+
+const getVCardFilename = (card: BusinessCard) =>
+  `${card.name.replace(/\s+/g, "-").toLowerCase()}.vcf`;
+
+const getVCardDataUrl = (card: BusinessCard) =>
+  `data:text/vcard;charset=utf-8,${encodeURIComponent(buildVCard(card))}`;
 
 // ── Card visual ───────────────────────────────────────────────────────────
 
@@ -218,7 +225,7 @@ function CardHero({ card }: { card: BusinessCard }) {
       ) : null}
 
       {!centered && tag && (
-        <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.85 }}>
+        <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.85, paddingRight: card.avatar_url ? 60 : 0 }}>
           {tag}
         </div>
       )}
@@ -283,13 +290,15 @@ function CardHero({ card }: { card: BusinessCard }) {
 
 function SaveOwnerSection({ card, theme, copy }: { card: BusinessCard; theme: PageThemeValues; copy: Copy }) {
   const [saved, setSaved] = useState(false);
+  const vcardHref = getVCardDataUrl(card);
+  const vcardFilename = getVCardFilename(card);
 
   const downloadVCard = () => {
     const vcf = buildVCard(card);
     const a = document.createElement("a");
     const url = URL.createObjectURL(new Blob([vcf], { type: "text/vcard;charset=utf-8" }));
     a.href = url;
-    a.download = `${card.name.replace(/\s+/g, "-").toLowerCase()}.vcf`;
+    a.download = vcardFilename;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -320,9 +329,15 @@ function SaveOwnerSection({ card, theme, copy }: { card: BusinessCard; theme: Pa
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", gap: 8 }}>
-        <button
-          type="button"
-          onClick={downloadVCard}
+        <a
+          href={vcardHref}
+          download={vcardFilename}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => {
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+          }}
           style={{
             flex: 1,
             padding: "11px 14px",
@@ -335,10 +350,12 @@ function SaveOwnerSection({ card, theme, copy }: { card: BusinessCard; theme: Pa
             cursor: "pointer",
             fontFamily: "inherit",
             letterSpacing: "-0.01em",
+            textAlign: "center",
+            textDecoration: "none",
           }}
         >
           {saved ? `✓ ${copy.saved}` : copy.saveContact}
-        </button>
+        </a>
         {typeof navigator.share !== "undefined" && (
           <button
             type="button"

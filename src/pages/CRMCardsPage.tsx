@@ -57,7 +57,7 @@ const CARD_THEMES: Record<string, { bg: string; text: string; accent: string }> 
 };
 
 function CardPreview({ card }: { card: Partial<BusinessCard> & { name: string } }) {
-  const c = card.colors
+  const c = card.theme === "custom" && card.colors
     ? { bg: card.colors.bg, text: card.colors.text, accent: card.colors.accent }
     : (CARD_THEMES[card.theme ?? "onyx"] ?? CARD_THEMES.onyx);
   const accent = card.accent_color || c.accent;
