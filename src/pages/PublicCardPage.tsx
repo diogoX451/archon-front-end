@@ -131,6 +131,44 @@ const isLightColor = (color: string) => {
   return (r * 299 + g * 587 + b * 114) / 1000 > 160;
 };
 
+const getLuminance = (hex: string) => {
+  const h = hex.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(h)) return 0.5;
+  const toLinear = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  const r = toLinear(parseInt(h.slice(0, 2), 16));
+  const g = toLinear(parseInt(h.slice(2, 4), 16));
+  const b = toLinear(parseInt(h.slice(4, 6), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+const contrastRatio = (a: string, b: string) => {
+  const l1 = getLuminance(a);
+  const l2 = getLuminance(b);
+  const [light, dark] = l1 > l2 ? [l1, l2] : [l2, l1];
+  return (light + 0.05) / (dark + 0.05);
+};
+
+const enforceContrast = (accent: string, bg: string, minRatio = 4.5): string => {
+  if (!/^#[0-9a-f]{6}$/i.test(accent)) return accent;
+  if (contrastRatio(accent, bg) >= minRatio) return accent;
+  const bgLight = isLightColor(bg);
+  let r = parseInt(accent.slice(1, 3), 16);
+  let g = parseInt(accent.slice(3, 5), 16);
+  let b = parseInt(accent.slice(5, 7), 16);
+  const step = bgLight ? -8 : 8;
+  for (let i = 0; i < 32; i++) {
+    r = Math.max(0, Math.min(255, r + step));
+    g = Math.max(0, Math.min(255, g + step));
+    b = Math.max(0, Math.min(255, b + step));
+    const adjusted = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+    if (contrastRatio(adjusted, bg) >= minRatio) return adjusted;
+  }
+  return bgLight ? "#1a1a1a" : "#e8e8e8";
+};
+
 const getCardTheme = (card: BusinessCard) => {
   const customColors = card.theme === "custom" ? card.colors : undefined;
   const base = customColors?.bg
@@ -143,7 +181,8 @@ const getCardTheme = (card: BusinessCard) => {
       }
     : (THEMES[card.theme] ?? THEMES.onyx);
 
-  return { ...base, accent: card.accent_color || base.accent };
+  const rawAccent = card.accent_color || base.accent;
+  return { ...base, accent: enforceContrast(rawAccent, base.bg) };
 };
 
 const getPageTheme = (theme: CardThemeValues): PageThemeValues => {
