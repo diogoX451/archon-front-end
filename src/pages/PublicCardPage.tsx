@@ -13,11 +13,11 @@ const LINK_ICONS: Record<CardLinkType, string> = {
 
 const THEMES: Record<string, { bg: string; text: string; accent: string; muted: string; line: string }> = {
   onyx:   { bg: "#111111", text: "#f0ece4", accent: "#888888", muted: "rgba(240,236,228,0.45)", line: "rgba(255,255,255,0.08)" },
-  bone:   { bg: "#f0ebe2", text: "#2a2420", accent: "#8a7a6a", muted: "rgba(42,36,32,0.45)",   line: "rgba(0,0,0,0.08)" },
+  bone:   { bg: "#f0ebe2", text: "#2a2420", accent: "#6b5a4a", muted: "rgba(42,36,32,0.65)",   line: "rgba(0,0,0,0.08)" },
   forest: { bg: "#1e3a2a", text: "#d4e8da", accent: "#7ab990", muted: "rgba(212,232,218,0.45)", line: "rgba(255,255,255,0.10)" },
   slate:  { bg: "#1e2a3a", text: "#cdd8e8", accent: "#7aa0c8", muted: "rgba(205,216,232,0.45)", line: "rgba(255,255,255,0.10)" },
   clay:   { bg: "#c8452a", text: "#fdf0ec", accent: "#ffc4b8", muted: "rgba(253,240,236,0.50)", line: "rgba(255,255,255,0.15)" },
-  chalk:  { bg: "#f8f6f1", text: "#111111", accent: "#999999", muted: "rgba(17,17,17,0.40)",    line: "rgba(0,0,0,0.07)" },
+  chalk:  { bg: "#f8f6f1", text: "#111111", accent: "#5a5550", muted: "rgba(17,17,17,0.60)",    line: "rgba(0,0,0,0.07)" },
   dusk:   { bg: "#3a1e4a", text: "#e8d8f0", accent: "#c8a0d8", muted: "rgba(232,216,240,0.45)", line: "rgba(255,255,255,0.10)" },
   custom: { bg: "#111111", text: "#f0ece4", accent: "#888888", muted: "rgba(240,236,228,0.45)", line: "rgba(255,255,255,0.08)" },
 };
@@ -225,7 +225,7 @@ function CardHero({ card }: { card: BusinessCard }) {
       ) : null}
 
       {!centered && tag && (
-        <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: accent, opacity: 0.85, paddingRight: card.avatar_url ? 60 : 0 }}>
+        <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: accent, paddingRight: card.avatar_url ? 60 : 0 }}>
           {tag}
         </div>
       )}
@@ -235,7 +235,7 @@ function CardHero({ card }: { card: BusinessCard }) {
           {card.name}
         </div>
         {centered && tag && (
-          <div style={{ fontSize: 12, letterSpacing: 2.5, textTransform: "uppercase", color: accent, opacity: 0.8, marginTop: 8 }}>
+          <div style={{ fontSize: 12, letterSpacing: 2.5, textTransform: "uppercase", color: accent, marginTop: 8 }}>
             {tag}
           </div>
         )}
@@ -253,7 +253,7 @@ function CardHero({ card }: { card: BusinessCard }) {
             marginTop: centered ? 12 : 0,
           }}>
             {contacts.map(p => (
-              <span key={p} style={{ fontSize: 12, color: accent, opacity: 0.85, letterSpacing: 0.3 }}>{p}</span>
+              <span key={p} style={{ fontSize: 12, color: accent, letterSpacing: 0.3 }}>{p}</span>
             ))}
           </div>
         )}
