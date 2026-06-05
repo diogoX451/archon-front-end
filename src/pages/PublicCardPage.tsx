@@ -497,7 +497,7 @@ function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: Pa
     border: `1px solid ${theme.line}`,
     background: theme.fieldBg,
     color: theme.text,
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: "inherit",
     outline: "none",
     boxSizing: "border-box" as const,
@@ -544,6 +544,7 @@ function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: Pa
         }}>
           {saving ? copy.sending : copy.exchangeButton}
         </button>
+
         {hasContactPicker && (
           <button type="button" onClick={() => setMode("idle")} style={{
             background: "none", border: "none", color: theme.muted, cursor: "pointer", fontSize: 12, fontFamily: "inherit",
