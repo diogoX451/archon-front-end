@@ -49,6 +49,10 @@ type Copy = {
   introduceYourself: (name: string) => string;
   importFromContacts: string;
   typeDetails: string;
+  exchangeTitle: (name: string) => string;
+  exchangeHint: (name: string) => string;
+  exchangeButton: string;
+  exchanged: (name: string) => string;
 };
 
 const COPIES: Record<"pt" | "en" | "es", Copy> = {
@@ -71,6 +75,10 @@ const COPIES: Record<"pt" | "en" | "es", Copy> = {
     introduceYourself: name => `Deixe ${name} te conhecer também.`,
     importFromContacts: "Importar da agenda",
     typeDetails: "Digitar dados",
+    exchangeTitle: name => `Trocar contatos com ${name}`,
+    exchangeHint: name => `Você salva o contato de ${name} e ${name} salva o seu.`,
+    exchangeButton: "Trocar contatos",
+    exchanged: name => `Contatos trocados com ${name}! O .vcf foi baixado.`,
   },
   en: {
     notFound: "Card not found",
@@ -91,6 +99,10 @@ const COPIES: Record<"pt" | "en" | "es", Copy> = {
     introduceYourself: name => `Let ${name} know you too.`,
     importFromContacts: "Import from contacts",
     typeDetails: "Type details",
+    exchangeTitle: name => `Exchange contacts with ${name}`,
+    exchangeHint: name => `You save ${name}'s contact and ${name} saves yours.`,
+    exchangeButton: "Exchange contacts",
+    exchanged: name => `Contacts exchanged with ${name}! The .vcf was downloaded.`,
   },
   es: {
     notFound: "Tarjeta no encontrada",
@@ -111,6 +123,10 @@ const COPIES: Record<"pt" | "en" | "es", Copy> = {
     introduceYourself: name => `Deja que ${name} también te conozca.`,
     importFromContacts: "Importar de contactos",
     typeDetails: "Escribir datos",
+    exchangeTitle: name => `Intercambiar contactos con ${name}`,
+    exchangeHint: name => `Tú guardas el contacto de ${name} y ${name} guarda el tuyo.`,
+    exchangeButton: "Intercambiar contactos",
+    exchanged: name => `¡Contactos intercambiados con ${name}! El .vcf fue descargado.`,
   },
 };
 
@@ -241,7 +257,7 @@ function CardHero({ card }: { card: BusinessCard }) {
       background: c.bg,
       borderRadius: 20,
       padding: "28px 32px",
-      aspectRatio: "1.75",
+      minHeight: "clamp(160px, 54vw, 252px)",
       display: "flex",
       flexDirection: "column",
       justifyContent: centered ? "center" : card.layout === "minimal" ? "flex-end" : "space-between",
@@ -249,7 +265,7 @@ function CardHero({ card }: { card: BusinessCard }) {
       textAlign: centered ? "center" : "left",
       boxShadow: heroLight
         ? `0 8px 40px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.06)`
-        : "0 32px 64px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.15)",
+        : `0 32px 64px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255,255,255,0.10)`,
       width: "100%",
       position: "relative",
     }}>
@@ -460,35 +476,46 @@ function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: Pa
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...input, tenant_id: card.tenant_id }),
       });
+      // Download owner's VCF so visitor saves their contact too (contact exchange)
+      const vcf = buildVCard(card);
+      const url = URL.createObjectURL(new Blob([vcf], { type: "text/vcard" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = getVCardFilename(card);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       setMode("done");
     } catch { /* best-effort */ } finally { setSaving(false); }
   };
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
-    padding: "10px 12px",
-    borderRadius: 8,
+    padding: "12px 14px",
+    borderRadius: 10,
     border: `1px solid ${theme.line}`,
     background: theme.fieldBg,
     color: theme.text,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: "inherit",
     outline: "none",
     boxSizing: "border-box" as const,
+    WebkitAppearance: "none",
   };
 
   if (mode === "done") {
     return (
       <div style={{ textAlign: "center", padding: "8px 0", fontSize: 13, color: theme.accent, fontWeight: 500 }}>
-        ✓ {copy.sharedWith(card.name.split(" ")[0])}
+        ✓ {copy.exchanged(card.name.split(" ")[0])}
       </div>
     );
   }
 
   if (mode === "manual") {
     return (
-      <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <p style={{ fontSize: 12, color: theme.muted, margin: 0 }}>
+      <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <p style={{ fontSize: 12, color: theme.muted, margin: "0 0 4px" }}>
           {copy.yourDetailsFor(card.name.split(" ")[0])}
         </p>
         {(["name","email","phone","company"] as const).map(f => (
@@ -503,17 +530,19 @@ function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: Pa
           />
         ))}
         <button type="submit" disabled={saving} style={{
-          padding: "11px",
+          padding: "14px",
           borderRadius: 10,
           border: "none",
           background: theme.actionBg,
           color: theme.actionText,
-          fontSize: 13,
+          fontSize: 14,
           fontWeight: 600,
-          cursor: "pointer",
+          cursor: saving ? "default" : "pointer",
           fontFamily: "inherit",
+          marginTop: 4,
+          opacity: saving ? 0.7 : 1,
         }}>
-          {saving ? copy.sending : copy.shareContact}
+          {saving ? copy.sending : copy.exchangeButton}
         </button>
         {hasContactPicker && (
           <button type="button" onClick={() => setMode("idle")} style={{
@@ -607,7 +636,7 @@ export function PublicCardPage() {
     background: theme.surfaceBg,
     border: `1px solid ${theme.line}`,
     borderRadius: 16,
-    padding: "20px 22px",
+    padding: "22px 24px",
     boxShadow: isLight ? "0 14px 34px rgba(27,27,23,0.08), 0 1px 3px rgba(27,27,23,0.06)" : "none",
   };
 
@@ -619,7 +648,7 @@ export function PublicCardPage() {
       display: "flex",
       alignItems: "flex-start",
       justifyContent: "center",
-      padding: "40px 20px 60px",
+      padding: "clamp(20px, 5vw, 40px) clamp(14px, 4vw, 20px) 60px",
       fontFamily: "'Inter', 'SF Pro Display', system-ui, sans-serif",
     }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -648,11 +677,14 @@ export function PublicCardPage() {
           <SaveOwnerSection card={card} theme={theme} copy={copy} />
         </div>
 
-        {/* Share yours */}
+        {/* Contact exchange */}
         <div style={{ ...panelStyle }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, marginBottom: 14 }}>
-            {copy.shareYourContact}
+          <div style={{ fontSize: 13, fontWeight: 600, color: theme.text, marginBottom: 4 }}>
+            {copy.exchangeTitle(card.name.split(" ")[0])}
           </div>
+          <p style={{ fontSize: 12, color: theme.muted, margin: "0 0 14px" }}>
+            {copy.exchangeHint(card.name.split(" ")[0])}
+          </p>
           <ShareYourContact card={card} theme={theme} copy={copy} />
         </div>
       </div>
