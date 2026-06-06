@@ -603,6 +603,28 @@ export function PublicCardPage() {
     getPublicCard(slug).then(setCard).catch(() => setError(true)).finally(() => setLoading(false));
   }, [slug]);
 
+  // The app shell pins #root to height:100vh + overflow:hidden for the dashboard
+  // grid. This standalone public page is taller than the viewport, so we release
+  // those constraints while it is mounted and restore them on unmount.
+  useEffect(() => {
+    const root = document.getElementById("root");
+    const prev = root
+      ? { height: root.style.height, width: root.style.width, overflow: root.style.overflow }
+      : null;
+    if (root) {
+      root.style.height = "auto";
+      root.style.width = "auto";
+      root.style.overflow = "visible";
+    }
+    return () => {
+      if (root && prev) {
+        root.style.height = prev.height;
+        root.style.width = prev.width;
+        root.style.overflow = prev.overflow;
+      }
+    };
+  }, []);
+
   if (loading) {
     return (
       <div style={{ minHeight: "100svh", display: "flex", alignItems: "center", justifyContent: "center", background: "#111" }}>
