@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@shared/ui/feedback";
 import {
   listContacts, getContact, createContact, updateContact, deleteContact, getCRMStats,
   listCards, getCard, createCard, updateCard, deleteCard, getCardAnalytics,
@@ -49,26 +50,32 @@ export const useCRMStats = () => {
 
 export const useCreateContact = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: (input: CreateContactInput) => createContact(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.contacts.all }),
+    onError: (err: Error) => toast.error(err.message || "Falha ao criar contato"),
   });
 };
 
 export const useUpdateContact = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateContactInput }) =>
       updateContact(id, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.contacts.all }),
+    onError: (err: Error) => toast.error(err.message || "Falha ao atualizar contato"),
   });
 };
 
 export const useDeleteContact = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: (id: string) => deleteContact(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.contacts.all }),
+    onError: (err: Error) => toast.error(err.message || "Falha ao remover contato"),
   });
 };
 
@@ -99,25 +106,31 @@ export const useCardAnalytics = (id: string) => {
 
 export const useCreateCard = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: (input: CreateCardInput) => createCard(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.cards.all }),
+    onError: (err: Error) => toast.error(err.message || "Falha ao criar cartão"),
   });
 };
 
 export const useUpdateCard = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: UpdateCardInput }) =>
       updateCard(id, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.cards.all }),
+    onError: (err: Error) => toast.error(err.message || "Falha ao atualizar cartão"),
   });
 };
 
 export const useDeleteCard = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: (id: string) => deleteCard(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: crmKeys.cards.all }),
+    onError: (err: Error) => toast.error(err.message || "Falha ao remover cartão"),
   });
 };

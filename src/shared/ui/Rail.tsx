@@ -81,6 +81,13 @@ export const IconAudit = (p: IconProps) => (
   </svg>
 );
 
+// Observability icon (activity chart)
+export const IconObservability = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </svg>
+);
+
 // Billing icon (credit card / plan)
 export const IconBilling = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -167,6 +174,7 @@ const links: RailLink[] = [
   // Observe — monitoring & knowledge
   // { to: "/events",          labelKey: "nav.executions",    icon: IconExecutions,   perms: ["workflow_list"], tourTarget: "nav-events", group: "observe" },
   { to: "/rag",             labelKey: "nav.rag",           icon: IconRAG,          perms: ["rag_read", "rag_query", "rag_ingest"], tourTarget: "nav-rag", group: "observe" },
+  { to: "/observability",  labelKey: "nav.observability", icon: IconObservability, perms: ["workflow_list"], group: "observe" },
   // Config — integrations & models
   { to: "/channels",        labelKey: "nav.channels",      icon: IconChannels,     perms: ["channel_manage"], group: "config" },
   { to: "/llm-config",      labelKey: "nav.llmConfig",     icon: IconLLMConfig,    perms: ["channel_manage"], group: "config" },

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useContacts, useCRMStats, useUpdateContact, useDeleteContact } from "@shared/hooks/useCRM";
+import { useContacts, useCRMStats, useUpdateContact, useDeleteContact, useCreateContact } from "@shared/hooks/useCRM";
 import type { ContactStatus, Contact } from "@shared/api/crm";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 
@@ -101,9 +101,13 @@ function ContactRow({ contact, onStatus }: {
   );
 }
 
+const EMPTY_FORM = { name: "", company: "", email: "", phone: "", status: "novo" as ContactStatus };
+
 export function CRMContactsPage() {
   const [filter, setFilter] = useState<ContactStatus | "">("");
   const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [newForm, setNewForm] = useState(EMPTY_FORM);
 
   const { data: contacts = [], isLoading, error } = useContacts({
     status: filter || undefined,
@@ -111,6 +115,7 @@ export function CRMContactsPage() {
   });
   const { data: stats } = useCRMStats();
   const updateContact = useUpdateContact();
+  const createContact = useCreateContact();
 
   const inputStyle: React.CSSProperties = {
     fontFamily: "var(--font-sans)",
@@ -163,6 +168,24 @@ export function CRMContactsPage() {
               </span>
             </div>
           )}
+          <button
+            type="button"
+            onClick={() => setShowForm(v => !v)}
+            style={{
+              padding: "7px 14px",
+              borderRadius: "var(--r-2)",
+              border: "none",
+              background: "var(--accent)",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: "var(--font-sans)",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            + Novo Contato
+          </button>
         </div>
 
         {/* Filters */}
@@ -184,6 +207,40 @@ export function CRMContactsPage() {
             ))}
           </select>
         </div>
+
+        {/* New contact form */}
+        {showForm && (
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              if (!newForm.name.trim()) return;
+              const { status: _s, ...input } = newForm;
+              createContact.mutate(input, {
+                onSuccess: () => { setShowForm(false); setNewForm(EMPTY_FORM); },
+              });
+            }}
+            style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-4)", padding: 16, marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 }}
+          >
+            <div style={{ fontWeight: 600, fontSize: 13 }}>Novo Contato</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input required placeholder="Nome *" value={newForm.name} onChange={e => setNewForm(f => ({...f, name: e.target.value}))} style={{...inputStyle, flex: "1 1 200px"}} />
+              <input placeholder="Empresa" value={newForm.company} onChange={e => setNewForm(f => ({...f, company: e.target.value}))} style={{...inputStyle, flex: "1 1 160px"}} />
+              <input placeholder="Email" type="email" value={newForm.email} onChange={e => setNewForm(f => ({...f, email: e.target.value}))} style={{...inputStyle, flex: "1 1 160px"}} />
+              <input placeholder="Telefone" value={newForm.phone} onChange={e => setNewForm(f => ({...f, phone: e.target.value}))} style={{...inputStyle, flex: "1 1 120px"}} />
+              <select value={newForm.status} onChange={e => setNewForm(f => ({...f, status: e.target.value as ContactStatus}))} style={{...inputStyle, minWidth: 130}}>
+                {PIPELINE.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="submit" disabled={createContact.isPending} style={{ padding: "7px 16px", borderRadius: "var(--r-2)", border: "none", background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, fontFamily: "var(--font-sans)", cursor: "pointer" }}>
+                {createContact.isPending ? "Criando..." : "Criar"}
+              </button>
+              <button type="button" onClick={() => setShowForm(false)} style={{ padding: "7px 16px", borderRadius: "var(--r-2)", border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)", fontSize: 13, fontFamily: "var(--font-sans)", cursor: "pointer" }}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
 
         {/* States */}
         {isLoading && (

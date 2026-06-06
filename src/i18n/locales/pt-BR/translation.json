@@ -16,6 +16,7 @@
     "auditLog": "Auditoria",
     "myPrivacy": "Minha Privacidade",
     "myBilling": "Meu Plano",
+    "observability": "Observabilidade",
     "logout": "Sair",
     "handoffs": "Atendimentos",
     "crmContacts": "Contatos CRM",
@@ -63,7 +64,8 @@
     "llmConfig": "Modelos de IA",
     "account": "Conta",
     "myPrivacy": "Minha privacidade",
-    "myBilling": "Meu Plano"
+    "myBilling": "Meu Plano",
+    "observability": "Observabilidade"
   },
   "tour": {
     "nav": {

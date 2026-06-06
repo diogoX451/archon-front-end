@@ -16,6 +16,7 @@
     "auditLog": "Audit Log",
     "myPrivacy": "My Privacy",
     "myBilling": "My Plan",
+    "observability": "Observability",
     "logout": "Logout",
     "handoffs": "Handoffs",
     "crmContacts": "CRM Contacts",
@@ -63,7 +64,8 @@
     "llmConfig": "LLM Configuration",
     "account": "Account",
     "myPrivacy": "My privacy",
-    "myBilling": "My Plan"
+    "myBilling": "My Plan",
+    "observability": "Observability"
   },
   "tour": {
     "nav": {

@@ -30,6 +30,21 @@ function fmtRelativeDate(iso: string | null | undefined): string {
   return `${d} d atrás`;
 }
 
+function calcElapsedSecs(iso: string | null | undefined): number {
+  if (!iso) return 0;
+  const ts = new Date(iso).getTime();
+  if (Number.isNaN(ts)) return 0;
+  return Math.max(0, Math.floor((Date.now() - ts) / 1000));
+}
+
+function fmtElapsed(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}h ${m.toString().padStart(2, "0")}m`;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
 type StatusMeta = { label: string; bg: string; color: string; dot: string };
 const STATUS_META: Record<HandoffStatus, StatusMeta> = {
   active: { label: "Em atendimento", bg: "#e6f9ee", color: "#1a7a40", dot: "#1a7a40" },
@@ -66,6 +81,31 @@ function StatusBadge({ handoff }: { handoff: Handoff }) {
     }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: meta.dot, display: "inline-block" }} />
       {meta.label}
+    </span>
+  );
+}
+
+function SlaTimer({ since }: { since: string | null | undefined }) {
+  const [elapsed, setElapsed] = useState(() => calcElapsedSecs(since));
+
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(calcElapsedSecs(since)), 1000);
+    return () => clearInterval(id);
+  }, [since]);
+
+  const color = elapsed < 300 ? "#16a34a" : elapsed < 900 ? "#d97706" : "#dc2626";
+  const urgent = elapsed >= 900;
+
+  return (
+    <span style={{
+      fontVariantNumeric: "tabular-nums",
+      fontSize: 11,
+      fontWeight: 700,
+      color,
+      letterSpacing: "0.02em",
+      animation: urgent ? "pulse 2s ease-in-out infinite" : undefined,
+    }}>
+      {fmtElapsed(elapsed)}
     </span>
   );
 }
@@ -266,6 +306,12 @@ function HandoffDetail({
       }}>
         <div><span style={{ opacity: 0.5 }}>Iniciado</span><br /><strong>{fmtDate(handoff.ActivatedAt)}</strong></div>
         <div><span style={{ opacity: 0.5 }}>Atendente</span><br /><strong>{handoff.AssignedTo || "—"}</strong></div>
+        {!isClosed && (
+          <div>
+            <span style={{ opacity: 0.5 }}>Tempo esperando</span><br />
+            <strong><SlaTimer since={handoff.ActivatedAt ?? handoff.CreatedAt} /></strong>
+          </div>
+        )}
         {isClosed && (
           <>
             <div><span style={{ opacity: 0.5 }}>Encerrado</span><br /><strong>{fmtDate(handoff.ClosedAt)}</strong></div>
@@ -349,7 +395,7 @@ export function HandoffsPage() {
 
   const canView = canAny({ isSuper, hasPermission }, ["workflow_list", "conversation_turn"]);
   const { data, isLoading, error, refetch } = useHandoffsList({
-    refetchInterval: 10_000,
+    refetchInterval: 5_000,
   });
 
   const allHandoffs = data?.handoffs ?? [];
@@ -375,6 +421,12 @@ export function HandoffsPage() {
     if (!allHandoffs.some((h) => h.ID === selected.ID)) setSelected(null);
   }, [allHandoffs, selected]);
 
+  useEffect(() => {
+    const count = metrics.pending + metrics.active;
+    document.title = count > 0 ? `(${count}) Atendimentos — Archon` : "Atendimentos — Archon";
+    return () => { document.title = "Archon"; };
+  }, [metrics.pending, metrics.active]);
+
   if (!canView) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", opacity: 0.5, fontSize: 14 }}>
@@ -385,6 +437,17 @@ export function HandoffsPage() {
 
   return (
     <>
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        @keyframes ring-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+      `}</style>
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }} />
@@ -533,8 +596,15 @@ export function HandoffsPage() {
               </div>
             )}
             {handoffs.map((h) => {
-              const isActive = handoffStatusLabel(h) === "active";
+              const status = handoffStatusLabel(h);
+              const isActive = status === "active";
               const isSelected = selected?.ID === h.ID;
+              const isUrgent = (() => {
+                if (status === "closed") return false;
+                const ref = h.ActivatedAt ?? h.CreatedAt;
+                if (!ref) return false;
+                return Date.now() - new Date(ref).getTime() > 15 * 60 * 1000;
+              })();
               return (
                 <button
                   key={h.ID}
@@ -555,6 +625,7 @@ export function HandoffsPage() {
                     flexDirection: "column",
                     gap: 4,
                     transition: "background 0.1s",
+                    animation: isUrgent ? "ring-pulse 2s ease-in-out infinite" : undefined,
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
@@ -579,6 +650,11 @@ export function HandoffsPage() {
                       </>
                     )}
                     <span style={{ marginLeft: "auto" }}>{fmtRelativeDate(isActive ? h.ActivatedAt : h.ClosedAt)}</span>
+                    {status !== "closed" && (
+                      <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
+                        <SlaTimer since={isActive ? h.ActivatedAt : h.CreatedAt} />
+                      </span>
+                    )}
                   </div>
                   {h.ClosingSummary && (
                     <div style={{ fontSize: 11, opacity: 0.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
