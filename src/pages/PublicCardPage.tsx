@@ -53,6 +53,7 @@ type Copy = {
   exchangeHint: (name: string) => string;
   exchangeButton: string;
   exchanged: (name: string) => string;
+  sendError: string;
 };
 
 const COPIES: Record<"pt" | "en" | "es", Copy> = {
@@ -79,6 +80,7 @@ const COPIES: Record<"pt" | "en" | "es", Copy> = {
     exchangeHint: name => `Você salva o contato de ${name} e ${name} salva o seu.`,
     exchangeButton: "Trocar contatos",
     exchanged: name => `Contatos trocados com ${name}! O .vcf foi baixado.`,
+    sendError: "Não foi possível enviar. Tente novamente.",
   },
   en: {
     notFound: "Card not found",
@@ -103,6 +105,7 @@ const COPIES: Record<"pt" | "en" | "es", Copy> = {
     exchangeHint: name => `You save ${name}'s contact and ${name} saves yours.`,
     exchangeButton: "Exchange contacts",
     exchanged: name => `Contacts exchanged with ${name}! The .vcf was downloaded.`,
+    sendError: "Couldn't send. Please try again.",
   },
   es: {
     notFound: "Tarjeta no encontrada",
@@ -127,16 +130,22 @@ const COPIES: Record<"pt" | "en" | "es", Copy> = {
     exchangeHint: name => `Tú guardas el contacto de ${name} y ${name} guarda el tuyo.`,
     exchangeButton: "Intercambiar contactos",
     exchanged: name => `¡Contactos intercambiados con ${name}! El .vcf fue descargado.`,
+    sendError: "No se pudo enviar. Inténtalo de nuevo.",
   },
 };
 
-const getCopy = () => {
-  if (typeof navigator === "undefined") return COPIES.pt;
+type Lang = "pt" | "en" | "es";
+const LANGS: Lang[] = ["pt", "en", "es"];
+
+const detectLang = (): Lang => {
+  if (typeof navigator === "undefined") return "pt";
   const lang = navigator.language.toLowerCase();
-  if (lang.startsWith("en")) return COPIES.en;
-  if (lang.startsWith("es")) return COPIES.es;
-  return COPIES.pt;
+  if (lang.startsWith("en")) return "en";
+  if (lang.startsWith("es")) return "es";
+  return "pt";
 };
+
+const getCopy = () => COPIES[detectLang()];
 
 const isLightColor = (color: string) => {
   const hex = color.replace("#", "");
@@ -452,6 +461,7 @@ function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: Pa
   const [mode, setMode] = useState<"idle" | "manual" | "done">(hasContactPicker ? "idle" : "manual");
   const [form, setForm] = useState({ name: "", email: "", phone: "", company: "" });
   const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const tryPicker = async () => {
     // Contact Picker API only supports the properties: name, email, tel, address, icon.
@@ -483,13 +493,17 @@ function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: Pa
     e.preventDefault();
     if (!form.name.trim()) return;
     setSaving(true);
+    setFailed(false);
     try {
-      const input: CreateContactInput & { source: string } = { ...form, source: "cartao" };
-      await fetch(`${API_BASE_URL}/api/v1/crm/contacts`, {
+      // Public endpoint: tenant + source are derived from the slug on the
+      // backend, so no auth/CSRF and no tenant_id in the body.
+      const input: Omit<CreateContactInput, "tenant_id" | "source"> = { ...form };
+      const res = await fetch(`${API_BASE_URL}/c/${card.slug}/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...input, tenant_id: card.tenant_id }),
+        body: JSON.stringify(input),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       // Download owner's VCF so visitor saves their contact too (contact exchange)
       const vcf = buildVCard(card);
       const url = URL.createObjectURL(new Blob([vcf], { type: "text/vcard" }));
@@ -501,7 +515,9 @@ function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: Pa
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       setMode("done");
-    } catch { /* best-effort */ } finally { setSaving(false); }
+    } catch {
+      setFailed(true);
+    } finally { setSaving(false); }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -540,9 +556,16 @@ function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: Pa
             value={form[f]}
             onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
             required={f === "name"}
+            type={f === "email" ? "email" : f === "phone" ? "tel" : "text"}
+            autoComplete={{ name: "name", email: "email", phone: "tel", company: "organization" }[f]}
             style={inputStyle}
           />
         ))}
+        {failed && (
+          <p style={{ fontSize: 12, color: "#e5484d", margin: 0 }}>
+            {copy.sendError}
+          </p>
+        )}
         <button type="submit" disabled={saving} style={{
           padding: "14px",
           borderRadius: 10,
@@ -611,6 +634,7 @@ export function PublicCardPage() {
   const [card, setCard] = useState<BusinessCard | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lang, setLang] = useState<Lang>(detectLang);
 
   useEffect(() => {
     if (!slug) return;
@@ -659,7 +683,7 @@ export function PublicCardPage() {
 
   const cardTheme = getCardTheme(card);
   const theme = getPageTheme(cardTheme);
-  const copy = getCopy();
+  const copy = COPIES[lang];
 
   // Detect light bg — luminance heuristic on hex color
   const isLight = isLightColor(cardTheme.bg);
@@ -691,6 +715,35 @@ export function PublicCardPage() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       <div style={{ width: "100%", maxWidth: 440, display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Language switcher */}
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6, marginBottom: -6 }}>
+          <span aria-hidden style={{ fontSize: 13, color: theme.muted }}>🌐</span>
+          {LANGS.map(l => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLang(l)}
+              aria-pressed={lang === l}
+              aria-label={`Idioma: ${l.toUpperCase()}`}
+              style={{
+                padding: "3px 8px",
+                borderRadius: 8,
+                border: `1px solid ${lang === l ? theme.text : theme.line}`,
+                background: lang === l ? theme.text : "transparent",
+                color: lang === l ? theme.bg : theme.muted,
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: 0.5,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                textTransform: "uppercase",
+              }}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+
         {/* Card */}
         <CardHero card={card} />
 
