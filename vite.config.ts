@@ -9,6 +9,16 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: ['./src/test/setup.ts'],
+      alias: {
+        '@shared': '/home/dioguin/Documentos/Projetos/archon-front-end/src/shared',
+        '@pages': '/home/dioguin/Documentos/Projetos/archon-front-end/src/pages',
+        '@app': '/home/dioguin/Documentos/Projetos/archon-front-end/src/app',
+      },
+    },
     resolve: {
       alias: {
         "@app": path.resolve(__dirname, "src/app"),

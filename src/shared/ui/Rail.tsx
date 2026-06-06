@@ -176,6 +176,7 @@ const links: RailLink[] = [
   // { to: "/events",          labelKey: "nav.executions",    icon: IconExecutions,   perms: ["workflow_list"], tourTarget: "nav-events", group: "observe" },
   { to: "/rag",             labelKey: "nav.rag",           icon: IconRAG,          perms: ["rag_read", "rag_query", "rag_ingest"], tourTarget: "nav-rag", group: "observe" },
   { to: "/observability",  labelKey: "nav.observability", icon: IconObservability, perms: ["workflow_list"], group: "observe" },
+  { to: "/roi-analytics",  labelKey: "nav.roiAnalytics",  icon: IconObservability, perms: ["workflow_list"], group: "observe" },
   // Config — integrations & models
   { to: "/channels",        labelKey: "nav.channels",      icon: IconChannels,     perms: ["channel_manage"], group: "config" },
   { to: "/llm-config",      labelKey: "nav.llmConfig",     icon: IconLLMConfig,    perms: ["channel_manage"], group: "config" },

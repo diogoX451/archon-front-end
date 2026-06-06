@@ -21,6 +21,7 @@
     "handoffs": "Handoffs",
     "crmContacts": "CRM Contacts",
     "crmCards": "Business Cards",
+    "roiAnalytics": "ROI Analytics",
     "language": "Language",
     "lang_pt": "Portuguese",
     "lang_en": "English"
@@ -68,7 +69,8 @@
     "account": "Account",
     "myPrivacy": "My privacy",
     "myBilling": "My Plan",
-    "observability": "Observability"
+    "observability": "Observability",
+    "roiAnalytics": "ROI Analytics"
   },
   "tour": {
     "nav": {

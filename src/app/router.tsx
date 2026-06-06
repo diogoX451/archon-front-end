@@ -24,6 +24,7 @@ import { LandingPage } from "@pages/LandingPage";
 import { AccountPrivacyPage } from "@pages/AccountPrivacyPage";
 import { BillingPage } from "@pages/BillingPage";
 import { ObservabilityPage } from "@pages/ObservabilityPage";
+import { ROIAnalyticsPage } from "@pages/ROIAnalyticsPage";
 import { PrivacyPolicyPage } from "@pages/legal/PrivacyPolicyPage";
 import { TermsPage } from "@pages/legal/TermsPage";
 import { DpoPage } from "@pages/legal/DpoPage";
@@ -101,6 +102,7 @@ export function AppRouter() {
                     <Route path="/account/privacy" element={<AccountPrivacyPage />} />
                     <Route path="/account/billing" element={<BillingPage />} />
                     <Route path="/observability" element={<ObservabilityPage />} />
+                    <Route path="/roi-analytics" element={<ROIAnalyticsPage />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </AppShell>

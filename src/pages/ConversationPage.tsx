@@ -428,7 +428,19 @@ export function ConversationPage() {
   const createTurn = useCreateConversationTurn();
   const sendingRef = useRef(false);
   const { data: convsPage, isLoading: convsLoading } = useConversationsList(undefined, { limit: 50 });
-  const allConversations = convsPage?.items || [];
+  const allConversations = useMemo(() => {
+    const items = convsPage?.items || [];
+    const seen = new Map<string, typeof items[0]>();
+    for (const c of items) {
+      const prev = seen.get(c.conversation_id);
+      if (!prev || (c.last_message_at ?? c.updated_at) > (prev.last_message_at ?? prev.updated_at)) {
+        seen.set(c.conversation_id, c);
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) =>
+      (b.last_message_at ?? b.updated_at).localeCompare(a.last_message_at ?? a.updated_at)
+    );
+  }, [convsPage?.items]);
   const conversations = useMemo(() => {
     if (!convSearch.trim()) return allConversations;
     const q = convSearch.toLowerCase();
