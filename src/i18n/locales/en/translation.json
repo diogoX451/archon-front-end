@@ -15,6 +15,7 @@
     "mcpServers": "MCP Servers",
     "auditLog": "Audit Log",
     "myPrivacy": "My Privacy",
+    "myBilling": "My Plan",
     "logout": "Logout",
     "handoffs": "Handoffs",
     "crmContacts": "CRM Contacts",
@@ -61,7 +62,8 @@
     "adminAuditLog": "Audit Log",
     "llmConfig": "LLM Configuration",
     "account": "Account",
-    "myPrivacy": "My privacy"
+    "myPrivacy": "My privacy",
+    "myBilling": "My Plan"
   },
   "tour": {
     "nav": {

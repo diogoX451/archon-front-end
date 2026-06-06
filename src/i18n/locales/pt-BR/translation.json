@@ -15,6 +15,7 @@
     "mcpServers": "Servidores MCP",
     "auditLog": "Auditoria",
     "myPrivacy": "Minha Privacidade",
+    "myBilling": "Meu Plano",
     "logout": "Sair",
     "handoffs": "Atendimentos",
     "crmContacts": "Contatos CRM",
@@ -61,7 +62,8 @@
     "adminAuditLog": "Log de auditoria",
     "llmConfig": "Modelos de IA",
     "account": "Conta",
-    "myPrivacy": "Minha privacidade"
+    "myPrivacy": "Minha privacidade",
+    "myBilling": "Meu Plano"
   },
   "tour": {
     "nav": {

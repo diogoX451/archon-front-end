@@ -22,6 +22,7 @@ import { SignupPage } from "@pages/SignupPage";
 import { VerifyEmailPage } from "@pages/VerifyEmailPage";
 import { LandingPage } from "@pages/LandingPage";
 import { AccountPrivacyPage } from "@pages/AccountPrivacyPage";
+import { BillingPage } from "@pages/BillingPage";
 import { PrivacyPolicyPage } from "@pages/legal/PrivacyPolicyPage";
 import { TermsPage } from "@pages/legal/TermsPage";
 import { DpoPage } from "@pages/legal/DpoPage";
@@ -97,6 +98,7 @@ export function AppRouter() {
                     <Route path="/admin/mcp/connected" element={<MCPOAuthResultPage kind="connected" />} />
                     <Route path="/admin/mcp/error" element={<MCPOAuthResultPage kind="error" />} />
                     <Route path="/account/privacy" element={<AccountPrivacyPage />} />
+                    <Route path="/account/billing" element={<BillingPage />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </AppShell>

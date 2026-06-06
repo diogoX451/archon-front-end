@@ -81,6 +81,15 @@ export const IconAudit = (p: IconProps) => (
   </svg>
 );
 
+// Billing icon (credit card / plan)
+export const IconBilling = (p: IconProps) => (
+  <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <line x1="2" y1="10" x2="22" y2="10" />
+    <line x1="6" y1="15" x2="10" y2="15" />
+  </svg>
+);
+
 // Privacy icon (shield + user)
 export const IconPrivacy = (p: IconProps) => (
   <svg width={p.size || 18} height={p.size || 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -170,6 +179,7 @@ const links: RailLink[] = [
   { to: "/admin-audit",     labelKey: "nav.auditLog",      icon: IconAudit,        superOnly: true, group: "admin" },
   // Account
   { to: "/account/privacy", labelKey: "nav.myPrivacy",     icon: IconPrivacy,      group: "account" },
+  { to: "/account/billing", labelKey: "nav.myBilling",     icon: IconBilling,      group: "account" },
 ];
 
 const RAIL_W_COLLAPSED = 56;
