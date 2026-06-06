@@ -20,7 +20,10 @@
     "logout": "Logout",
     "handoffs": "Handoffs",
     "crmContacts": "CRM Contacts",
-    "crmCards": "Business Cards"
+    "crmCards": "Business Cards",
+    "language": "Language",
+    "lang_pt": "Portuguese",
+    "lang_en": "English"
   },
   "nav_logout_confirm": {
     "title": "Sign out",

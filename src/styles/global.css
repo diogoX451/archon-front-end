@@ -951,6 +951,32 @@ select {
   opacity: 1;
 }
 
+/* Per-type accent on left border for quick visual scanning */
+.agent[data-type="planner"]          { border-left: 3px solid #6366f1; }
+.agent[data-type="http"]             { border-left: 3px solid #0ea5e9; }
+.agent[data-type="transform"]        { border-left: 3px solid #f59e0b; }
+.agent[data-type="rag.query"]        { border-left: 3px solid #10b981; }
+.agent[data-type="rag.ingest"]       { border-left: 3px solid #059669; }
+.agent[data-type="graph.memory"]     { border-left: 3px solid #8b5cf6; }
+.agent[data-type="channel.delivery"] { border-left: 3px solid #ec4899; }
+.agent[data-type="event"]            { border-left: 3px solid #64748b; }
+.agent[data-type="interaction"]      { border-left: 3px solid #f97316; }
+.agent[data-type="mcp"]              { border-left: 3px solid #06b6d4; }
+.agent[data-type="guardrails"]       { border-left: 3px solid #ef4444; }
+
+/* Tint the glyph box to match the type accent */
+.agent[data-type="planner"]          .agent-glyph { background: #ede9fe; border-color: #c4b5fd; color: #6366f1; }
+.agent[data-type="http"]             .agent-glyph { background: #e0f2fe; border-color: #7dd3fc; color: #0ea5e9; }
+.agent[data-type="transform"]        .agent-glyph { background: #fef3c7; border-color: #fcd34d; color: #f59e0b; }
+.agent[data-type="rag.query"]        .agent-glyph { background: #d1fae5; border-color: #6ee7b7; color: #10b981; }
+.agent[data-type="rag.ingest"]       .agent-glyph { background: #d1fae5; border-color: #34d399; color: #059669; }
+.agent[data-type="graph.memory"]     .agent-glyph { background: #ede9fe; border-color: #c4b5fd; color: #8b5cf6; }
+.agent[data-type="channel.delivery"] .agent-glyph { background: #fce7f3; border-color: #f9a8d4; color: #ec4899; }
+.agent[data-type="event"]            .agent-glyph { background: #f1f5f9; border-color: #cbd5e1; color: #64748b; }
+.agent[data-type="interaction"]      .agent-glyph { background: #fff7ed; border-color: #fdba74; color: #f97316; }
+.agent[data-type="mcp"]              .agent-glyph { background: #ecfeff; border-color: #67e8f9; color: #06b6d4; }
+.agent[data-type="guardrails"]       .agent-glyph { background: #fee2e2; border-color: #fca5a5; color: #ef4444; }
+
 .agent-header {
   display: flex;
   align-items: center;
@@ -1917,6 +1943,19 @@ select {
 }
 
 .rail[data-expanded="false"] .rail-logout {
+  margin: 0 8px 2px;
+}
+
+.rail-lang {
+  margin: 0 6px 2px;
+  opacity: 0.8;
+}
+
+.rail-lang:hover {
+  opacity: 1;
+}
+
+.rail[data-expanded="false"] .rail-lang {
   margin: 0 8px 2px;
 }
 

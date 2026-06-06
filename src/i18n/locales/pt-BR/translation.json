@@ -20,7 +20,10 @@
     "logout": "Sair",
     "handoffs": "Atendimentos",
     "crmContacts": "Contatos CRM",
-    "crmCards": "Cartões de Visita"
+    "crmCards": "Cartões de Visita",
+    "language": "Idioma",
+    "lang_pt": "Português",
+    "lang_en": "Inglês"
   },
   "nav_logout_confirm": {
     "title": "Sair da conta",

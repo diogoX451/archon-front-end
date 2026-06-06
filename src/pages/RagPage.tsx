@@ -363,8 +363,8 @@ export function RagPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(ingestionsQuery.data?.items ?? []).map((ing: { id: string; document_id: string; kb_id: string; status: string; chunks_created?: number; created_at: string }) => (
-                    <tr key={ing.id}>
+                  {(ingestionsQuery.data?.items ?? []).map((ing, idx) => (
+                    <tr key={`${ing.workflow_id}-${ing.document_id}-${idx}`}>
                       <td className="mono" style={{ fontSize: 11 }}>{ing.document_id?.slice(0, 20) ?? "—"}</td>
                       <td className="mono" style={{ fontSize: 11 }}>{ing.kb_id ?? "—"}</td>
                       <td><span className="pill" data-tone={statusTone(ing.status)}><span className="dot" />{ing.status}</span></td>
@@ -391,12 +391,12 @@ export function RagPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(queriesQuery.data?.items ?? []).map((q: { id: string; query_text: string; top_k: number; hits: number; latency_ms: number; created_at: string }) => (
+                  {(queriesQuery.data?.items ?? []).map((q) => (
                     <tr key={q.id}>
-                      <td style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.query_text ?? "—"}</td>
-                      <td className="num mono">{q.top_k}</td>
-                      <td className="num mono">{q.hits}</td>
-                      <td className="num mono">{fmtMs(q.latency_ms)}</td>
+                      <td style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.query ?? "—"}</td>
+                      <td className="num mono">{q.top_k ?? "—"}</td>
+                      <td className="num mono">{q.hits ?? "—"}</td>
+                      <td className="num mono">{fmtMs(q.latency_ms ?? 0)}</td>
                       <td className="muted">{q.created_at ? new Date(q.created_at).toLocaleString("pt-BR") : "—"}</td>
                     </tr>
                   ))}

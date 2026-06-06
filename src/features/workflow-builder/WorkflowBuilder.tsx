@@ -7,6 +7,7 @@ import { Inspector } from "./Inspector";
 import { EventDrawer } from "./EventDrawer";
 import { AgentNode } from "./AgentNode";
 import { GhostActionNode, type GhostAction } from "./GhostActionNode";
+import { MiniMap } from "./MiniMap";
 import { GLYPHS } from "@shared/ui/icons/glyphs";
 import { GlyphPlanner, IconPlay, IconReset, IconValidate, IconCursor, IconHand, IconMinus, IconPlus } from "@shared/ui/icons/Icons";
 import { Rail } from "@shared/ui/Rail";
@@ -934,6 +935,18 @@ export function WorkflowBuilder() {
               />
             ))}
           </div>
+
+          {workflow.agents.length > 0 && (
+            <MiniMap
+              agents={workflow.agents}
+              connections={workflow.connections}
+              panX={viewport.x}
+              panY={viewport.y}
+              zoom={viewport.scale}
+              canvasWidth={canvasRef.current?.clientWidth ?? 800}
+              canvasHeight={canvasRef.current?.clientHeight ?? 600}
+            />
+          )}
 
           <div className="canvas-toolbar" data-tour="builder-canvas-tools">
             <button type="button" className="tool" data-active={tool === "select"} onClick={() => setTool("select")} title="Selecionar (V)">

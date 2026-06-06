@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@app/auth-context";
 import { useConfirm } from "@shared/ui/feedback";
@@ -319,6 +320,8 @@ export function Rail() {
           </div>
         )}
       </div>
+
+      <LanguageSwitcher expanded={expanded} />
 
       <button
         type="button"
