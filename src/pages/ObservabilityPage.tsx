@@ -90,7 +90,7 @@ function SummarySection() {
   const totalTokens = data.input_tokens + data.output_tokens;
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
       <MetricCard label="Chamadas LLM" value={fmtNum(data.calls)} sub="no período" />
       <MetricCard label="Tokens totais" value={fmtNum(totalTokens)} sub={`${fmtNum(data.cached_tokens)} em cache`} />
       <MetricCard label="Custo estimado" value={fmtCost(data.cost_usd)} color={data.cost_usd > 5 ? "#d97706" : undefined} />
@@ -456,7 +456,7 @@ export function ObservabilityPage() {
         <DynamicBreadcrumbs />
       </div>
 
-      <div style={{ padding: "24px 24px 0", maxWidth: 1100 }}>
+      <div className="page-body">
         <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 4px", color: "var(--ink)" }}>
           Observabilidade de Agentes
         </h1>
