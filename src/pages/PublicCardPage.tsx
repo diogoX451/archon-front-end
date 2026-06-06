@@ -454,13 +454,27 @@ function ShareYourContact({ card, theme, copy }: { card: BusinessCard; theme: Pa
   const [saving, setSaving] = useState(false);
 
   const tryPicker = async () => {
-    const nav = navigator as Navigator & { contacts?: { select: (f: string[], opts: object) => Promise<Array<{name?: string[]; email?: string[]; tel?: string[]; organization?: string[]}>> } };
-    if (!nav.contacts) { setMode("manual"); return; }
+    // Contact Picker API only supports the properties: name, email, tel, address, icon.
+    // Requesting "organization" throws a TypeError on Android Chrome, so we never
+    // ask for it and intersect with getProperties() for older/partial support.
+    const nav = navigator as Navigator & {
+      contacts?: {
+        select: (f: string[], opts: object) => Promise<Array<{ name?: string[]; email?: string[]; tel?: string[] }>>;
+        getProperties?: () => Promise<string[]>;
+      };
+    };
+    if (!nav.contacts?.select) { setMode("manual"); return; }
     try {
-      const res = await nav.contacts.select(["name","email","tel","organization"], { multiple: false });
-      if (!res?.length) return;
+      const wanted = ["name", "email", "tel"];
+      const supported = nav.contacts.getProperties
+        ? await nav.contacts.getProperties().catch(() => wanted)
+        : wanted;
+      const props = wanted.filter(p => supported.includes(p));
+      if (!props.length) { setMode("manual"); return; }
+      const res = await nav.contacts.select(props, { multiple: false });
+      if (!res?.length) return; // user cancelled — keep the picker entry visible
       const ct = res[0];
-      setForm({ name: ct.name?.[0]??"", email: ct.email?.[0]??"", phone: ct.tel?.[0]??"", company: ct.organization?.[0]??"" });
+      setForm(p => ({ ...p, name: ct.name?.[0] ?? "", email: ct.email?.[0] ?? "", phone: ct.tel?.[0] ?? "" }));
       setMode("manual");
     } catch { setMode("manual"); }
   };
