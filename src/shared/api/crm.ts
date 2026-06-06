@@ -191,3 +191,22 @@ export const getPublicCard = (slug: string) => {
   const base = (import.meta.env.VITE_ARCHON_API_URL || import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
   return fetch(`${base}/c/${slug}`).then(r => { if (!r.ok) throw new Error("not found"); return r.json() as Promise<BusinessCard>; });
 };
+
+export interface BroadcastInput {
+  message: string;
+  statuses: string[];
+  instance_id: string;
+}
+
+export interface BroadcastResult {
+  sent: number;
+  skipped: number;
+  errors: string[];
+  total: number;
+}
+
+export const broadcastWhatsApp = (input: BroadcastInput) =>
+  fetchClient<BroadcastResult>("/api/v1/crm/broadcast", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });

@@ -1,7 +1,11 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useContacts, useCRMStats, useUpdateContact, useDeleteContact, useCreateContact } from "@shared/hooks/useCRM";
-import type { ContactStatus, Contact } from "@shared/api/crm";
+import type { ContactStatus, Contact, BroadcastInput } from "@shared/api/crm";
+import { broadcastWhatsApp } from "@shared/api/crm";
+import { listWhatsAppChannels } from "@shared/api/channels";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useToast } from "@shared/ui/feedback";
 
 const STATUS_LABEL: Record<ContactStatus, string> = {
   novo:       "Novo",
@@ -108,6 +112,10 @@ export function CRMContactsPage() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [newForm, setNewForm] = useState(EMPTY_FORM);
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [broadcastMsg, setBroadcastMsg] = useState("");
+  const [broadcastStatuses, setBroadcastStatuses] = useState<string[]>(["novo", "em_contato"]);
+  const [broadcastInstance, setBroadcastInstance] = useState("");
 
   const { data: contacts = [], isLoading, error } = useContacts({
     status: filter || undefined,
@@ -116,6 +124,21 @@ export function CRMContactsPage() {
   const { data: stats } = useCRMStats();
   const updateContact = useUpdateContact();
   const createContact = useCreateContact();
+  const toast = useToast();
+  const waChannels = useQuery({
+    queryKey: ["whatsapp-channels"],
+    queryFn: () => listWhatsAppChannels(),
+    enabled: showBroadcast,
+  });
+  const broadcastMutation = useMutation({
+    mutationFn: (input: BroadcastInput) => broadcastWhatsApp(input),
+    onSuccess: (result) => {
+      toast.success(`Enviado para ${result.sent} contatos. Ignorados (sem telefone): ${result.skipped}.`);
+      setShowBroadcast(false);
+      setBroadcastMsg("");
+    },
+    onError: (err: Error) => toast.error(err.message || "Falha ao enviar broadcast"),
+  });
 
   const inputStyle: React.CSSProperties = {
     fontFamily: "var(--font-sans)",
@@ -168,6 +191,27 @@ export function CRMContactsPage() {
               </span>
             </div>
           )}
+          <button
+            type="button"
+            onClick={() => setShowBroadcast(v => !v)}
+            style={{
+              padding: "7px 14px",
+              borderRadius: "var(--r-2)",
+              border: "1px solid var(--line)",
+              background: "var(--surface)",
+              color: "var(--ink)",
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: "var(--font-sans)",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            📢 Broadcast WA
+          </button>
           <button
             type="button"
             onClick={() => setShowForm(v => !v)}
@@ -238,6 +282,89 @@ export function CRMContactsPage() {
               <button type="button" onClick={() => setShowForm(false)} style={{ padding: "7px 16px", borderRadius: "var(--r-2)", border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)", fontSize: 13, fontFamily: "var(--font-sans)", cursor: "pointer" }}>
                 Cancelar
               </button>
+            </div>
+          </form>
+        )}
+
+        {showBroadcast && (
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              if (!broadcastMsg.trim() || !broadcastInstance) return;
+              broadcastMutation.mutate({ message: broadcastMsg, statuses: broadcastStatuses, instance_id: broadcastInstance });
+            }}
+            style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-4)", padding: 16, marginBottom: 16, display: "flex", flexDirection: "column", gap: 12 }}
+          >
+            <div style={{ fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+              📢 Broadcast WhatsApp
+              <span style={{ fontSize: 11, fontWeight: 400, color: "var(--ink-3)" }}>— envia mensagem a contatos selecionados</span>
+            </div>
+
+            {/* Channel selector */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-2)", display: "block", marginBottom: 4 }}>Canal WhatsApp</label>
+              {waChannels.isLoading ? (
+                <div style={{ fontSize: 12, opacity: 0.5 }}>Carregando canais...</div>
+              ) : (
+                <select
+                  required
+                  value={broadcastInstance}
+                  onChange={e => setBroadcastInstance(e.target.value)}
+                  style={{ padding: "7px 10px", borderRadius: "var(--r-2)", border: "1px solid var(--line)", background: "var(--bg)", color: "var(--ink)", fontSize: 13, fontFamily: "var(--font-sans)", width: "100%", maxWidth: 320 }}
+                >
+                  <option value="">Selecione o canal...</option>
+                  {(waChannels.data ?? []).map(ch => (
+                    <option key={ch.id} value={ch.instance_name}>{ch.display_name || ch.instance_name} ({ch.phone_number || ch.state})</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Status filter */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-2)", display: "block", marginBottom: 6 }}>Audiência (status)</label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {(["novo", "em_contato", "cliente"] as const).map(st => (
+                  <label key={st} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={broadcastStatuses.includes(st)}
+                      onChange={e => setBroadcastStatuses(prev => e.target.checked ? [...prev, st] : prev.filter(s => s !== st))}
+                    />
+                    {STATUS_LABEL[st]}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Message */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-2)", display: "block", marginBottom: 4 }}>Mensagem</label>
+              <textarea
+                required
+                value={broadcastMsg}
+                onChange={e => setBroadcastMsg(e.target.value)}
+                placeholder="Olá {{nome}}, temos uma novidade para você..."
+                rows={4}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: "var(--r-2)", border: "1px solid var(--line)", background: "var(--bg)", color: "var(--ink)", fontSize: 13, fontFamily: "var(--font-sans)", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" }}
+              />
+              <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>{broadcastMsg.length} caracteres</div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <button
+                type="submit"
+                disabled={broadcastMutation.isPending || !broadcastMsg.trim() || !broadcastInstance || broadcastStatuses.length === 0}
+                style={{ padding: "7px 16px", borderRadius: "var(--r-2)", border: "none", background: "#16a34a", color: "#fff", fontSize: 13, fontWeight: 600, fontFamily: "var(--font-sans)", cursor: "pointer", opacity: (broadcastMutation.isPending || !broadcastMsg.trim() || !broadcastInstance || broadcastStatuses.length === 0) ? 0.5 : 1 }}
+              >
+                {broadcastMutation.isPending ? "Enviando..." : "🚀 Enviar Broadcast"}
+              </button>
+              <button type="button" onClick={() => setShowBroadcast(false)} style={{ padding: "7px 14px", borderRadius: "var(--r-2)", border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)", fontSize: 13, fontFamily: "var(--font-sans)", cursor: "pointer" }}>
+                Cancelar
+              </button>
+              {broadcastMutation.isError && (
+                <span style={{ fontSize: 12, color: "#dc2626" }}>Erro ao enviar. Verifique o canal.</span>
+              )}
             </div>
           </form>
         )}
