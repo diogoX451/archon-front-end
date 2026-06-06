@@ -1,0 +1,10 @@
+{
+  "version": "0.2",
+  "ignorePaths": [".claude/autopilot/report/**"],
+  "words": [
+    "HITL","LGPD","CAGR","WATI","Dify","Typebot","Botpress","Chatwoot","Voiceflow",
+    "Landbot","BYOK","omnichannel","Helpdesk","Typeform","ingestions","qrcode",
+    "postgres","mcpclient","ratelimit","hitl","mcpconfig","usecase","vectorstore",
+    "qdrant","golangci","prometheus","devs","Qdrant","llmconfig","Vapi"
+  ]
+}
