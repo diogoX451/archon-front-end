@@ -38,9 +38,10 @@ export const upsertChannelLink = (input: UpsertChannelLinkInput, tenantSlug?: st
 };
 
 export const listChannelLinks = (conversationId: string, tenantSlug?: string) => {
-  const qs = new URLSearchParams({ conversation_id: conversationId });
-  if (tenantSlug) qs.set("tenant", tenantSlug);
-  return fetchClient<ChannelLink[]>(`/api/v1/channel/conversations?${qs}`);
+  const qs = tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
+  return fetchClient<ChannelLink[]>(
+    `/api/v1/channel/conversations/${encodeURIComponent(conversationId)}${qs}`,
+  );
 };
 
 export const disconnectChannelLink = (
