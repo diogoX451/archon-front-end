@@ -396,6 +396,11 @@ export function WorkflowResultPage() {
   const liveStatus = status?.status || result?.status || (state ? "running" : "—");
   const [timelineOpen, setTimelineOpen] = useState(false);
 
+  // Auto-open audit drawer when workflow state not found but ID is valid
+  useEffect(() => {
+    if (stateError && searchId) setTimelineOpen(true);
+  }, [stateError, searchId]);
+
   return (
     <>
       <div className="page-topbar">
@@ -434,9 +439,26 @@ export function WorkflowResultPage() {
               {stateLoading ? "Carregando…" : "Carregar trace"}
             </button>
           </div>
-          {(stateError || resultError) && (
+          {stateError && (
+            <div style={{ marginTop: 12, padding: "10px 14px", background: "var(--surface)", border: "1px solid var(--line-2)", borderRadius: "var(--r-3)", fontSize: 13 }}>
+              <div style={{ color: "var(--err)", marginBottom: 6 }}>
+                Estado do workflow não encontrado: {stateError.message}
+              </div>
+              <div style={{ color: "var(--ink-3)", marginBottom: 8 }}>
+                Eventos de auditoria podem ainda estar disponíveis.
+              </div>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setTimelineOpen(true)}
+              >
+                Abrir Auditoria →
+              </button>
+            </div>
+          )}
+          {!stateError && resultError && (
             <p style={{ color: "var(--err)", marginTop: 12, fontSize: 13 }}>
-              {(stateError || resultError)?.message}
+              {resultError.message}
             </p>
           )}
         </div>
