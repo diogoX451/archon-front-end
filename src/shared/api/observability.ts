@@ -80,3 +80,22 @@ export const getUsageBreakdown = (params?: {
 
 export const getTrailBlocked = () =>
   fetchClient<TrailBlockedEvent[]>("/api/v1/trail/blocked");
+
+export interface TrailEvent {
+  event_id: string;
+  session_id: string;
+  workflow_id: string;
+  agent_id: string;
+  ts: string;
+  sequence: number;
+  action_type: string | number;
+  tool_name?: string;
+  error?: string;
+}
+
+export interface TrailTimelineResponse {
+  events: TrailEvent[];
+}
+
+export const getTrailTimeline = (sessionId: string) =>
+  fetchClient<TrailTimelineResponse>(`/api/v1/trail/sessions/${encodeURIComponent(sessionId)}/timeline`);

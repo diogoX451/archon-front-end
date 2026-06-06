@@ -5,6 +5,7 @@ import {
   getUsageTimeseries,
   getUsageBreakdown,
   getTrailBlocked,
+  getTrailTimeline,
   type UsageDimension,
 } from "@shared/api/observability";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
@@ -282,14 +283,168 @@ function BlockedSection() {
   );
 }
 
+const ACTION_LABEL: Record<string, string> = {
+  "0": "LLM call",
+  "1": "Tool call",
+  "2": "Tool blocked",
+  "3": "Handoff",
+  "4": "RAG query",
+  "llm_call": "LLM call",
+  "tool_call": "Tool call",
+  "tool_blocked": "Bloqueado",
+  "human_handoff": "Handoff",
+  "rag_query": "RAG query",
+};
+
+const ACTION_COLOR: Record<string, string> = {
+  "tool_blocked": "#dc2626",
+  "2": "#dc2626",
+  "human_handoff": "#d97706",
+  "3": "#d97706",
+  "llm_call": "var(--accent)",
+  "0": "var(--accent)",
+  "rag_query": "#16a34a",
+  "4": "#16a34a",
+};
+
+function TrailSection() {
+  const [sessionId, setSessionId] = useState("");
+  const [submitted, setSubmitted] = useState("");
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["observability", "trail", submitted],
+    queryFn: () => getTrailTimeline(submitted),
+    enabled: !!submitted,
+    staleTime: 30_000,
+  });
+
+  const events = data?.events ?? [];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <form
+        onSubmit={(e) => { e.preventDefault(); if (sessionId.trim()) setSubmitted(sessionId.trim()); }}
+        style={{ display: "flex", gap: 8 }}
+      >
+        <input
+          value={sessionId}
+          onChange={(e) => setSessionId(e.target.value)}
+          placeholder="Session ID (UUID)"
+          style={{
+            flex: 1,
+            padding: "8px 12px",
+            borderRadius: "var(--r-2)",
+            border: "1px solid var(--line)",
+            background: "var(--bg)",
+            color: "var(--ink)",
+            fontSize: 13,
+            fontFamily: "var(--font-mono, monospace)",
+          }}
+        />
+        <button
+          type="submit"
+          disabled={!sessionId.trim()}
+          style={{
+            padding: "8px 16px",
+            borderRadius: "var(--r-2)",
+            border: "none",
+            background: "var(--accent)",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 600,
+            fontFamily: "var(--font-sans)",
+            cursor: "pointer",
+            opacity: !sessionId.trim() ? 0.5 : 1,
+          }}
+        >
+          Buscar
+        </button>
+      </form>
+
+      {isLoading && <div style={{ opacity: 0.5, fontSize: 13 }}>Carregando trilha...</div>}
+      {error && <div style={{ fontSize: 13, color: "#dc2626" }}>Sessão não encontrada ou endpoint indisponível.</div>}
+
+      {!isLoading && submitted && events.length === 0 && !error && (
+        <div style={{ opacity: 0.4, fontSize: 13 }}>Nenhum evento encontrado para esta sessão.</div>
+      )}
+
+      {events.length > 0 && (
+        <div style={{
+          background: "var(--surface)",
+          border: "1px solid var(--line)",
+          borderRadius: "var(--r-4)",
+          overflow: "hidden",
+        }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line)", fontSize: 12, color: "var(--ink-3)", fontWeight: 600 }}>
+            {events.length} eventos · sessão {submitted.slice(0, 8)}…
+          </div>
+          <div style={{ position: "relative", padding: "16px 16px 16px 40px" }}>
+            {/* vertical line */}
+            <div style={{ position: "absolute", left: 24, top: 0, bottom: 0, width: 2, background: "var(--line)" }} />
+
+            {events.map((ev, i) => {
+              const typeStr = String(ev.action_type);
+              const color = ACTION_COLOR[typeStr] ?? "var(--ink-3)";
+              const label = ACTION_LABEL[typeStr] ?? typeStr;
+              const isBlocked = typeStr === "tool_blocked" || typeStr === "2";
+
+              return (
+                <div key={ev.event_id ?? i} style={{ position: "relative", marginBottom: i < events.length - 1 ? 16 : 0 }}>
+                  {/* dot */}
+                  <div style={{
+                    position: "absolute",
+                    left: -22,
+                    top: 2,
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    background: color,
+                    border: "2px solid var(--surface)",
+                  }} />
+
+                  <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color,
+                      background: `color-mix(in srgb, ${color} 12%, transparent)`,
+                      padding: "1px 7px",
+                      borderRadius: 99,
+                      whiteSpace: "nowrap",
+                    }}>
+                      {label}
+                    </span>
+                    {ev.tool_name && (
+                      <code style={{ fontSize: 11, color: "var(--ink-2)" }}>{ev.tool_name}</code>
+                    )}
+                    <span style={{ fontSize: 10, color: "var(--ink-3)", marginLeft: "auto", whiteSpace: "nowrap" }}>
+                      #{ev.sequence} · {ev.ts ? new Date(ev.ts).toLocaleTimeString("pt-BR") : "—"}
+                    </span>
+                  </div>
+                  {isBlocked && ev.error && (
+                    <div style={{ fontSize: 11, color: "#dc2626", marginTop: 2, paddingLeft: 2 }}>
+                      {ev.error}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── page ──────────────────────────────────────────────────────────────────────
 
-type Tab = "summary" | "breakdown" | "blocked";
+type Tab = "summary" | "breakdown" | "blocked" | "trail";
 
 const TAB_LABELS: Record<Tab, string> = {
   summary: "Resumo",
   breakdown: "Detalhamento",
   blocked: "Bloqueios",
+  trail: "Trilha",
 };
 
 export function ObservabilityPage() {
@@ -316,7 +471,7 @@ export function ObservabilityPage() {
           borderBottom: "1px solid var(--line)",
           marginBottom: 24,
         }}>
-          {(["summary", "breakdown", "blocked"] as Tab[]).map((t) => (
+          {(["summary", "breakdown", "blocked", "trail"] as Tab[]).map((t) => (
             <button
               key={t}
               type="button"
@@ -373,6 +528,16 @@ export function ObservabilityPage() {
               overflow: "hidden",
             }}>
               <BlockedSection />
+            </div>
+          )}
+          {tab === "trail" && (
+            <div style={{
+              background: "var(--surface)",
+              border: "1px solid var(--line)",
+              borderRadius: "var(--r-4)",
+              padding: 20,
+            }}>
+              <TrailSection />
             </div>
           )}
         </div>

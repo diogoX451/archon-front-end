@@ -5,6 +5,8 @@ import {
   useRAGCoverage,
   useRAGDashboard,
   useRAGDocuments,
+  useRAGIngestions,
+  useRAGQueries,
 } from "@shared/hooks/useRag";
 import { useCreateKB, useDeleteKB, useKBs } from "@shared/hooks/useKBs";
 import { useTenants } from "@shared/hooks/useTenants";
@@ -36,6 +38,12 @@ function slugifyKBID(name: string): string {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 80);
+}
+
+function fmtMs(ms: number): string {
+  if (!ms || ms === 0) return "—";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
 }
 
 function fmtBytes(value?: number): string {
@@ -77,6 +85,7 @@ export function RagPage() {
   const [documentID, setDocumentID] = useState("");
 
   const [pollingDocs, setPollingDocs] = useState(false);
+  const [metricsTab, setMetricsTab] = useState<"ingestions" | "queries">("ingestions");
 
   const dashboardQuery = useRAGDashboard(effectiveTenantSlug || undefined);
   const kbsQuery = useKBs(effectiveTenantSlug, { limit: 50, offset: 0 });
@@ -89,6 +98,8 @@ export function RagPage() {
     refetchInterval: pollingDocs ? 4000 : false,
   });
   const coverageQuery = useRAGCoverage(effectiveTenantSlug || undefined, selectedKBID || undefined);
+  const ingestionsQuery = useRAGIngestions(effectiveTenantSlug || undefined, selectedKBID || undefined);
+  const queriesQuery = useRAGQueries(effectiveTenantSlug || undefined, selectedKBID || undefined);
 
   const kbs = kbsQuery.data || [];
   const docs = docsQuery.data?.items || [];
@@ -233,6 +244,7 @@ export function RagPage() {
           <div className="stat"><div className="label">Chunks</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.chunks_total ?? "…") : "—"}</div></div>
           <div className="stat"><div className="label">Queries 24h</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.queries_24h ?? "…") : "—"}</div></div>
           <div className="stat"><div className="label">Ingests 24h</div><div className="value">{effectiveTenantSlug ? (dashboardQuery.data?.ingests_24h ?? "…") : "—"}</div></div>
+          <div className="stat"><div className="label">Latência média</div><div className="value">{effectiveTenantSlug ? fmtMs(dashboardQuery.data?.avg_query_latency_ms_24h ?? 0) : "—"}</div></div>
         </div>
 
         {dashboardQuery.error && <div className="card" style={{ color: "var(--err)", borderColor: "var(--err)", marginBottom: 12 }}>Erro ao carregar dados do dashboard.</div>}
@@ -311,6 +323,91 @@ export function RagPage() {
           </>
         )}
         </div>
+
+        {/* Ingestions / Queries metrics */}
+        {effectiveTenantSlug && (
+          <div style={{ marginTop: 28 }}>
+            <div style={{ display: "flex", gap: 2, borderBottom: "1px solid var(--line)", marginBottom: 16 }}>
+              {(["ingestions", "queries"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setMetricsTab(t)}
+                  style={{
+                    padding: "7px 14px",
+                    fontSize: 13,
+                    fontWeight: metricsTab === t ? 600 : 400,
+                    border: "none",
+                    borderBottom: metricsTab === t ? "2px solid var(--accent)" : "2px solid transparent",
+                    background: "none",
+                    color: metricsTab === t ? "var(--accent)" : "var(--ink-3)",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-sans)",
+                    marginBottom: -1,
+                  }}
+                >
+                  {t === "ingestions" ? "Ingestões recentes" : "Queries recentes"}
+                </button>
+              ))}
+            </div>
+
+            {metricsTab === "ingestions" && (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Documento</th>
+                    <th>Base</th>
+                    <th>Status</th>
+                    <th className="num">Chunks</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(ingestionsQuery.data?.items ?? []).map((ing: { id: string; document_id: string; kb_id: string; status: string; chunks_created?: number; created_at: string }) => (
+                    <tr key={ing.id}>
+                      <td className="mono" style={{ fontSize: 11 }}>{ing.document_id?.slice(0, 20) ?? "—"}</td>
+                      <td className="mono" style={{ fontSize: 11 }}>{ing.kb_id ?? "—"}</td>
+                      <td><span className="pill" data-tone={statusTone(ing.status)}><span className="dot" />{ing.status}</span></td>
+                      <td className="num mono">{ing.chunks_created ?? "—"}</td>
+                      <td className="muted">{ing.created_at ? new Date(ing.created_at).toLocaleString("pt-BR") : "—"}</td>
+                    </tr>
+                  ))}
+                  {!ingestionsQuery.isLoading && !(ingestionsQuery.data?.items?.length) && (
+                    <tr><td colSpan={5} style={{ textAlign: "center", opacity: 0.4, padding: 16 }}>Sem ingestões registradas.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+
+            {metricsTab === "queries" && (
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Consulta</th>
+                    <th className="num">Top-K</th>
+                    <th className="num">Hits</th>
+                    <th className="num">Latência</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(queriesQuery.data?.items ?? []).map((q: { id: string; query_text: string; top_k: number; hits: number; latency_ms: number; created_at: string }) => (
+                    <tr key={q.id}>
+                      <td style={{ maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.query_text ?? "—"}</td>
+                      <td className="num mono">{q.top_k}</td>
+                      <td className="num mono">{q.hits}</td>
+                      <td className="num mono">{fmtMs(q.latency_ms)}</td>
+                      <td className="muted">{q.created_at ? new Date(q.created_at).toLocaleString("pt-BR") : "—"}</td>
+                    </tr>
+                  ))}
+                  {!queriesQuery.isLoading && !(queriesQuery.data?.items?.length) && (
+                    <tr><td colSpan={5} style={{ textAlign: "center", opacity: 0.4, padding: 16 }}>Sem queries registradas.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
       </div>
 
       {showCreateKBModal && canIngest && (
