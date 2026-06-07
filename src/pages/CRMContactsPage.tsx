@@ -68,7 +68,8 @@ function ContactRow({ contact, onStatus }: {
           <form
             onSubmit={e => {
               e.preventDefault();
-              update.mutate({ id: contact.id, input: form }, { onSuccess: () => setEditing(false) });
+              const { status: _s, ...editFields } = form;
+              update.mutate({ id: contact.id, input: editFields }, { onSuccess: () => setEditing(false) });
             }}
             style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
           >
