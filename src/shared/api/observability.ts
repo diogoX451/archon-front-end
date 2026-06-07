@@ -52,30 +52,51 @@ export const getUsageSummary = (params?: {
   return fetchClient<UsageSummary>(`/api/v1/usage/summary${qs}`);
 };
 
-export const getUsageTimeseries = (params?: {
+export const getUsageTimeseries = async (params?: {
   bucket?: UsageBucket;
   from?: string;
   to?: string;
-}) => {
+}): Promise<UsageTimeseriesRow[]> => {
   const q = new URLSearchParams();
   if (params?.bucket) q.set("bucket", params.bucket);
   if (params?.from) q.set("from", params.from);
   if (params?.to) q.set("to", params.to);
   const qs = q.toString() ? `?${q}` : "";
-  return fetchClient<UsageTimeseriesRow[]>(`/api/v1/usage/timeseries${qs}`);
+  const raw = await fetchClient<UsageTimeseriesRow[] | { buckets: Array<{ ts: string; groups: Array<{ calls: number; cost_usd: number; input_tokens: number; output_tokens: number }> }> }>(`/api/v1/usage/timeseries${qs}`);
+  if (Array.isArray(raw)) return raw;
+  return (raw as { buckets: Array<{ ts: string; groups: Array<{ calls: number; cost_usd: number; input_tokens: number; output_tokens: number }> }> }).buckets.map(b => ({
+    bucket_ts: b.ts,
+    calls: b.groups.reduce((s, g) => s + g.calls, 0),
+    input_tokens: b.groups.reduce((s, g) => s + g.input_tokens, 0),
+    output_tokens: b.groups.reduce((s, g) => s + g.output_tokens, 0),
+    cost_usd: b.groups.reduce((s, g) => s + g.cost_usd, 0),
+  }));
 };
 
-export const getUsageBreakdown = (params?: {
+export const getUsageBreakdown = async (params?: {
   dimension?: UsageDimension;
   from?: string;
   to?: string;
-}) => {
+}): Promise<UsageBreakdownRow[]> => {
   const q = new URLSearchParams();
   if (params?.dimension) q.set("dimension", params.dimension);
   if (params?.from) q.set("from", params.from);
   if (params?.to) q.set("to", params.to);
   const qs = q.toString() ? `?${q}` : "";
-  return fetchClient<UsageBreakdownRow[]>(`/api/v1/usage/breakdown${qs}`);
+  const raw = await fetchClient<UsageBreakdownRow[] | Array<{ dimension_value: string; calls: number; cost_usd: number; pct_calls: number; pct_cost: number }>>(`/api/v1/usage/breakdown${qs}`);
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  if ("dimension_value" in raw[0]) {
+    return (raw as Array<{ dimension_value: string; calls: number; cost_usd: number; pct_calls: number; pct_cost: number }>).map(r => ({
+      dimension: r.dimension_value,
+      calls: r.calls,
+      input_tokens: 0,
+      output_tokens: 0,
+      cost_usd: r.cost_usd,
+      call_pct: r.pct_calls,
+      cost_pct: r.pct_cost,
+    }));
+  }
+  return raw as UsageBreakdownRow[];
 };
 
 export const getTrailBlocked = () =>
