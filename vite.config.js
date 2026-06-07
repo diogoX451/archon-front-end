@@ -8,6 +8,16 @@ export default defineConfig(function (_a) {
     var apiTarget = env.VITE_ARCHON_API_URL || env.VITE_API_URL || "http://localhost:8080";
     return {
         plugins: [react()],
+        test: {
+            environment: 'jsdom',
+            globals: true,
+            setupFiles: ['./src/test/setup.ts'],
+            alias: {
+                '@shared': path.resolve(__dirname, 'src/shared'),
+                '@pages': path.resolve(__dirname, 'src/pages'),
+                '@app': path.resolve(__dirname, 'src/app'),
+            },
+        },
         resolve: {
             alias: {
                 "@app": path.resolve(__dirname, "src/app"),

@@ -23,6 +23,17 @@ const STATUS_BADGE: Record<ContactStatus, { bg: string; color: string }> = {
 
 const PIPELINE: ContactStatus[] = ["novo", "em_contato", "cliente", "arquivado"];
 
+const inputStyle: React.CSSProperties = {
+  fontFamily: "var(--font-sans)",
+  fontSize: 13,
+  color: "var(--ink)",
+  background: "var(--surface)",
+  border: "1px solid var(--line)",
+  borderRadius: "var(--r-2)",
+  padding: "7px 12px",
+  outline: "none",
+};
+
 function StatusBadge({ status }: { status: ContactStatus }) {
   const s = STATUS_BADGE[status];
   return (
@@ -46,6 +57,39 @@ function ContactRow({ contact, onStatus }: {
   onStatus: (id: string, status: ContactStatus) => void;
 }) {
   const del = useDeleteContact();
+  const update = useUpdateContact();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ name: contact.name, company: contact.company ?? "", email: contact.email ?? "", phone: contact.phone ?? "", status: contact.status });
+
+  if (editing) {
+    return (
+      <tr style={{ borderBottom: "1px solid var(--line)", background: "var(--bg)" }}>
+        <td colSpan={7} style={{ padding: "10px 16px" }}>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              update.mutate({ id: contact.id, input: form }, { onSuccess: () => setEditing(false) });
+            }}
+            style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
+          >
+            <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nome *" style={{ ...inputStyle, flex: "1 1 150px" }} />
+            <input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Empresa" style={{ ...inputStyle, flex: "1 1 130px" }} />
+            <input value={form.email} type="email" onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" style={{ ...inputStyle, flex: "1 1 150px" }} />
+            <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Telefone" style={{ ...inputStyle, flex: "1 1 110px" }} />
+            <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as ContactStatus }))} style={{ ...inputStyle, minWidth: 120 }}>
+              {PIPELINE.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+            </select>
+            <button type="submit" disabled={update.isPending} style={{ padding: "6px 14px", borderRadius: "var(--r-2)", border: "none", background: "var(--accent)", color: "#fff", fontSize: 12, fontWeight: 600, fontFamily: "var(--font-sans)", cursor: "pointer" }}>
+              {update.isPending ? "…" : "Salvar"}
+            </button>
+            <button type="button" onClick={() => setEditing(false)} style={{ padding: "6px 12px", borderRadius: "var(--r-2)", border: "1px solid var(--line)", background: "var(--surface)", color: "var(--ink)", fontSize: 12, fontFamily: "var(--font-sans)", cursor: "pointer" }}>
+              Cancelar
+            </button>
+          </form>
+        </td>
+      </tr>
+    );
+  }
 
   return (
     <tr style={{ borderBottom: "1px solid var(--line)" }}>
@@ -85,18 +129,16 @@ function ContactRow({ contact, onStatus }: {
           ))}
         </select>
       </td>
-      <td style={{ padding: "10px 16px" }}>
+      <td style={{ padding: "10px 16px", display: "flex", gap: 8, alignItems: "center" }}>
+        <button
+          onClick={() => setEditing(true)}
+          style={{ background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: 12, fontFamily: "var(--font-sans)", padding: "2px 4px" }}
+        >
+          Editar
+        </button>
         <button
           onClick={() => del.mutate(contact.id)}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--err)",
-            cursor: "pointer",
-            fontSize: 12,
-            fontFamily: "var(--font-sans)",
-            padding: "2px 4px",
-          }}
+          style={{ background: "none", border: "none", color: "var(--err)", cursor: "pointer", fontSize: 12, fontFamily: "var(--font-sans)", padding: "2px 4px" }}
         >
           Remover
         </button>
@@ -139,17 +181,6 @@ export function CRMContactsPage() {
     },
     onError: (err: Error) => toast.error(err.message || "Falha ao enviar broadcast"),
   });
-
-  const inputStyle: React.CSSProperties = {
-    fontFamily: "var(--font-sans)",
-    fontSize: 13,
-    color: "var(--ink)",
-    background: "var(--surface)",
-    border: "1px solid var(--line)",
-    borderRadius: "var(--r-2)",
-    padding: "7px 12px",
-    outline: "none",
-  };
 
   return (
     <>
