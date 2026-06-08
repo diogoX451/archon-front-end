@@ -56,6 +56,34 @@
       gtag('config', 'AW-17995479231');
     </script>
 
+    <!-- Event snippet for WhatsApp conversion -->
+    <script>
+      function gtag_report_conversion(url) {
+        var didNavigate = false;
+        var callback = function () {
+          if (didNavigate) return;
+          didNavigate = true;
+          if (typeof(url) != 'undefined') {
+            window.location = url;
+          }
+        };
+
+        if (typeof gtag === 'function') {
+          gtag('event', 'conversion', {
+              'send_to': 'AW-17995479231/QKjDCLuDpYMcEL_x9IRD',
+              'value': 1.0,
+              'currency': 'BRL',
+              'event_callback': callback
+          });
+          setTimeout(callback, 1000);
+          return false;
+        }
+
+        callback();
+        return false;
+      }
+    </script>
+
     <!-- JSON-LD: Organization -->
     <script type="application/ld+json">
       {

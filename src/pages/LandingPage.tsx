@@ -9,6 +9,12 @@ import { SIGNUP_ENABLED } from "@shared/signup-config";
 const WHATSAPP_URL =
   "https://wa.me/5562999722708?text=Ol%C3%A1%21%20Quero%20conhecer%20o%20Archon.";
 
+declare global {
+  interface Window {
+    gtag_report_conversion?: (url?: string) => boolean;
+  }
+}
+
 const SECTION_LINKS = [
   { id: "beneficios", label: "Benefícios" },
   { id: "como", label: "Como funciona" },
@@ -22,6 +28,29 @@ function scrollToSection(event: MouseEvent<HTMLAnchorElement>, sectionId: string
   event.preventDefault();
   section.scrollIntoView({ behavior: "smooth", block: "start" });
   window.history.replaceState(null, "", `#${sectionId}`);
+}
+
+function reportWhatsAppConversion(event: MouseEvent<HTMLAnchorElement>) {
+  if (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const url = event.currentTarget.href;
+  if (typeof window.gtag_report_conversion === "function") {
+    window.gtag_report_conversion(url);
+    return;
+  }
+
+  window.location.href = url;
 }
 
 export function LandingPage() {
@@ -92,7 +121,16 @@ function Header() {
       ))}
       <Link to="/login" style={navLink} onClick={() => setOpen(false)}>Entrar</Link>
       {SIGNUP_ENABLED && <Link to="/signup" style={navLink} onClick={() => setOpen(false)}>Criar conta</Link>}
-      <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={ctaSmall} onClick={() => setOpen(false)}>
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noreferrer"
+        style={ctaSmall}
+        onClick={(event) => {
+          setOpen(false);
+          reportWhatsAppConversion(event);
+        }}
+      >
         WhatsApp →
       </a>
     </>
@@ -133,7 +171,10 @@ function Header() {
           target="_blank"
           rel="noreferrer"
           style={{ ...ctaSmall, marginTop: 16, textAlign: "center", display: "block" }}
-          onClick={() => setOpen(false)}
+          onClick={(event) => {
+            setOpen(false);
+            reportWhatsAppConversion(event);
+          }}
         >
           Falar no WhatsApp →
         </a>
@@ -193,7 +234,13 @@ function Hero() {
             no WhatsApp, no site, onde o cliente estiver.
           </p>
           <div style={ctaRow}>
-            <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={ctaPrimary}>
+            <a
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noreferrer"
+              style={ctaPrimary}
+              onClick={reportWhatsAppConversion}
+            >
               Quero ver funcionando →
             </a>
             <a href="#como" style={ctaGhost} onClick={(event) => scrollToSection(event, "como")}>Como funciona</a>
@@ -484,7 +531,13 @@ function FinalCta() {
           Uma conversa rápida resolve. Se fizer sentido pro seu negócio, a gente toca.
         </p>
         <div style={{ ...ctaRow, justifyContent: "center", marginTop: 28 }}>
-          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={ctaPrimaryLight}>
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            style={ctaPrimaryLight}
+            onClick={reportWhatsAppConversion}
+          >
             Chamar no WhatsApp →
           </a>
         </div>
@@ -511,7 +564,7 @@ function Footer() {
           <Link to="/dpo" style={navLink}>DPO</Link>
           <Link to="/login" style={navLink}>Entrar</Link>
           {SIGNUP_ENABLED && <Link to="/signup" style={navLink}>Criar conta</Link>}
-          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={navLink}>WhatsApp</a>
+          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" style={navLink} onClick={reportWhatsAppConversion}>WhatsApp</a>
         </nav>
       </div>
       <div style={footerBottom}>© {new Date().getFullYear()} Almexa LTDA · CNPJ 48.803.245/0001-83 · Curitiba/PR</div>
