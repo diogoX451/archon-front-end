@@ -1,13 +1,13 @@
 # Archon — Relatório de Débitos e Roadmap
 
 > Gerado pelo autopilot em 2026-06-05. Branch: autopilot/2026-06-05-audit.
-> Fontes: 01-backend-arch.md, 02-frontend-arch.md, 03-gaps-api-ui.md, 07-qualidade.md, 09-mercado-competitivo.md, 10-oportunidades-mercado.md.
+> Fontes: 01-backend-arch.md, 02-frontend-arch.md, 03-gaps-api-ui.md, 04-browser-dashboard.md, 05-browser-crm.md, 06-browser-conversas.md, 07-qualidade.md, 09-mercado-competitivo.md, 10-oportunidades-mercado.md.
 
 ---
 
 ## Visão Geral
 
-Archon tem **arquitetura técnica superior** à maioria dos concorrentes (NATS event-driven, audit trail causal, graph memory, MCP nativo, CRM integrado, multi-tenant RBAC, billing model). O problema central é **superioridade técnica não convertida em produto utilizável**: 51 endpoints de backend sem consumer na UI, billing sem enforcement, HITL sem fila visual, RAG sem dashboard, e zero testes no frontend.
+Archon tem **arquitetura técnica superior** à maioria dos concorrentes (NATS event-driven, audit trail causal, graph memory, MCP nativo, CRM integrado, multi-tenant RBAC, billing model). O problema central é **superioridade técnica não convertida em produto utilizável**: 51 endpoints de backend sem consumer na UI, billing sem enforcement, CRM contatos sem CRUD pela UI, cards com falha silenciosa, conversas duplicadas na UI, vínculos de canal quebrados, workflow result inconsistente, HITL sem SLA visual, RAG sem dashboard, e zero testes no frontend.
 
 ---
 
@@ -41,10 +41,16 @@ Estes itens bloqueiam receita, compliance ou segurança hoje.
 **Esforço**: P (2-3 dias)
 
 ### P0-5 — URL errada em channels.ts (BUG ATIVO)
-**Onde**: `src/shared/api/channels.ts:43` — query string `?conversation_id=` vs path param esperado pelo backend
-**Impacto**: Função de vincular conversa a canal retorna erro; feature de channel conversation quebrada
-**Fix**: Corrigir para `/api/v1/channel/conversations/${id}` (path param)
+**Onde**: produção `/channels` → aba "Vínculos" mostra `An error occurred`; URL antiga `GET /api/v1/channel/conversations?conversation_id=...` retorna 405, enquanto o endpoint correto por path responde 200
+**Impacto**: Função de ver/gerenciar vínculos conversa→canal retorna erro; feature de channel conversation quebrada na UI
+**Fix**: Garantir deploy com `/api/v1/channel/conversations/${id}` (path param), propagar tenant selecionado pelo super-admin e exibir erro específico
 **Esforço**: P (< 1 dia)
+
+### P0-6 — CRM Contatos sem CRUD de criação pela UI
+**Onde**: produção `/crm/contacts` carrega lista/stats/filtros, mas não existe botão "+ Novo Contato"
+**Impacto**: CRM integrado vira leitura vazia/manual; usuário não consegue cadastrar contato pelo produto
+**Fix**: Implementar create/edit/delete no frontend usando endpoints existentes `/api/v1/crm/contacts`, com estados de erro e atualização otimista/invalidations
+**Esforço**: P (2-4 dias)
 
 ---
 
@@ -53,13 +59,14 @@ Estes itens bloqueiam receita, compliance ou segurança hoje.
 Endpoints implementados no backend, sem consumer no frontend.
 
 ### P1-1 — HITL sem fila visual e sem SLA
-**Onde**: `HandoffsPage.tsx` renderiza lista mas botões assign/close sem implementação; sem notificação SSE
-**Fix**: Fila visual com SLA configurável, notificação SSE, botão assign funcional, contexto completo da conversa
+**Onde**: `/handoffs` carrega, mas produção está com 0 handoffs; sem SLA/prioridade/notificação e sem seed seguro para validar assign/close ponta a ponta
+**Fix**: Fila visual com SLA configurável, notificação SSE, contexto completo da conversa e cenário seed de auditoria para validar assign/close sem tocar dados reais
 **Esforço**: M (2-3 semanas)
 
 ### P1-2 — Dashboard de observabilidade de agentes
 **Onde**: Endpoints `/api/v1/trail/*` (7), `/api/v1/graph/*` (3), `/api/v1/usage/*` (7) — zero consumer
-**Fix**: Tela de audit trail com causal graph visual, "por que o agente tomou essa decisão?", custo por execução
+**Débito browser**: `/workflows` lista workflows, mas `/workflows/result?id=...` retorna `workflow not found`; o drawer de auditoria do mesmo ID mostra eventos
+**Fix**: Tela de audit trail com causal graph visual, fallback para eventos quando state/result não existir, "por que o agente tomou essa decisão?", custo por execução
 **Esforço**: M (3-4 semanas)
 
 ### P1-3 — RAG dashboard e monitoring
@@ -92,6 +99,24 @@ Endpoints implementados no backend, sem consumer no frontend.
 **Onde**: Nenhum arquivo `*.test.*`, sem vitest/jest configurado
 **Fix**: Instalar vitest + @testing-library/react; começar por hooks críticos (useAuth, useWorkflows) e pages de billing/CRM
 **Esforço**: M (ongoing — começar com 20% coverage)
+
+### P1-9 — Conversas duplicadas na UI
+**Onde**: `/conversation` e `GET /api/v1/conversations?cursor=true` retornam múltiplas linhas por `conversation_id`
+**Impacto**: histórico fica poluído e ações como abrir/deletar conversa ficam ambíguas
+**Fix**: Agrupar por `conversation_id` no backend ou normalizar no consumer até o endpoint ser corrigido; retornar `message_count` real e preview do último turno
+**Esforço**: P (1-2 dias)
+
+### P1-10 — CRM Cards com falha silenciosa
+**Onde**: produção `/crm/cards`; `useCreateCard`/`useUpdateCard` sem `onError`, e criar cartão pela UI não fecha formulário nem mostra erro
+**Impacto**: usuário acredita que a ação travou; suporte não recebe evidência clara de erro
+**Fix**: Adicionar feedback de erro em hooks/forms, invalidar query em sucesso e preservar payload de erro de API para debug
+**Esforço**: P (1-2 dias)
+
+### P1-11 — Smoke autenticado do dashboard sem credencial read-only
+**Onde**: missão m4; `/dashboard` e rotas protegidas redirecionam corretamente para `/login`, mas não havia auth vault/sessão/credencial para validar dashboard autenticado
+**Impacto**: auditoria recorrente não consegue diferenciar regressão real de ausência de credencial
+**Fix**: Criar usuário/tenant seed read-only para smoke tests de produção e salvar perfil seguro no `agent-browser auth`
+**Esforço**: P (1 dia)
 
 ---
 
@@ -134,7 +159,8 @@ Não quebrado, mas necessário para crescimento.
 2. Fechar porta 16686 Jaeger (P, 1 hora)
 3. Corrigir URL channels.ts:43 (P, < 1 dia)
 4. Conectar AccountPrivacyPage aos endpoints LGPD (P, 2-3 dias)
-5. CI/CD backend básico (P, 2-3 dias)
+5. Implementar CRUD mínimo em `/crm/contacts` (P, 2-4 dias)
+6. CI/CD backend básico (P, 2-3 dias)
 
 ### Sprint 1 (3-4 semanas) — Billing + Observabilidade
 1. Enforcement de limites por plano no conversation-turn-executor
@@ -162,8 +188,8 @@ Não quebrado, mas necessário para crescimento.
 
 ## Kanban — Próximas Ações Concretas
 
-Ver arquivo KANBAN.md (gerado separadamente) para board de tarefas implementáveis.
+Ver `.claude/autopilot/report/KANBAN.md` para board de tarefas implementáveis.
 
 ---
 
-*Gerado por autopilot/2026-06-05-audit — missões m1-m10 concluídas.*
+*Gerado por autopilot/2026-06-05-audit — missões m1-m10 consolidadas; m4 concluída com limitação explícita por ausência de credencial autenticada.*
