@@ -5,6 +5,7 @@ import type { CSSProperties, MouseEvent, PropsWithChildren } from "react";
 import { useDocumentMeta } from "@shared/hooks/useDocumentMeta";
 import { Menu, X } from "lucide-react";
 import { SIGNUP_ENABLED } from "@shared/signup-config";
+import { ChatWidget } from "@shared/ui/ChatWidget";
 
 const WHATSAPP_URL =
   "https://wa.me/5562999722708?text=Ol%C3%A1%21%20Quero%20conhecer%20o%20Archon.";
@@ -44,6 +45,7 @@ export function LandingPage() {
       <Faq />
       <FinalCta />
       <Footer />
+      <ChatWidget />
     </div>
   );
 }
