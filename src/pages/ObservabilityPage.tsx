@@ -19,9 +19,10 @@ function fmtNum(n: number): string {
 }
 
 function fmtCost(usd: number): string {
-  if (usd === 0) return "$0.00";
-  if (usd < 0.01) return `$${usd.toFixed(4)}`;
-  return `$${usd.toFixed(2)}`;
+  const n = Number(usd);
+  if (!n) return "$0.00";
+  if (n < 0.01) return `$${n.toFixed(4)}`;
+  return `$${n.toFixed(2)}`;
 }
 
 function fmtMs(ms: number): string {
