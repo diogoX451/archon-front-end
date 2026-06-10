@@ -72,6 +72,10 @@ export type CanvasMeta = {
   /** User-overridden ghost-node positions. Survives reload via
    *  metadata.ui.ghost_positions. */
   ghost_positions?: Record<string, { x: number; y: number }>;
+  /** When set, the conversation-turn-executor calls ProcessMission on every
+   *  turn and injects state/action/hint into the planner context as
+   *  reactive_context. Built-in value: "archon.sales". */
+  reactive_mission_id?: string;
 };
 
 type PlannerAction = {
@@ -204,6 +208,7 @@ export function canvasToProfile(workflow: WorkflowData, meta: CanvasMeta): Profi
     ...(meta.extra_metadata && typeof meta.extra_metadata === "object" ? meta.extra_metadata : {}),
     ui: uiMetadata,
     ...(meta.guardrails ? { guardrails: meta.guardrails } : {}),
+    ...(meta.reactive_mission_id ? { reactive_mission_id: meta.reactive_mission_id } : {}),
   };
 
   return {
@@ -280,7 +285,7 @@ export function profileToCanvas(profile: ConversationProfileV2): { workflow: Wor
   // First-class executor_type / memory_schema (post-migration 0003) win;
   // fall back to metadata stash for legacy rows that haven't been re-saved.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { ui: _omitUi, executor_type: legacyExecutor, memory_schema: legacyMemory, guardrails: guardrailsMeta, ...extraMetadata } = metadata;
+  const { ui: _omitUi, executor_type: legacyExecutor, memory_schema: legacyMemory, guardrails: guardrailsMeta, reactive_mission_id: reactiveMissionId, ...extraMetadata } = metadata;
   const executorType = profile.executor_type || (typeof legacyExecutor === "string" ? legacyExecutor : undefined);
   const memorySchema: any = profile.memory_schema || legacyMemory;
   const memoryHookRules = Array.isArray(memorySchema?.hook_rules) ? memorySchema.hook_rules : undefined;
@@ -305,6 +310,7 @@ export function profileToCanvas(profile: ConversationProfileV2): { workflow: Wor
       extra_metadata: Object.keys(extraMetadata).length > 0 ? extraMetadata : undefined,
       guardrails: guardrailsMeta && typeof guardrailsMeta === "object" ? guardrailsMeta : undefined,
       ghost_positions: ui.ghost_positions,
+      reactive_mission_id: typeof reactiveMissionId === "string" && reactiveMissionId ? reactiveMissionId : undefined,
     },
   };
 }
