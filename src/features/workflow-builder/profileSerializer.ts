@@ -72,9 +72,9 @@ export type CanvasMeta = {
   /** User-overridden ghost-node positions. Survives reload via
    *  metadata.ui.ghost_positions. */
   ghost_positions?: Record<string, { x: number; y: number }>;
-  /** When set, the conversation-turn-executor calls ProcessMission on
-   *  every turn and injects state/action/hint into the planner context.
-   *  Built-in value: "archon.sales". Leave empty to disable. */
+  /** When set, the conversation-turn-executor calls ProcessMission on every
+   *  turn and injects state/action/hint into the planner context as
+   *  reactive_context. Built-in value: "archon.sales". */
   reactive_mission_id?: string;
 };
 

@@ -716,11 +716,12 @@ function WorkflowInspector({
           onChange={(e) => onMetaChange?.({ reactive_mission_id: e.target.value || undefined })}
         >
           <option value="">— desativado —</option>
-          <option value="archon.sales">archon.sales (qualificação)</option>
+          <option value="archon.sales">archon.sales (qualificação de leads)</option>
         </select>
         <div className="field-hint">
           Quando ativo, cada turno atualiza o perfil reativo do usuário e injeta
-          estado/ação/hint no contexto do planner.
+          estado, ação e hint no contexto do planner via{" "}
+          <code>reactive_context</code>.
         </div>
       </Field>
 
