@@ -677,11 +677,11 @@ const emAccent: CSSProperties = { color: "var(--accent-ink)", fontStyle: "normal
 const emAccentLight: CSSProperties = { color: "var(--accent-soft)", fontStyle: "normal" };
 const emMuted: CSSProperties = { color: "var(--ink-3)", fontStyle: "normal" };
 const lead: CSSProperties = { fontSize: 18, lineHeight: 1.55, color: "var(--ink-2)", margin: "0 0 32px", maxWidth: 560 };
-const ctaRow: CSSProperties = { display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" };
-const ctaPrimary: CSSProperties = { background: "var(--ink)", color: "var(--surface)", padding: "14px 22px", borderRadius: 999, textDecoration: "none", fontWeight: 600, fontSize: 16, boxShadow: "var(--shadow-2)" };
-const ctaPrimaryLight: CSSProperties = { background: "var(--surface)", color: "var(--ink)", padding: "14px 22px", borderRadius: 999, textDecoration: "none", fontWeight: 600, fontSize: 16, boxShadow: "var(--shadow-2)" };
-const ctaGhost: CSSProperties = { background: "transparent", color: "var(--ink)", padding: "14px 18px", borderRadius: 999, textDecoration: "none", fontWeight: 500, fontSize: 16 };
-const ctaGhostLight: CSSProperties = { background: "transparent", color: "rgba(255,255,255,0.85)", padding: "14px 18px", borderRadius: 999, textDecoration: "none", fontWeight: 500, fontSize: 16, border: "1px solid rgba(255,255,255,0.3)" };
+const ctaRow: CSSProperties = { display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" };
+const ctaPrimary: CSSProperties = { background: "var(--ink)", color: "var(--surface)", padding: "17px 32px", borderRadius: 999, textDecoration: "none", fontWeight: 700, fontSize: 18, boxShadow: "0 4px 20px rgba(0,0,0,0.18)", display: "inline-block", letterSpacing: "-0.01em" };
+const ctaPrimaryLight: CSSProperties = { background: "var(--surface)", color: "var(--ink)", padding: "17px 32px", borderRadius: 999, textDecoration: "none", fontWeight: 700, fontSize: 18, boxShadow: "0 4px 20px rgba(0,0,0,0.25)", display: "inline-block", letterSpacing: "-0.01em" };
+const ctaGhost: CSSProperties = { background: "transparent", color: "var(--ink-2)", padding: "17px 20px", borderRadius: 999, textDecoration: "none", fontWeight: 500, fontSize: 17, border: "1.5px solid var(--line-strong, #d0d0d0)", display: "inline-block" };
+const ctaGhostLight: CSSProperties = { background: "transparent", color: "rgba(255,255,255,0.9)", padding: "17px 24px", borderRadius: 999, textDecoration: "none", fontWeight: 500, fontSize: 17, border: "1.5px solid rgba(255,255,255,0.4)", display: "inline-block" };
 const miniProof: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 10, marginTop: 28, color: "var(--ink-3)", fontSize: 14 };
 const miniDot: CSSProperties = { width: 6, height: 6, borderRadius: 999, background: "var(--accent)", display: "inline-block" };
 
