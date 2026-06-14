@@ -132,9 +132,17 @@ export function LoginPage() {
           gap: 18,
         }}
       >
+        {/* Tab switcher */}
+        {SIGNUP_ENABLED && (
+          <div style={tabBar}>
+            <span style={{ ...tab, ...tabActive }}>Entrar</span>
+            <Link to="/signup" style={{ ...tab, ...tabInactive }}>Criar conta</Link>
+          </div>
+        )}
+
         <header style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 4 }}>
           <h1 style={{ fontSize: 26, margin: 0, fontWeight: 600, letterSpacing: "-0.02em" }}>
-            Bem-vindo de volta
+            {SIGNUP_ENABLED ? "Entrar na conta" : "Bem-vindo de volta"}
           </h1>
           <p style={{ color: "var(--ink-3)", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
             Acesse o painel e acompanhe seu atendimento.
@@ -241,30 +249,44 @@ export function LoginPage() {
         <LegalFooter />
       </form>
 
-      <p
-        style={{
-          position: "relative",
-          marginTop: 22,
-          color: "var(--ink-3)",
-          fontSize: 13,
-        }}
-      >
-        Ainda não conhece o Archon?{" "}
-        <Link to="/" style={{ color: "var(--accent-ink)", fontWeight: 500, textDecoration: "none" }}>
-          Ver a plataforma →
-        </Link>
-        {SIGNUP_ENABLED && (
-          <>
-            {" · "}
-            <Link to="/signup" style={{ color: "var(--accent-ink)", fontWeight: 500, textDecoration: "none" }}>
-              Criar conta
-            </Link>
-          </>
-        )}
+      <p style={{ position: "relative", marginTop: 18, color: "var(--ink-3)", fontSize: 13 }}>
+        <Link to="/" style={{ color: "var(--ink-3)", textDecoration: "none" }}>← Voltar ao site</Link>
       </p>
     </div>
   );
 }
+
+const tabBar: React.CSSProperties = {
+  display: "flex",
+  background: "var(--surface-2)",
+  borderRadius: 10,
+  padding: 4,
+  gap: 4,
+  marginBottom: 4,
+};
+
+const tab: React.CSSProperties = {
+  flex: 1,
+  textAlign: "center",
+  padding: "8px 0",
+  borderRadius: 7,
+  fontSize: 14,
+  fontWeight: 600,
+  cursor: "pointer",
+  textDecoration: "none",
+  transition: "background 0.15s, color 0.15s",
+};
+
+const tabActive: React.CSSProperties = {
+  background: "var(--surface)",
+  color: "var(--ink)",
+  boxShadow: "var(--shadow-1)",
+};
+
+const tabInactive: React.CSSProperties = {
+  background: "transparent",
+  color: "var(--ink-3)",
+};
 
 const labelStyle: React.CSSProperties = {
   display: "flex",
