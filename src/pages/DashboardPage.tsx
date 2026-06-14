@@ -6,6 +6,7 @@ import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { IconConversation } from "@shared/ui/icons/Icons";
 import { IconHandoffs, IconCRM, IconCard } from "@shared/ui/Rail";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect, type CSSProperties } from "react";
 
 function timeAgo(dateStr?: string): string {
   if (!dateStr) return "—";
@@ -87,8 +88,124 @@ function QuickLink({
   );
 }
 
+const ONBOARDING_STEPS = [
+  { label: "Conta criada", desc: "Workspace ativo e pronto.", done: true, to: null },
+  { label: "Conectar canal", desc: "Vincule seu número de WhatsApp.", done: false, to: "/channels" },
+  { label: "Configurar agente", desc: "Crie o perfil e as instruções do assistente.", done: false, to: "/profiles" },
+  { label: "Testar conversa", desc: "Envie uma mensagem de teste e veja o agente responder.", done: false, to: "/conversation" },
+] as const;
+
+function WelcomeOverlay({ onClose }: { onClose: () => void }) {
+  const nav = useNavigate();
+
+  const handleStep = (to: string | null) => {
+    if (!to) return;
+    onClose();
+    nav(to);
+  };
+
+  return (
+    <div style={overlayBg} role="dialog" aria-modal="true" aria-label="Bem-vindo ao Archon">
+      <div style={overlayCard}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>Bem-vindo ao Archon 👋</h2>
+            <p style={{ margin: "6px 0 0", fontSize: 14, color: "var(--ink-3)" }}>
+              Siga os passos abaixo para ter seu assistente funcionando.
+            </p>
+          </div>
+          <button onClick={onClose} style={closeBtnStyle} aria-label="Fechar">✕</button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {ONBOARDING_STEPS.map((step, i) => (
+            <button
+              key={step.label}
+              onClick={() => handleStep(step.to)}
+              disabled={step.done}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: "14px 16px",
+                borderRadius: 12,
+                border: step.done
+                  ? "1px solid var(--ok)"
+                  : "1px solid var(--line)",
+                background: step.done ? "color-mix(in oklab, var(--ok) 8%, var(--surface))" : "var(--surface-2)",
+                cursor: step.done ? "default" : "pointer",
+                textAlign: "left",
+                width: "100%",
+                transition: "box-shadow 0.15s",
+              }}
+              onMouseEnter={e => { if (!step.done) e.currentTarget.style.boxShadow = "var(--shadow-2)"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = ""; }}
+            >
+              <div style={{
+                width: 32, height: 32, borderRadius: 999, flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: step.done ? "var(--ok)" : "var(--line-strong)",
+                color: step.done ? "#fff" : "var(--ink-3)",
+                fontWeight: 700, fontSize: 13,
+              }}>
+                {step.done ? "✓" : i + 1}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>{step.label}</div>
+                <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>{step.desc}</div>
+              </div>
+              {!step.done && (
+                <span style={{ fontSize: 13, color: "var(--accent-ink)", flexShrink: 0 }}>→</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={onClose}
+          className="btn"
+          style={{ marginTop: 20, width: "100%", textAlign: "center" }}
+        >
+          Explorar o painel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const overlayBg: CSSProperties = {
+  position: "fixed", inset: 0, zIndex: 8000,
+  background: "rgba(0,0,0,0.45)",
+  display: "flex", alignItems: "center", justifyContent: "center",
+  padding: 20,
+};
+
+const overlayCard: CSSProperties = {
+  width: "100%", maxWidth: 480,
+  background: "var(--surface)",
+  border: "1px solid var(--line)",
+  borderRadius: 18,
+  boxShadow: "var(--shadow-3)",
+  padding: "28px 28px 24px",
+};
+
+const closeBtnStyle: CSSProperties = {
+  background: "none", border: "none", cursor: "pointer",
+  color: "var(--ink-3)", fontSize: 16, padding: 4, lineHeight: 1,
+  flexShrink: 0,
+};
+
 export function DashboardPage() {
   const nav = useNavigate();
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem("archon:show_welcome") === "1") {
+      sessionStorage.removeItem("archon:show_welcome");
+      setShowWelcome(true);
+    }
+  }, []);
+
   const { data: health } = useGetHealth({ refetchInterval: 30_000 });
   const { data: stats } = useCRMStats();
   const { data: handoffsData } = useHandoffsList({ refetchInterval: 30_000 });
@@ -116,6 +233,7 @@ export function DashboardPage() {
 
   return (
     <>
+      {showWelcome && <WelcomeOverlay onClose={() => setShowWelcome(false)} />}
       <div className="page-topbar">
         <DynamicBreadcrumbs />
         <div style={{ flex: 1 }} />

@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { withApiBase } from "@shared/api/client";
 
+declare global {
+  interface Window {
+    gtag_report_conversion?: (url?: string) => boolean;
+  }
+}
+
 const TENANT_SLUG  = "almexa";
 const PROFILE_ID   = "my-almexa";
 const TRIGGER_MSG  = "Olá! Quero conhecer o Archon.";
@@ -53,6 +59,7 @@ export function ChatWidget() {
   const conversationIdRef             = useRef<string>(genConversationId());
   const bottomRef                     = useRef<HTMLDivElement>(null);
   const inputRef                      = useRef<HTMLInputElement>(null);
+  const leadFiredRef                  = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -82,6 +89,15 @@ export function ChatWidget() {
 
     try {
       const workflowId = await postTurn(conversationIdRef.current, text);
+
+      // Dispara conversão GA4 somente na primeira mensagem real do usuário
+      // (não no trigger automático) e somente após o backend confirmar recebimento.
+      if (!isAuto && !leadFiredRef.current) {
+        leadFiredRef.current = true;
+        if (typeof window.gtag_report_conversion === "function") {
+          window.gtag_report_conversion();
+        }
+      }
       let polls = 0;
       const interval = setInterval(async () => {
         polls++;

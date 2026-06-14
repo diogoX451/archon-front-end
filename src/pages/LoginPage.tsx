@@ -45,6 +45,10 @@ export function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
+      if (localStorage.getItem("archon:onboarding") === "pending") {
+        localStorage.removeItem("archon:onboarding");
+        sessionStorage.setItem("archon:show_welcome", "1");
+      }
       const rawFrom2 = (location.state as { from?: string } | null)?.from;
       const redirectTo2 = rawFrom2?.startsWith("/") ? rawFrom2 : "/dashboard";
       navigate(redirectTo2, { replace: true });

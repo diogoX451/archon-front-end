@@ -16,6 +16,7 @@ declare global {
   }
 }
 
+
 const SECTION_LINKS = [
   { id: "beneficios", label: "Benefícios" },
   { id: "como", label: "Como funciona" },
@@ -236,15 +237,21 @@ function Hero() {
             no WhatsApp, no site, onde o cliente estiver.
           </p>
           <div style={ctaRow}>
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noreferrer"
-              style={ctaPrimary}
-              onClick={reportWhatsAppConversion}
-            >
-              Quero ver funcionando →
-            </a>
+            {SIGNUP_ENABLED ? (
+              <Link to="/signup" style={ctaPrimary}>
+                Criar conta grátis →
+              </Link>
+            ) : (
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                style={ctaPrimary}
+                onClick={reportWhatsAppConversion}
+              >
+                Quero ver funcionando →
+              </a>
+            )}
             <a href="#como" style={ctaGhost} onClick={(event) => scrollToSection(event, "como")}>Como funciona</a>
           </div>
           <div style={miniProof}>
@@ -533,14 +540,19 @@ function FinalCta() {
           Uma conversa rápida resolve. Se fizer sentido pro seu negócio, a gente toca.
         </p>
         <div style={{ ...ctaRow, justifyContent: "center", marginTop: 28 }}>
+          {SIGNUP_ENABLED && (
+            <Link to="/signup" style={ctaPrimaryLight}>
+              Criar conta agora →
+            </Link>
+          )}
           <a
             href={WHATSAPP_URL}
             target="_blank"
             rel="noreferrer"
-            style={ctaPrimaryLight}
+            style={SIGNUP_ENABLED ? ctaGhostLight : ctaPrimaryLight}
             onClick={reportWhatsAppConversion}
           >
-            Chamar no WhatsApp →
+            Chamar no WhatsApp
           </a>
         </div>
       </div>
@@ -669,6 +681,7 @@ const ctaRow: CSSProperties = { display: "flex", gap: 12, flexWrap: "wrap", alig
 const ctaPrimary: CSSProperties = { background: "var(--ink)", color: "var(--surface)", padding: "14px 22px", borderRadius: 999, textDecoration: "none", fontWeight: 600, fontSize: 16, boxShadow: "var(--shadow-2)" };
 const ctaPrimaryLight: CSSProperties = { background: "var(--surface)", color: "var(--ink)", padding: "14px 22px", borderRadius: 999, textDecoration: "none", fontWeight: 600, fontSize: 16, boxShadow: "var(--shadow-2)" };
 const ctaGhost: CSSProperties = { background: "transparent", color: "var(--ink)", padding: "14px 18px", borderRadius: 999, textDecoration: "none", fontWeight: 500, fontSize: 16 };
+const ctaGhostLight: CSSProperties = { background: "transparent", color: "rgba(255,255,255,0.85)", padding: "14px 18px", borderRadius: 999, textDecoration: "none", fontWeight: 500, fontSize: 16, border: "1px solid rgba(255,255,255,0.3)" };
 const miniProof: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 10, marginTop: 28, color: "var(--ink-3)", fontSize: 14 };
 const miniDot: CSSProperties = { width: 6, height: 6, borderRadius: 999, background: "var(--accent)", display: "inline-block" };
 

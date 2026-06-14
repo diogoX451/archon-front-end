@@ -42,6 +42,7 @@ export function SignupPage() {
         email,
         password,
       });
+      localStorage.setItem("archon:onboarding", "pending");
       setResult({ email, tenantName });
     } catch (err) {
       if (err instanceof ApiError) setError(err.message || "Falha ao criar conta");

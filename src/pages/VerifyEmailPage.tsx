@@ -28,9 +28,11 @@ export function VerifyEmailPage() {
         {state === "loading" && <p style={{ margin: 0 }}>Validando seu e-mail…</p>}
         {state === "ok" && (
           <>
-            <h1 style={{ marginTop: 0 }}>E-mail confirmado</h1>
-            <p style={{ color: "var(--ink-2)" }}>Sua conta está ativa. Você já pode entrar no Archon.</p>
-            <Link to="/login" className="btn primary">Ir para login</Link>
+            <h1 style={{ marginTop: 0 }}>E-mail confirmado ✓</h1>
+            <p style={{ color: "var(--ink-2)" }}>Sua conta está ativa. Clique abaixo para entrar e configurar seu assistente.</p>
+            <Link to="/login" className="btn primary" style={{ display: "inline-block", textAlign: "center" }}>
+              Entrar na plataforma →
+            </Link>
           </>
         )}
         {state === "error" && (
