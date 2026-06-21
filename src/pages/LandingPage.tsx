@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { createPortal } from "react-dom";
 import type { CSSProperties, MouseEvent, PropsWithChildren } from "react";
@@ -28,6 +28,10 @@ function scrollToSection(event: MouseEvent<HTMLAnchorElement>, sectionId: string
   const section = document.getElementById(sectionId);
   if (!section) return;
   event.preventDefault();
+  navigateToSection(section, sectionId);
+}
+
+function navigateToSection(section: HTMLElement, sectionId: string) {
   section.scrollIntoView({ behavior: "smooth", block: "start" });
   window.history.replaceState(null, "", `#${sectionId}`);
 }
@@ -82,6 +86,7 @@ export function LandingPage() {
 
 function Header() {
   const [open, setOpen] = useState(false);
+  const pendingSectionId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -105,9 +110,28 @@ function Header() {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (open || !pendingSectionId.current) return;
+
+    const sectionId = pendingSectionId.current;
+    pendingSectionId.current = null;
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+
+    // Wait until the menu's scroll lock has been removed before navigating.
+    const frame = window.requestAnimationFrame(() => navigateToSection(section, sectionId));
+    return () => window.cancelAnimationFrame(frame);
+  }, [open]);
+
   const handleSectionClick = (event: MouseEvent<HTMLAnchorElement>, sectionId: string) => {
+    if (open) {
+      event.preventDefault();
+      pendingSectionId.current = sectionId;
+      setOpen(false);
+      return;
+    }
+
     scrollToSection(event, sectionId);
-    setOpen(false);
   };
 
   const links = (
