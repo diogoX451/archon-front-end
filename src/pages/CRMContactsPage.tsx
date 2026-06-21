@@ -34,6 +34,20 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
 };
 
+function tagsFromInput(value: string): string[] {
+  return [...new Set(value.split(",").map(tag => tag.trim().toLowerCase()).filter(Boolean))];
+}
+
+function customFieldsFromInput(value: string): Record<string, string> {
+  return Object.fromEntries(
+    value.split("\n").map(line => line.split(":", 2).map(part => part.trim())).filter(([key, fieldValue]) => key && fieldValue),
+  );
+}
+
+function customFieldsToInput(fields?: Record<string, string>): string {
+  return Object.entries(fields ?? {}).map(([key, value]) => `${key}: ${value}`).join("\n");
+}
+
 function StatusBadge({ status }: { status: ContactStatus }) {
   const s = STATUS_BADGE[status];
   return (
@@ -59,17 +73,33 @@ function ContactRow({ contact, onStatus }: {
   const del = useDeleteContact();
   const update = useUpdateContact();
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: contact.name, company: contact.company ?? "", email: contact.email ?? "", phone: contact.phone ?? "", status: contact.status });
+  const [form, setForm] = useState({
+    name: contact.name,
+    company: contact.company ?? "",
+    email: contact.email ?? "",
+    phone: contact.phone ?? "",
+    status: contact.status,
+    tags: contact.tags?.join(", ") ?? "",
+    customFields: customFieldsToInput(contact.custom_fields),
+  });
 
   if (editing) {
     return (
       <tr style={{ borderBottom: "1px solid var(--line)", background: "var(--bg)" }}>
-        <td colSpan={7} style={{ padding: "10px 16px" }}>
+        <td colSpan={8} style={{ padding: "10px 16px" }}>
           <form
             onSubmit={e => {
               e.preventDefault();
-              const { status: _s, ...editFields } = form;
-              update.mutate({ id: contact.id, input: editFields }, { onSuccess: () => setEditing(false) });
+              const { status, tags, customFields, ...editFields } = form;
+              update.mutate({
+                id: contact.id,
+                input: {
+                  ...editFields,
+                  ...(status !== contact.status ? { status } : {}),
+                  tags: tagsFromInput(tags),
+                  custom_fields: customFieldsFromInput(customFields),
+                },
+              }, { onSuccess: () => setEditing(false) });
             }}
             style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
           >
@@ -77,6 +107,8 @@ function ContactRow({ contact, onStatus }: {
             <input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Empresa" style={{ ...inputStyle, flex: "1 1 130px" }} />
             <input value={form.email} type="email" onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" style={{ ...inputStyle, flex: "1 1 150px" }} />
             <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Telefone" style={{ ...inputStyle, flex: "1 1 110px" }} />
+            <input value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} placeholder="Tags separadas por vírgula" style={{ ...inputStyle, flex: "1 1 190px" }} />
+            <textarea value={form.customFields} onChange={e => setForm(f => ({ ...f, customFields: e.target.value }))} placeholder={"Campos personalizados\nconvênio: Saúde Plus"} rows={2} style={{ ...inputStyle, flex: "1 1 220px", resize: "vertical" }} />
             <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as ContactStatus }))} style={{ ...inputStyle, minWidth: 120 }}>
               {PIPELINE.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
             </select>
@@ -108,6 +140,13 @@ function ContactRow({ contact, onStatus }: {
       </td>
       <td style={{ padding: "10px 16px" }}>
         <StatusBadge status={contact.status} />
+      </td>
+      <td style={{ padding: "10px 16px", minWidth: 130 }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {(contact.tags ?? []).length > 0 ? contact.tags.map(tag => (
+            <span key={tag} style={{ padding: "2px 7px", borderRadius: 99, fontSize: 10, background: "var(--bg)", color: "var(--ink-2)", border: "1px solid var(--line)" }}>{tag}</span>
+          )) : <span style={{ color: "var(--ink-4)" }}>—</span>}
+        </div>
       </td>
       <td style={{ padding: "10px 16px" }}>
         <select
@@ -148,7 +187,7 @@ function ContactRow({ contact, onStatus }: {
   );
 }
 
-const EMPTY_FORM = { name: "", company: "", email: "", phone: "", status: "novo" as ContactStatus };
+const EMPTY_FORM = { name: "", company: "", email: "", phone: "", status: "novo" as ContactStatus, tags: "", customFields: "" };
 
 export function CRMContactsPage() {
   const [filter, setFilter] = useState<ContactStatus | "">("");
@@ -290,8 +329,12 @@ export function CRMContactsPage() {
             onSubmit={e => {
               e.preventDefault();
               if (!newForm.name.trim()) return;
-              const { status: _s, ...input } = newForm;
-              createContact.mutate(input, {
+              const { status: _s, tags, customFields, ...input } = newForm;
+              createContact.mutate({
+                ...input,
+                tags: tagsFromInput(tags),
+                custom_fields: customFieldsFromInput(customFields),
+              }, {
                 onSuccess: () => { setShowForm(false); setNewForm(EMPTY_FORM); },
               });
             }}
@@ -303,10 +346,18 @@ export function CRMContactsPage() {
               <input placeholder="Empresa" value={newForm.company} onChange={e => setNewForm(f => ({...f, company: e.target.value}))} style={{...inputStyle, flex: "1 1 160px"}} />
               <input placeholder="Email" type="email" value={newForm.email} onChange={e => setNewForm(f => ({...f, email: e.target.value}))} style={{...inputStyle, flex: "1 1 160px"}} />
               <input placeholder="Telefone" value={newForm.phone} onChange={e => setNewForm(f => ({...f, phone: e.target.value}))} style={{...inputStyle, flex: "1 1 120px"}} />
+              <input placeholder="Tags: clínica, prioridade" value={newForm.tags} onChange={e => setNewForm(f => ({...f, tags: e.target.value}))} style={{...inputStyle, flex: "1 1 180px"}} />
               <select value={newForm.status} onChange={e => setNewForm(f => ({...f, status: e.target.value as ContactStatus}))} style={{...inputStyle, minWidth: 130}}>
                 {PIPELINE.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
               </select>
             </div>
+            <textarea
+              value={newForm.customFields}
+              onChange={e => setNewForm(f => ({ ...f, customFields: e.target.value }))}
+              placeholder={"Campos personalizados, um por linha (opcional)\nconvênio: Saúde Plus\nunidade: Centro"}
+              rows={3}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", resize: "vertical" }}
+            />
             <div style={{ display: "flex", gap: 8 }}>
               <button type="submit" disabled={createContact.isPending} style={{ padding: "7px 16px", borderRadius: "var(--r-2)", border: "none", background: "var(--accent)", color: "#fff", fontSize: 13, fontWeight: 600, fontFamily: "var(--font-sans)", cursor: "pointer" }}>
                 {createContact.isPending ? "Criando..." : "Criar"}
@@ -431,7 +482,7 @@ export function CRMContactsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "var(--bg)", borderBottom: "1px solid var(--line)" }}>
-                  {["Nome", "Empresa", "Email", "Telefone", "Status", "Mover", ""].map(h => (
+                  {["Nome", "Empresa", "Email", "Telefone", "Status", "Tags", "Mover", ""].map(h => (
                     <th key={h} style={{
                       padding: "9px 16px",
                       textAlign: "left",

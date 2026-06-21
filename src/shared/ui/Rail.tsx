@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@app/auth-context";
 import { useConfirm } from "@shared/ui/feedback";
 import { canAny } from "@shared/authz";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   IconOverview,
   IconConversation,
@@ -192,8 +192,17 @@ const links: RailLink[] = [
   { to: "/account/billing", labelKey: "nav.myBilling",     icon: IconBilling,      group: "account" },
 ];
 
-const RAIL_W_COLLAPSED = 56;
-const RAIL_W_EXPANDED  = 208;
+const MOBILE_QUERY = "(max-width: 768px)";
+
+function subscribeMobileViewport(onChange: () => void) {
+  const media = window.matchMedia(MOBILE_QUERY);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+function getMobileViewportSnapshot() {
+  return window.matchMedia(MOBILE_QUERY).matches;
+}
 
 function initialsFromUser(name?: string, email?: string): string {
   const source = (name || "").trim();
@@ -215,7 +224,9 @@ export function Rail() {
   const { user, isSuper, hasPermission, logout } = useAuth();
   const confirm = useConfirm();
 
-  const [expanded, setExpanded] = useState<boolean>(() => {
+  const isMobile = useSyncExternalStore(subscribeMobileViewport, getMobileViewportSnapshot, () => false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopExpanded, setDesktopExpanded] = useState<boolean>(() => {
     try {
       if (localStorage.getItem("rail-v") !== "2") {
         localStorage.removeItem("rail-expanded");
@@ -225,19 +236,19 @@ export function Rail() {
       return v === null ? true : v === "true";
     } catch { return true; }
   });
+  const expanded = isMobile ? mobileOpen : desktopExpanded;
 
-  useEffect(() => {
-    const w = expanded ? RAIL_W_EXPANDED : RAIL_W_COLLAPSED;
-    document.documentElement.style.setProperty("--rail-w", `${w}px`);
-    try { localStorage.setItem("rail-expanded", String(expanded)); } catch { /* noop */ }
-  }, [expanded]);
-
-  // Set initial CSS var synchronously before first paint
-  useEffect(() => {
-    const w = expanded ? RAIL_W_EXPANDED : RAIL_W_COLLAPSED;
-    document.documentElement.style.setProperty("--rail-w", `${w}px`);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const toggleExpanded = () => {
+    if (isMobile) {
+      setMobileOpen((value) => !value);
+      return;
+    }
+    setDesktopExpanded((value) => {
+      const next = !value;
+      try { localStorage.setItem("rail-expanded", String(next)); } catch { /* noop */ }
+      return next;
+    });
+  };
 
   const isActive = (link: RailLink) => {
     if (link.exact) return location.pathname === link.to;
@@ -262,19 +273,32 @@ export function Rail() {
   }
 
   return (
-    <aside className="rail" data-expanded={expanded ? "true" : "false"}>
+    <>
+      {isMobile && expanded && (
+        <button
+          type="button"
+          className="rail-backdrop"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Fechar menu"
+        />
+      )}
+    <aside className="rail" data-expanded={expanded ? "true" : "false"} data-mobile={isMobile ? "true" : "false"}>
       {/* Brand row with toggle */}
       <div className="rail-brand-row">
         <div className="rail-brand" aria-hidden="true" />
         <button
           type="button"
           className="rail-toggle"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={toggleExpanded}
           aria-label={expanded ? "Recolher menu" : "Expandir menu"}
         >
-          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-            style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 220ms" }}>
-            <polyline points="9 18 15 12 9 6" />
+          <svg width={isMobile ? 18 : 13} height={isMobile ? 18 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+            style={{ transform: !isMobile && expanded ? "rotate(180deg)" : "none", transition: "transform 220ms" }}>
+            {isMobile
+              ? expanded
+                ? <><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></>
+                : <><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></>
+              : <polyline points="9 18 15 12 9 6" />}
           </svg>
         </button>
       </div>
@@ -293,6 +317,7 @@ export function Rail() {
                 className="rail-link"
                 data-active={isActive(link) ? "true" : undefined}
                 data-tour={link.tourTarget}
+                onClick={() => { if (isMobile) setMobileOpen(false); }}
               >
                 <span className="rail-icon"><link.icon size={18} /></span>
                 {expanded
@@ -344,5 +369,6 @@ export function Rail() {
         }
       </button>
     </aside>
+    </>
   );
 }

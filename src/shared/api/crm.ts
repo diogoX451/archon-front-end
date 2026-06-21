@@ -16,6 +16,8 @@ export interface Contact {
   site?: string;
   status: ContactStatus;
   notes?: string;
+  tags: string[];
+  custom_fields: Record<string, string>;
   source: ContactSource;
   created_at: string;
   updated_at: string;
@@ -29,6 +31,8 @@ export interface CreateContactInput {
   phone?: string;
   site?: string;
   notes?: string;
+  tags?: string[];
+  custom_fields?: Record<string, string>;
   source?: ContactSource;
 }
 
@@ -41,6 +45,8 @@ export interface UpdateContactInput {
   site?: string;
   status?: ContactStatus;
   notes?: string;
+  tags?: string[];
+  custom_fields?: Record<string, string>;
 }
 
 export interface CRMStats {

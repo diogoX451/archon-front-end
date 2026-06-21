@@ -3,13 +3,21 @@ import { Link, useNavigate } from "react-router-dom";
 import { GLYPHS } from "@shared/ui/icons/glyphs";
 import { IconPlus, IconTrash, GlyphPlanner } from "@shared/ui/icons/Icons";
 import { AGENT_TYPES } from "@features/workflow-builder/data";
-import { useProfiles, useDeleteProfile } from "@shared/hooks/useProfiles";
+import { useProfiles, useDeleteProfile, useUpsertProfile } from "@shared/hooks/useProfiles";
 import { useTenants } from "@shared/hooks/useTenants";
 import type { ConversationProfileV2 } from "@shared/api/profiles";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { useConfirm, useToast } from "@shared/ui/feedback";
 import { useAuth } from "@app/auth-context";
 import { canAny } from "@shared/authz";
+import { BUSINESS_AGENT_TEMPLATES, buildBusinessProfile, type TemplateRequirement } from "@templates/businessAgentTemplates";
+
+const REQUIREMENT_LABEL: Record<TemplateRequirement, string> = {
+  llm: "Modelo de IA",
+  knowledge: "Base de conhecimento",
+  mcp: "Integração",
+  channel: "Canal",
+};
 
 function agentsArray(profile: ConversationProfileV2): Array<{ id: string; type: string }> {
   const raw = profile.agents as any;
@@ -21,11 +29,12 @@ export function TemplatesPage() {
   const { activeTenantSlug, isSuper, hasPermission } = useAuth();
   const canList = canAny({ isSuper, hasPermission }, ["conversation_profile_list"]);
   const canWrite = canAny({ isSuper, hasPermission }, ["workflow_update", "workflow_create"]);
-  const [tab, setTab] = useState("profiles");
+  const [tab, setTab] = useState("ready");
   const [search, setSearch] = useState("");
   const { data: profiles, isLoading, error } = useProfiles();
   const { data: tenants } = useTenants();
   const deleteMutation = useDeleteProfile();
+  const installMutation = useUpsertProfile();
   const navigate = useNavigate();
   const toast = useToast();
   const confirm = useConfirm();
@@ -67,6 +76,25 @@ export function TemplatesPage() {
     }
   };
 
+  const installTemplate = async (template: (typeof BUSINESS_AGENT_TEMPLATES)[number]) => {
+    const displayName = window.prompt("Nome deste agente", template.name)?.trim();
+    if (!displayName) return;
+    const slug = displayName
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || template.id;
+    const id = `${slug}-${Date.now().toString(36)}`;
+    try {
+      const profile = await installMutation.mutateAsync(buildBusinessProfile(template, id, displayName, activeTenantSlug));
+      toast.success("Cenário criado. Revise as dependências antes de ativar.");
+      navigate(`/workflows/builder/${encodeURIComponent(profile.id)}`);
+    } catch (err: any) {
+      toast.error(`Erro ao criar cenário: ${err?.message || err}`);
+    }
+  };
+
   return (
     <>
       <div className="page-topbar">
@@ -100,19 +128,72 @@ export function TemplatesPage() {
         </div>
 
         <div className="page-tabs">
+          <button type="button" className="page-tab" data-active={tab === "ready"} onClick={() => setTab("ready")}>
+            Cenários prontos
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-4)", marginLeft: 4 }}>
+              {BUSINESS_AGENT_TEMPLATES.length}
+            </span>
+          </button>
           <button type="button" className="page-tab" data-active={tab === "profiles"} onClick={() => setTab("profiles")}>
-            Profiles
+            Meus agentes
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-4)", marginLeft: 4 }}>
               {profiles?.length ?? 0}
             </span>
           </button>
           <button type="button" className="page-tab" data-active={tab === "types"} onClick={() => setTab("types")}>
-            Tipos de agente
+            Componentes técnicos
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-4)", marginLeft: 4 }}>
               {Object.keys(AGENT_TYPES).length}
             </span>
           </button>
         </div>
+
+        {tab === "ready" && (
+          <>
+            <div className="card" style={{ padding: 18, marginBottom: 18, background: "var(--accent-soft)", borderColor: "color-mix(in oklab, var(--accent) 24%, var(--line))" }}>
+              <div style={{ fontWeight: 650, marginBottom: 5 }}>Comece pelo processo do negócio</div>
+              <div style={{ color: "var(--ink-2)", fontSize: 13, lineHeight: 1.55 }}>
+                Escolha um cenário, dê um nome e revise o conteúdo. A parte técnica fica reduzida a conectar o canal,
+                selecionar uma base, configurar a chave do modelo e autorizar integrações quando o cenário precisar.
+              </div>
+            </div>
+            <div className="card-grid">
+              {BUSINESS_AGENT_TEMPLATES.map((template) => (
+                <article key={template.id} className="card" style={{ display: "flex", flexDirection: "column", minHeight: 275 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                    <div>
+                      <span className="pill" data-tone="muted">{template.segment}</span>
+                      <h2 style={{ fontSize: 16, margin: "12px 0 6px" }}>{template.name}</h2>
+                    </div>
+                    <span style={{ color: "var(--ok)", fontSize: 11, fontWeight: 650, whiteSpace: "nowrap" }}>pronto para copiar</span>
+                  </div>
+                  <p style={{ color: "var(--ink-2)", fontSize: 13, lineHeight: 1.5, margin: "0 0 12px" }}>{template.summary}</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14 }}>
+                    {template.outcomes.map((outcome) => <span key={outcome} className="pill">✓ {outcome}</span>)}
+                  </div>
+                  <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, marginTop: "auto" }}>
+                    <div style={{ fontSize: 10, fontWeight: 650, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--ink-3)", marginBottom: 7 }}>Para ativar</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                      {template.requirements.map((requirement) => (
+                        <span key={requirement} className="pill" data-tone={requirement === "mcp" ? "warn" : "muted"}>{REQUIREMENT_LABEL[requirement]}</span>
+                      ))}
+                    </div>
+                    {template.mcpHint && <div style={{ color: "var(--ink-3)", fontSize: 11, marginTop: 7 }}>Integração sugerida: {template.mcpHint}</div>}
+                    <button
+                      type="button"
+                      className="btn primary"
+                      style={{ width: "100%", justifyContent: "center", marginTop: 12 }}
+                      disabled={!canWrite || installMutation.isPending || !activeTenantSlug}
+                      onClick={() => installTemplate(template)}
+                    >
+                      {installMutation.isPending ? "Criando…" : "Usar este cenário"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
 
         {tab === "profiles" && (
           <>

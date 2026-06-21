@@ -20,6 +20,7 @@ declare global {
 const SECTION_LINKS = [
   { id: "beneficios", label: "Benefícios" },
   { id: "como", label: "Como funciona" },
+  { id: "plataforma", label: "Plataforma" },
   { id: "casos", label: "Pra quem é" },
   { id: "faq", label: "Dúvidas" },
 ];
@@ -61,9 +62,9 @@ function reportWhatsAppConversion(event: MouseEvent<HTMLAnchorElement>) {
 
 export function LandingPage() {
   useDocumentMeta({
-    title: "Archon — Atendimento no WhatsApp 24h, sem perder cliente | Almexa",
+    title: "Archon — Agente personalizado para todos os canais | Almexa",
     description:
-      "Um assistente que atende seus clientes no WhatsApp na hora, 24h por dia, no tom da sua empresa. Implantação em dias. Fale com a Almexa.",
+      "Um agente personalizado que atende clientes no WhatsApp, site e outros canais, centraliza conversas e trabalha no tom da sua empresa.",
     canonical: "https://archon.almexa.com.br/",
   });
   return (
@@ -74,6 +75,7 @@ export function LandingPage() {
       <Marquee />
       <Benefits />
       <HowItWorks />
+      <PlatformShowcase />
       <UseCases />
       <Comparison />
       <Faq />
@@ -207,16 +209,14 @@ function Hero() {
       <div style={heroInner}>
         <div className="lp-hero-left" style={heroLeft}>
           <span style={pill}>
-            <span style={pillPulse} /> Atendendo agora, em algum WhatsApp
+            <span style={pillPulse} /> Um agente. Todos os seus canais.
           </span>
           <h1 style={h1}>
-            Seu negócio falando com cliente <em style={emAccent}>na hora.</em>
-            <br />
-            Mesmo às 3 da manhã.
+            Um agente personalizado que atende clientes em <em style={emAccent}>todos os canais.</em>
           </h1>
           <p style={lead}>
-            Um assistente que conhece o seu jeito de atender e responde por você {"—"}
-            no WhatsApp, no site, onde o cliente estiver.
+            Centralize WhatsApp, site e outros canais. O Archon aprende as regras do seu negócio,
+            responde com rapidez e chama sua equipe quando o atendimento precisa de uma pessoa.
           </p>
           <div style={ctaRow}>
             {SIGNUP_ENABLED ? (
@@ -238,7 +238,7 @@ function Hero() {
           </div>
           <div style={miniProof}>
             <span style={miniDot} />
-            <span>Implantação em dias · sem dor de cabeça técnica</span>
+            <span>Não é um chatbot pronto · é configurado para o seu negócio</span>
           </div>
         </div>
         <div className="lp-hero-right" style={heroRight} aria-hidden>
@@ -329,8 +329,8 @@ function Dot({ i }: { i: number }) {
 
 function Marquee() {
   const phrases = [
-    "Responde em 3 segundos", "Não dorme", "Não esquece o cliente",
-    "Não erra o tom", "Não cobra hora extra", "Não tira férias",
+    "Responde sem deixar o cliente esperando", "Atende 24 horas", "Centraliza os canais",
+    "Segue o tom da empresa", "Escala para sua equipe", "Evolui com a operação",
   ];
   return (
     <section style={marqueeWrap}>
@@ -346,12 +346,12 @@ function Marquee() {
 }
 
 const BENEFITS = [
-  { n: "01", title: "Nunca perde uma mensagem", body: "Madrugada, feriado, almoço. O cliente é atendido — e você não perde venda." },
-  { n: "02", title: "Fala como sua empresa", body: "Aprende seu tom, suas regras, seus produtos. Atendimento consistente." },
-  { n: "03", title: "Tira o time do operacional", body: "Acaba a repetição. Sua equipe foca em fechar, encantar e expandir." },
-  { n: "04", title: "Onde seu cliente está", body: "WhatsApp, site, redes — o mesmo assistente em todo canal." },
-  { n: "05", title: "Pronto em dias", body: "Sem projeto longo. Em pouco tempo já está atendendo de verdade." },
-  { n: "06", title: "Gente do nosso lado", body: "A gente entra junto: configura, ajusta, evolui com você." },
+  { n: "01", title: "Responde clientes com rapidez", body: "O atendimento continua à noite, no almoço e nos feriados, sem deixar mensagens acumularem." },
+  { n: "02", title: "Mantém uma experiência consistente", body: "O agente segue o tom, as regras e as informações da sua empresa em cada conversa." },
+  { n: "03", title: "Reduz erros e tarefas repetitivas", body: "Sua equipe deixa de repetir respostas e atua nos casos que exigem decisão humana." },
+  { n: "04", title: "Centraliza todos os canais", body: "WhatsApp, site e novas integrações trabalham com o mesmo contexto de atendimento." },
+  { n: "05", title: "Começa sem projeto interminável", body: "A configuração parte do seu processo atual e evolui conforme a operação aprende." },
+  { n: "06", title: "Conta com acompanhamento próximo", body: "A Almexa configura, monitora e ajusta o agente junto com a sua equipe." },
 ];
 
 function Benefits() {
@@ -362,7 +362,7 @@ function Benefits() {
         <h2 style={h2}>
           Atendimento que <em style={emAccent}>trabalha por você</em> {"—"} sem drama.
         </h2>
-        <p style={sub}>Sem promessa de coach. Resultado prático.</p>
+        <p style={sub}>Resultados operacionais claros, sem exigir que sua equipe entenda de IA.</p>
         <div className="lp-grid3" style={grid3}>
           {BENEFITS.map((b) => (
             <article key={b.n} style={benefitCard}>
@@ -407,11 +407,43 @@ function HowItWorks() {
   );
 }
 
+function PlatformShowcase() {
+  return (
+    <section id="plataforma" className="lp-section" style={section}>
+      <div style={sectionInner}>
+        <Eyebrow>Por dentro da plataforma</Eyebrow>
+        <h2 style={h2}>A operação inteira visível, sem transformar sua equipe em especialista técnico.</h2>
+        <p style={sub}>Acompanhe conversas, contatos e atendimentos. Para começar um novo caso, escolha um cenário pronto e conecte apenas o que ele precisa.</p>
+        <div className="lp-product-grid" style={productGrid}>
+          <figure style={productFigure}>
+            <div style={productImageFrame}>
+              <img src="/product/painel-visao-geral.png" alt="Painel do Archon com indicadores de conversas, contatos, clientes e atendimentos" loading="lazy" style={productImage} />
+            </div>
+            <figcaption style={productCaption}>
+              <strong>Painel operacional</strong>
+              <span>Conversas, clientes e atendimentos reunidos em uma única visão.</span>
+            </figcaption>
+          </figure>
+          <figure style={productFigure}>
+            <div style={productImageFrame}>
+              <img src="/product/cenarios-prontos.png" alt="Catálogo de cenários prontos do Archon para clínicas, comércio e vendas B2B" loading="lazy" style={productImage} />
+            </div>
+            <figcaption style={productCaption}>
+              <strong>Cenários prontos por negócio</strong>
+              <span>Escolha o processo, revise as regras e conecte as dependências indicadas.</span>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const USES = [
-  { tag: "Comércio", title: "Tira dúvida, frete, prazo. Recupera carrinho conversando." },
-  { tag: "Clínica", title: "Agenda, confirma, lembra. Menos falta, mais agenda cheia." },
-  { tag: "Infoproduto", title: "Tira dúvida do aluno e oferece o próximo passo." },
-  { tag: "B2B", title: "Qualifica lead e entrega só o quente pro seu time." },
+  { tag: "Clínicas e consultórios", title: "Para equipes enxutas que precisam orientar, agendar, confirmar e encaminhar pacientes." },
+  { tag: "Comércio e serviços", title: "Para operações que respondem dúvidas sobre produtos, prazos, pedidos e disponibilidade." },
+  { tag: "Educação e infoprodutos", title: "Para atender alunos, orientar próximos passos e organizar demandas recorrentes." },
+  { tag: "Vendas B2B", title: "Para qualificar oportunidades e entregar ao comercial conversas com contexto." },
 ];
 
 function UseCases() {
@@ -419,7 +451,8 @@ function UseCases() {
     <section id="casos" className="lp-section" style={section}>
       <div style={sectionInner}>
         <Eyebrow>Pra quem é</Eyebrow>
-        <h2 style={h2}>Já rodando em negócios de verdade.</h2>
+        <h2 style={h2}>Feito para empresas pequenas e médias que precisam atender melhor sem ampliar o operacional.</h2>
+        <p style={sub}>A experiência é configurada para cada segmento; sua equipe usa o processo do negócio, não termos como LLM ou MCP.</p>
         <div className="lp-grid2" style={grid2}>
           {USES.map((u) => (
             <article key={u.tag} style={useCard}>
@@ -451,8 +484,8 @@ function Comparison() {
       <div style={sectionInner}>
         <Eyebrow>Antes e depois</Eyebrow>
         <h2 style={h2}>
-          Sai de <em style={emMuted}>perdendo cliente</em> pra{" "}
-          <em style={emAccent}>fechando dormindo.</em>
+          Sai de <em style={emMuted}>conversas espalhadas</em> para{" "}
+          <em style={emAccent}>atendimento coordenado.</em>
         </h2>
         <div className="lp-grid2" style={grid2}>
           <article style={compareBefore}>
@@ -639,6 +672,7 @@ details[open] summary .faq-plus { transform: rotate(45deg); }
   /* Grids: single column below 520px */
   .lp-grid2 { grid-template-columns: 1fr !important; }
   .lp-grid3 { grid-template-columns: 1fr !important; }
+  .lp-product-grid { grid-template-columns: 1fr !important; }
 }
 `;
 
@@ -652,7 +686,7 @@ const nav: CSSProperties = { display: "flex", alignItems: "center", gap: 18 };
 const navLink: CSSProperties = { color: "var(--ink-2)", textDecoration: "none", fontSize: 14 };
 const ctaSmall: CSSProperties = { background: "var(--ink)", color: "var(--surface)", padding: "9px 16px", borderRadius: 999, textDecoration: "none", fontSize: 14, fontWeight: 500 };
 const burger: CSSProperties = { background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center", padding: "4px 8px", marginRight: -8, borderRadius: 6 };
-const mobileMenu: CSSProperties = { position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)", padding: "20px 24px 32px", overflowY: "auto", overscrollBehavior: "contain" };
+const mobileMenu: CSSProperties = { position: "fixed", inset: 0, zIndex: 1100, background: "var(--bg)", padding: "20px 24px 32px", overflowY: "auto", overscrollBehavior: "contain" };
 const mobileNavLink: CSSProperties = { display: "block", color: "var(--ink)", textDecoration: "none", fontSize: 20, fontWeight: 500, padding: "14px 0", borderBottom: "1px solid var(--line)" };
 
 const hero: CSSProperties = { position: "relative", padding: "88px 24px 64px", overflow: "hidden" };
@@ -695,6 +729,11 @@ const sub: CSSProperties = { color: "var(--ink-3)", fontSize: 17, margin: "0 0 3
 
 const grid2: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginTop: 24 };
 const grid3: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginTop: 28 };
+const productGrid: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 18, marginTop: 30 };
+const productFigure: CSSProperties = { margin: 0, padding: 10, borderRadius: 18, border: "1px solid var(--line)", background: "var(--surface)", boxShadow: "var(--shadow-2)" };
+const productImageFrame: CSSProperties = { height: 330, overflow: "hidden", borderRadius: 12, border: "1px solid var(--line)", background: "var(--bg)" };
+const productImage: CSSProperties = { display: "block", width: "100%", height: "100%", objectFit: "cover", objectPosition: "top left" };
+const productCaption: CSSProperties = { display: "flex", flexDirection: "column", gap: 5, padding: "14px 8px 8px", color: "var(--ink-2)", fontSize: 13, lineHeight: 1.45 };
 
 const cardTitle: CSSProperties = { margin: "0 0 8px", fontSize: 18, fontWeight: 600 };
 const cardBody: CSSProperties = { margin: 0, color: "var(--ink-2)", fontSize: 15, lineHeight: 1.55 };
