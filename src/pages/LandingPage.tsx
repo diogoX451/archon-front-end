@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPortal } from "react-dom";
 import type { CSSProperties, MouseEvent, PropsWithChildren } from "react";
@@ -86,52 +86,10 @@ export function LandingPage() {
 
 function Header() {
   const [open, setOpen] = useState(false);
-  const pendingSectionId = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const pageEl = document.getElementById("landing-page");
-    const previousPageOverflow = pageEl?.style.overflow ?? "";
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-
-    if (pageEl) {
-      pageEl.style.overflow = "hidden";
-    }
-
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    return () => {
-      if (pageEl) pageEl.style.overflow = previousPageOverflow;
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (open || !pendingSectionId.current) return;
-
-    const sectionId = pendingSectionId.current;
-    pendingSectionId.current = null;
-    const section = document.getElementById(sectionId);
-    if (!section) return;
-
-    // Wait until the menu's scroll lock has been removed before navigating.
-    const frame = window.requestAnimationFrame(() => navigateToSection(section, sectionId));
-    return () => window.cancelAnimationFrame(frame);
-  }, [open]);
 
   const handleSectionClick = (event: MouseEvent<HTMLAnchorElement>, sectionId: string) => {
-    if (open) {
-      event.preventDefault();
-      pendingSectionId.current = sectionId;
-      setOpen(false);
-      return;
-    }
-
     scrollToSection(event, sectionId);
+    setOpen(false);
   };
 
   const links = (
@@ -622,6 +580,11 @@ function Eyebrow({ children }: PropsWithChildren) {
 // ─── styles ───────────────────────────────────────────────────────────────────
 
 const css = `
+/* The app shell locks #root because authenticated screens manage their own
+   scrolling. The public landing page must use #root as its scroll viewport so
+   native touch/wheel scrolling keeps working after anchor navigation. */
+#root { overflow-x: hidden; overflow-y: auto; }
+
 /* Anchor targets must clear the 68px sticky header, otherwise clicking a nav
    tab scrolls the section title behind the header and looks broken. */
 .lp-section { scroll-margin-top: 80px; }
@@ -679,7 +642,7 @@ details[open] summary .faq-plus { transform: rotate(45deg); }
 }
 `;
 
-const page: CSSProperties = { minHeight: "100vh", width: "100%", height: "100%", overflowY: "auto", background: "var(--bg)", color: "var(--ink)" };
+const page: CSSProperties = { minHeight: "100vh", width: "100%", background: "var(--bg)", color: "var(--ink)" };
 const header: CSSProperties = { position: "sticky", top: 0, zIndex: 20, background: "color-mix(in oklab, var(--bg) 85%, transparent)", backdropFilter: "saturate(140%) blur(10px)", borderBottom: "1px solid var(--line)" };
 const headerInner: CSSProperties = { maxWidth: 1200, margin: "0 auto", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 };
 const brand: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 10, color: "var(--ink)", textDecoration: "none", fontWeight: 600, letterSpacing: "-0.01em" };
@@ -689,7 +652,7 @@ const nav: CSSProperties = { display: "flex", alignItems: "center", gap: 18 };
 const navLink: CSSProperties = { color: "var(--ink-2)", textDecoration: "none", fontSize: 14 };
 const ctaSmall: CSSProperties = { background: "var(--ink)", color: "var(--surface)", padding: "9px 16px", borderRadius: 999, textDecoration: "none", fontSize: 14, fontWeight: 500 };
 const burger: CSSProperties = { background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center", padding: "4px 8px", marginRight: -8, borderRadius: 6 };
-const mobileMenu: CSSProperties = { position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)", padding: "20px 24px 32px", overflowY: "auto" };
+const mobileMenu: CSSProperties = { position: "fixed", inset: 0, zIndex: 200, background: "var(--bg)", padding: "20px 24px 32px", overflowY: "auto", overscrollBehavior: "contain" };
 const mobileNavLink: CSSProperties = { display: "block", color: "var(--ink)", textDecoration: "none", fontSize: 20, fontWeight: 500, padding: "14px 0", borderBottom: "1px solid var(--line)" };
 
 const hero: CSSProperties = { position: "relative", padding: "88px 24px 64px", overflow: "hidden" };
