@@ -15,7 +15,7 @@ import {
 } from "@shared/hooks/useConversationsHistory";
 import type { ConversationTurnRow } from "@shared/api/conversationsHistory";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
-import { useConfirm } from "@shared/ui/feedback";
+import { useConfirm, useToast } from "@shared/ui/feedback";
 import { useAuth } from "@app/auth-context";
 import { canAny } from "@shared/authz";
 import { useEventStream } from "@shared/hooks/useEventStream";
@@ -413,12 +413,15 @@ export function ConversationPage() {
   const { isSuper, hasPermission } = useAuth();
   const canUseConversation = canAny({ isSuper, hasPermission }, ["conversation_turn"]);
   const confirm = useConfirm();
+  const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const presetProfile = searchParams.get("profile") || "";
   const initialConvId = searchParams.get("conv") || "";
 
   const [activeConvId, setActiveConvId] = useState<string>(initialConvId);
   const [draft, setDraft] = useState("");
+  const [editingTurn, setEditingTurn] = useState<ConversationTurnRow | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const [selectedProfile, setSelectedProfile] = useState(presetProfile);
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [convSearch, setConvSearch] = useState("");
@@ -546,7 +549,7 @@ export function ConversationPage() {
 
   const startConversation = () => {
     if (!selectedProfile) {
-      alert("Selecione um profile antes.");
+      toast.error("Selecione um profile antes.");
       return;
     }
     const id = `conv_${Date.now().toString(36)}`;
@@ -651,19 +654,29 @@ export function ConversationPage() {
         },
         onError: (err: any) => {
           removeOptimisticTurn();
-          alert(`Erro: ${err?.message || "falhou"}`);
+          toast.error(`Erro: ${err?.message || "falhou"}`);
         },
       }
     );
   };
 
   const handleEditMessage = (turn: ConversationTurnRow) => {
-    const next = window.prompt("Editar mensagem:", turn.content);
-    if (next == null || next.trim() === "" || next === turn.content) return;
+    setEditingTurn(turn);
+    setEditDraft(turn.content);
+  };
+
+  const saveEditedMessage = () => {
+    if (!editingTurn || !editDraft.trim() || editDraft === editingTurn.content) return;
     editTurn.mutate({
       conversationId: activeConvId,
-      turnId: turn.id,
-      content: next,
+      turnId: editingTurn.id,
+      content: editDraft.trim(),
+    }, {
+      onSuccess: () => {
+        setEditingTurn(null);
+        toast.success("Mensagem atualizada.");
+      },
+      onError: (err) => toast.error(`Erro ao editar: ${err.message}`),
     });
   };
 
@@ -967,6 +980,19 @@ export function ConversationPage() {
           onClose={() => setTimelineOpen(false)}
           scope={{ kind: "conversation", id: activeConvId }}
         />
+      )}
+
+      {editingTurn && (
+        <div role="presentation" onClick={() => setEditingTurn(null)} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgb(10 12 16 / 0.58)", display: "grid", placeItems: "center", padding: 20 }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="edit-message-title" className="card" onClick={(event) => event.stopPropagation()} style={{ width: "min(520px, 100%)", padding: 20 }}>
+            <h2 id="edit-message-title" style={{ margin: "0 0 12px", fontSize: 17 }}>Editar mensagem</h2>
+            <textarea className="search-input" aria-label="Conteúdo da mensagem" autoFocus rows={5} value={editDraft} onChange={(event) => setEditDraft(event.target.value)} style={{ width: "100%", boxSizing: "border-box", resize: "vertical" }} />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+              <button type="button" className="btn" onClick={() => setEditingTurn(null)}>Cancelar</button>
+              <button type="button" className="btn primary" disabled={!editDraft.trim() || editDraft === editingTurn.content || editTurn.isPending} onClick={saveEditedMessage}>{editTurn.isPending ? "Salvando…" : "Salvar"}</button>
+            </div>
+          </section>
+        </div>
       )}
     </>
   );

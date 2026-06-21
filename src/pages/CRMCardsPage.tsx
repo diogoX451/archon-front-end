@@ -4,6 +4,7 @@ import { API_BASE_URL } from "@shared/api/client";
 import { getToken } from "@shared/api/token";
 import type { BusinessCard, CreateCardInput, CardLink, CardLinkType } from "@shared/api/crm";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { useConfirm, useToast } from "@shared/ui/feedback";
 
 // ── Design tokens ─────────────────────────────────────────────────────────
 
@@ -127,6 +128,8 @@ function CardAnalyticsRow({ cardId }: { cardId: string }) {
 
 function CardItem({ card }: { card: BusinessCard }) {
   const del = useDeleteCard();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
@@ -183,7 +186,11 @@ function CardItem({ card }: { card: BusinessCard }) {
         <a href={card.public_url || `/c/${card.slug}`} target="_blank" rel="noreferrer" style={btn}>Ver</a>
         <button
           type="button"
-          onClick={() => { if (confirm(`Deletar cartão "${card.name}"?`)) del.mutate(card.id); }}
+          onClick={async () => {
+            const ok = await confirm({ title: "Excluir cartão", message: `Excluir o cartão “${card.name}”? O link público deixará de funcionar.`, confirmLabel: "Excluir", destructive: true });
+            if (!ok) return;
+            del.mutate(card.id, { onSuccess: () => toast.success("Cartão excluído."), onError: (err) => toast.error(`Erro ao excluir: ${err.message}`) });
+          }}
           style={{ ...btn, flex: "0 0 auto", color: "var(--err)", borderColor: "var(--err)", opacity: 0.7 }}
           title="Deletar cartão"
         >
@@ -283,6 +290,7 @@ export function CRMCardsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   const uploadAvatar = async (file: File) => {
     setUploading(true);
@@ -299,7 +307,7 @@ export function CRMCardsPage() {
       const data = await res.json() as { url: string };
       setForm(p => ({ ...p, avatar_url: data.url }));
     } catch (e) {
-      alert("Erro ao fazer upload: " + (e instanceof Error ? e.message : String(e)));
+      toast.error("Erro ao fazer upload: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setUploading(false);
     }

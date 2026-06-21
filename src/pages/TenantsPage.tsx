@@ -6,7 +6,7 @@ import {
 } from "@shared/hooks/useTenants";
 import type { Tenant, PlanTier } from "@shared/api/tenants";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
-import { useToast } from "@shared/ui/feedback";
+import { useConfirm, useToast } from "@shared/ui/feedback";
 
 const PLAN_COLORS: Record<PlanTier, { bg: string; color: string; label: string }> = {
   free:       { bg: "#f3f4f6", color: "#6b7280", label: "Free"       },
@@ -39,6 +39,7 @@ export function TenantsPage() {
   const updateTenantStatus = useUpdateTenantStatus();
   const updateTenantPlan  = useUpdateTenantPlan();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const [showCreate, setShowCreate] = useState(false);
   const [slug, setSlug]       = useState("");
@@ -74,6 +75,15 @@ export function TenantsPage() {
   };
 
   const handleToggleStatus = async (t: Tenant) => {
+    if (t.active) {
+      const ok = await confirm({
+        title: "Inativar empresa",
+        message: `Inativar ${t.name}? Usuários e automações desta empresa poderão perder acesso até que ela seja reativada.`,
+        confirmLabel: "Inativar",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     try {
       await updateTenantStatus.mutateAsync({ id: t.id, input: { active: !t.active } });
       toast.success(!t.active ? "Ativada." : "Inativada.");

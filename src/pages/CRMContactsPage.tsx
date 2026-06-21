@@ -5,7 +5,7 @@ import type { ContactStatus, Contact, BroadcastInput } from "@shared/api/crm";
 import { broadcastWhatsApp } from "@shared/api/crm";
 import { listWhatsAppChannels } from "@shared/api/channels";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
-import { useToast } from "@shared/ui/feedback";
+import { useConfirm, useToast } from "@shared/ui/feedback";
 
 const STATUS_LABEL: Record<ContactStatus, string> = {
   novo:       "Novo",
@@ -72,6 +72,8 @@ function ContactRow({ contact, onStatus }: {
 }) {
   const del = useDeleteContact();
   const update = useUpdateContact();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: contact.name,
@@ -177,7 +179,19 @@ function ContactRow({ contact, onStatus }: {
           Editar
         </button>
         <button
-          onClick={() => del.mutate(contact.id)}
+          onClick={async () => {
+            const ok = await confirm({
+              title: "Remover contato",
+              message: `Remover ${contact.name}? O histórico vinculado pode deixar de aparecer no CRM.`,
+              confirmLabel: "Remover",
+              destructive: true,
+            });
+            if (!ok) return;
+            del.mutate(contact.id, {
+              onSuccess: () => toast.success("Contato removido."),
+              onError: (err) => toast.error(`Erro ao remover: ${err.message}`),
+            });
+          }}
           style={{ background: "none", border: "none", color: "var(--err)", cursor: "pointer", fontSize: 12, fontFamily: "var(--font-sans)", padding: "2px 4px" }}
         >
           Remover
@@ -207,6 +221,7 @@ export function CRMContactsPage() {
   const updateContact = useUpdateContact();
   const createContact = useCreateContact();
   const toast = useToast();
+  const confirm = useConfirm();
   const waChannels = useQuery({
     queryKey: ["whatsapp-channels"],
     queryFn: () => listWhatsAppChannels(),
@@ -371,9 +386,19 @@ export function CRMContactsPage() {
 
         {showBroadcast && (
           <form
-            onSubmit={e => {
+            onSubmit={async e => {
               e.preventDefault();
               if (!broadcastMsg.trim() || !broadcastInstance) return;
+              const selected = waChannels.data?.find(channel => channel.instance_name === broadcastInstance);
+              const audience = contacts.filter(contact => broadcastStatuses.includes(contact.status));
+              const reachable = audience.filter(contact => Boolean(contact.phone?.trim())).length;
+              const ok = await confirm({
+                title: "Confirmar broadcast",
+                message: `Canal: ${selected?.display_name || broadcastInstance}. Audiência: ${audience.length} contato(s), ${reachable} com telefone. A mensagem será enviada imediatamente.`,
+                confirmLabel: `Enviar para até ${reachable}`,
+                destructive: true,
+              });
+              if (!ok) return;
               broadcastMutation.mutate({ message: broadcastMsg, statuses: broadcastStatuses, instance_id: broadcastInstance });
             }}
             style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--r-4)", padding: 16, marginBottom: 16, display: "flex", flexDirection: "column", gap: 12 }}

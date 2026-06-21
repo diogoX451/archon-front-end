@@ -31,6 +31,8 @@ export function TemplatesPage() {
   const canWrite = canAny({ isSuper, hasPermission }, ["workflow_update", "workflow_create"]);
   const [tab, setTab] = useState("ready");
   const [search, setSearch] = useState("");
+  const [setupTemplate, setSetupTemplate] = useState<(typeof BUSINESS_AGENT_TEMPLATES)[number] | null>(null);
+  const [setupName, setSetupName] = useState("");
   const { data: profiles, isLoading, error } = useProfiles();
   const { data: tenants } = useTenants();
   const deleteMutation = useDeleteProfile();
@@ -76,8 +78,15 @@ export function TemplatesPage() {
     }
   };
 
-  const installTemplate = async (template: (typeof BUSINESS_AGENT_TEMPLATES)[number]) => {
-    const displayName = window.prompt("Nome deste agente", template.name)?.trim();
+  const openTemplateSetup = (template: (typeof BUSINESS_AGENT_TEMPLATES)[number]) => {
+    setSetupTemplate(template);
+    setSetupName(template.name);
+  };
+
+  const installTemplate = async () => {
+    if (!setupTemplate) return;
+    const template = setupTemplate;
+    const displayName = setupName.trim();
     if (!displayName) return;
     const slug = displayName
       .normalize("NFD")
@@ -88,6 +97,7 @@ export function TemplatesPage() {
     const id = `${slug}-${Date.now().toString(36)}`;
     try {
       const profile = await installMutation.mutateAsync(buildBusinessProfile(template, id, displayName, activeTenantSlug));
+      setSetupTemplate(null);
       toast.success("Cenário criado. Revise as dependências antes de ativar.");
       navigate(`/workflows/builder/${encodeURIComponent(profile.id)}`);
     } catch (err: any) {
@@ -184,7 +194,7 @@ export function TemplatesPage() {
                       className="btn primary"
                       style={{ width: "100%", justifyContent: "center", marginTop: 12 }}
                       disabled={!canWrite || installMutation.isPending || !activeTenantSlug}
-                      onClick={() => installTemplate(template)}
+                      onClick={() => openTemplateSetup(template)}
                     >
                       {installMutation.isPending ? "Criando…" : "Usar este cenário"}
                     </button>
@@ -301,6 +311,56 @@ export function TemplatesPage() {
               </table>
             )}
           </>
+        )}
+
+        {setupTemplate && (
+          <div
+            role="presentation"
+            onClick={() => setSetupTemplate(null)}
+            style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgb(10 12 16 / 0.58)", display: "grid", placeItems: "center", padding: 20 }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="template-setup-title"
+              className="card"
+              onClick={(event) => event.stopPropagation()}
+              style={{ width: "min(560px, 100%)", maxHeight: "90vh", overflow: "auto", padding: 22 }}
+            >
+              <h2 id="template-setup-title" style={{ margin: "0 0 6px", fontSize: 18 }}>Configurar {setupTemplate.name}</h2>
+              <p style={{ margin: "0 0 18px", color: "var(--ink-2)", fontSize: 13, lineHeight: 1.5 }}>
+                O cenário será criado pronto para revisão. Depois, conecte somente os recursos indicados abaixo.
+              </p>
+              <label htmlFor="template-agent-name" style={{ display: "block", fontSize: 12, fontWeight: 650, marginBottom: 5 }}>Nome do agente</label>
+              <input
+                id="template-agent-name"
+                className="search-input"
+                autoFocus
+                value={setupName}
+                onChange={(event) => setSetupName(event.target.value)}
+                style={{ width: "100%", boxSizing: "border-box", marginBottom: 18 }}
+              />
+              <div style={{ fontSize: 12, fontWeight: 650, marginBottom: 8 }}>Checklist para ativar</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {setupTemplate.requirements.map((requirement) => {
+                  const target = requirement === "llm" ? "/llm-config" : requirement === "knowledge" ? "/rag" : requirement === "mcp" ? "/mcp-config" : "/channels";
+                  const detail = requirement === "llm" ? "Escolha o modelo e informe a chave da API." : requirement === "knowledge" ? "Selecione ou envie os documentos do negócio." : requirement === "mcp" ? (setupTemplate.mcpHint || "Autorize a integração necessária.") : "Conecte WhatsApp ou outro canal de atendimento.";
+                  return (
+                    <div key={requirement} style={{ border: "1px solid var(--line)", borderRadius: "var(--r-2)", padding: "10px 12px", display: "flex", gap: 12, alignItems: "center" }}>
+                      <div style={{ flex: 1 }}><strong style={{ fontSize: 12 }}>{REQUIREMENT_LABEL[requirement]}</strong><div style={{ color: "var(--ink-3)", fontSize: 11, marginTop: 2 }}>{detail}</div></div>
+                      <Link to={target} className="btn" target="_blank">Configurar</Link>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 20 }}>
+                <button type="button" className="btn" onClick={() => setSetupTemplate(null)}>Cancelar</button>
+                <button type="button" className="btn primary" disabled={!setupName.trim() || installMutation.isPending} onClick={() => void installTemplate()}>
+                  {installMutation.isPending ? "Criando…" : "Criar cenário"}
+                </button>
+              </div>
+            </section>
+          </div>
         )}
 
         {tab === "types" && (
