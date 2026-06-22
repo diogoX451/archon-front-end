@@ -37,7 +37,9 @@ export interface SignupPayload {
   tenant_name: string;
   tenant_slug: string;
   document?: string;
-  tier: "free" | "starter" | "growth" | "enterprise";
+  // Public signup always provisions a free tenant; the backend ignores tier.
+  // Kept optional only for backward compatibility — do not surface a picker.
+  tier?: "free" | "starter" | "growth" | "enterprise";
   name: string;
   email: string;
   password: string;
@@ -45,7 +47,7 @@ export interface SignupPayload {
 
 export interface SignupResponse {
   status: string;
-  tenant: { id: string; slug: string; name: string; tier: string };
+  tenant: { id: string; slug: string; name: string; plan?: string; tier?: string };
   user: { id: string; email: string; name: string };
   bootstrap?: { api_key?: string; api_key_prefix?: string; webhook_url?: string };
 }

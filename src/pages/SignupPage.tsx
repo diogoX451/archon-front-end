@@ -3,7 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@app/auth-context";
 import { ApiError } from "@shared/api/client";
 import { signup, resendVerification } from "@shared/api/auth";
-import { SIGNUP_ENABLED, SIGNUP_TIERS, type SignupTier } from "@shared/signup-config";
+import { SIGNUP_ENABLED } from "@shared/signup-config";
 import { LegalFooter } from "@shared/ui/LegalFooter";
 import { ConsentCheckbox } from "@shared/ui/ConsentCheckbox";
 
@@ -28,7 +28,6 @@ export function SignupPage() {
   const [name, setName]               = useState("");
   const [email, setEmail]             = useState("");
   const [password, setPassword]       = useState("");
-  const [tier, setTier]               = useState<SignupTier>("starter");
   const [submitting, setSubmitting]   = useState(false);
   const [error, setError]             = useState<string | null>(null);
   const [result, setResult]           = useState<ResultState | null>(null);
@@ -56,7 +55,7 @@ export function SignupPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await signup({ tenant_name: tenantName, tenant_slug: tenantSlug, tier, name, email, password });
+      await signup({ tenant_name: tenantName, tenant_slug: tenantSlug, name, email, password });
       localStorage.setItem("archon:onboarding", "pending");
       setResult({ email, tenantName });
     } catch (err) {
@@ -139,12 +138,9 @@ export function SignupPage() {
           />
         </label>
 
-        <label style={labelStyle}>
-          Plano
-          <select value={tier} onChange={(e) => setTier(e.target.value as SignupTier)} style={inputStyle}>
-            {SIGNUP_TIERS.map((t) => <option key={t.key} value={t.key}>{t.label} · {t.price}</option>)}
-          </select>
-        </label>
+        {/* Public signup always provisions a free tenant; upgrades happen in
+            an authenticated billing flow. The backend ignores any tier sent
+            here, so we no longer offer a plan picker to anonymous visitors. */}
 
         {/* Section: você */}
         <div style={{ ...sectionLabel, marginTop: 4 }}>Seus dados</div>
