@@ -7,6 +7,8 @@ export type WorkflowEventType =
   | "response"
   | "result"
   | "conversation_turn"
+  | "memory_log"
+  | "audio"
   | "other";
 
 export interface WorkflowEvent {

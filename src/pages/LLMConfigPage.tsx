@@ -78,6 +78,7 @@ const PROVIDERS = Object.keys(PROVIDER_REGISTRY);
 interface FormState {
   provider: string;
   model: string;
+  transcription_model: string;
   api_key: string;
   base_url: string;
 }
@@ -85,6 +86,7 @@ interface FormState {
 const emptyForm = (): FormState => ({
   provider: "openai",
   model: PROVIDER_REGISTRY["openai"].defaultModel,
+  transcription_model: "whisper-1",
   api_key: "",
   base_url: "",
 });
@@ -112,6 +114,7 @@ function ConfigRow({
         <ProviderPill provider={cfg.provider} />
       </td>
       <td className="mono">{cfg.model}</td>
+      <td className="mono">{cfg.transcription_model || "whisper-1 (fallback)"}</td>
       <td className="muted">{cfg.base_url || "—"}</td>
       <td>
         <span
@@ -487,6 +490,7 @@ export function LLMConfigPage() {
     upsertMut.mutate({
       provider: form.provider,
       model: form.model.trim(),
+      transcription_model: form.provider === "openai" ? form.transcription_model.trim() || undefined : undefined,
       api_key: form.api_key.trim() || undefined,
       base_url: form.base_url.trim() || undefined,
       tenant_slug: effectiveTenant,
@@ -574,7 +578,12 @@ export function LLMConfigPage() {
                     value={form.provider}
                     onChange={(e) => {
                       const p = e.target.value;
-                      setForm((f) => ({ ...f, provider: p, model: PROVIDER_REGISTRY[p]?.defaultModel || "" }));
+                      setForm((f) => ({
+                        ...f,
+                        provider: p,
+                        model: PROVIDER_REGISTRY[p]?.defaultModel || "",
+                        transcription_model: p === "openai" ? f.transcription_model || "whisper-1" : "",
+                      }));
                       setFetchedModels([]);
                     }}
                   >
@@ -585,6 +594,25 @@ export function LLMConfigPage() {
                     ))}
                   </select>
                 </label>
+
+                {form.provider === "openai" && (
+                  <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <span className="field-label">Modelo de transcrição</span>
+                    <input
+                      className="field-input"
+                      value={form.transcription_model}
+                      onChange={(e) => setForm((f) => ({ ...f, transcription_model: e.target.value }))}
+                      placeholder="Ex: gpt-4o-mini-transcribe"
+                      list="transcription-model-options"
+                      aria-label="Modelo de transcrição OpenAI"
+                    />
+                    <datalist id="transcription-model-options">
+                      <option value="whisper-1" />
+                      <option value="gpt-4o-transcribe" />
+                      <option value="gpt-4o-mini-transcribe" />
+                    </datalist>
+                  </label>
+                )}
 
                 <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <span className="field-label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -690,6 +718,7 @@ export function LLMConfigPage() {
                   <tr>
                     <th>Provider</th>
                     <th>Model</th>
+                    <th>Transcrição</th>
                     <th>Base URL</th>
                     <th>Chave</th>
                     <th>Atualizado</th>

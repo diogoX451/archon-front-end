@@ -5,6 +5,7 @@ export interface LLMConfig {
   tenant_id: string;
   provider: string;
   model: string;
+  transcription_model?: string;
   api_key?: string; // always empty in list responses (redacted server-side)
   base_url?: string;
   created_at: string;
@@ -14,6 +15,7 @@ export interface LLMConfig {
 export interface UpsertLLMConfigInput {
   provider?: string;
   model: string;
+  transcription_model?: string;
   api_key?: string;
   base_url?: string;
   tenant_slug?: string;

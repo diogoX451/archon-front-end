@@ -52,6 +52,8 @@ const TONE_BY_TYPE: Record<WorkflowEventType, string> = {
   response: "ok",
   result: "ok",
   conversation_turn: "ok",
+  memory_log: "run",
+  audio: "warn",
   other: "muted",
 };
 

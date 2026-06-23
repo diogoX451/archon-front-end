@@ -9,6 +9,7 @@ import {
   type UsageDimension,
 } from "@shared/api/observability";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
+import { getEventsTimeline } from "@shared/api/events";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -437,15 +438,81 @@ function TrailSection() {
   );
 }
 
+// Audit payload of a speech-to-text result (AudioTranscribedEvent).
+interface TranscribedPayload {
+  transcribed_at?: string;
+  conversation_id?: string;
+  audio_message_id?: string;
+  model?: string;
+  transcription?: string;
+}
+
+// TranscriptionsSection lists recent STT results so the operator can verify
+// transcription accuracy. Reads the audit timeline and keeps only
+// conversation.audio.transcribed events — no dedicated endpoint needed.
+function TranscriptionsSection() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["observability", "transcriptions"],
+    queryFn: () => getEventsTimeline({ limit: 200 }),
+    staleTime: 30_000,
+  });
+
+  const rows = (data ?? [])
+    .filter((ev) => ev.subject === "conversation.audio.transcribed")
+    .map((ev) => ({ ev, p: (ev.payload ?? {}) as TranscribedPayload }));
+
+  if (isLoading) return <div style={{ opacity: 0.5, fontSize: 13 }}>Carregando transcrições...</div>;
+  if (error) return <div style={{ fontSize: 13, color: "#dc2626" }}>Erro ao carregar transcrições.</div>;
+  if (!rows.length) {
+    return (
+      <div style={{ padding: 24, textAlign: "center", opacity: 0.4, fontSize: 13 }}>
+        Nenhuma transcrição registrada. Envie um áudio para a IA para vê-lo aqui.
+      </div>
+    );
+  }
+
+  return (
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+      <thead>
+        <tr style={{ borderBottom: "2px solid var(--line)" }}>
+          <th style={{ textAlign: "left", padding: "6px 12px", fontWeight: 600, color: "var(--ink-2)", fontSize: 12, whiteSpace: "nowrap" }}>Quando</th>
+          <th style={{ textAlign: "left", padding: "6px 12px", fontWeight: 600, color: "var(--ink-2)", fontSize: 12 }}>Conversa</th>
+          <th style={{ textAlign: "left", padding: "6px 12px", fontWeight: 600, color: "var(--ink-2)", fontSize: 12 }}>Modelo</th>
+          <th style={{ textAlign: "left", padding: "6px 12px", fontWeight: 600, color: "var(--ink-2)", fontSize: 12 }}>Transcrição</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(({ ev, p }, i) => (
+          <tr key={ev.id ?? i} style={{ borderBottom: "1px solid var(--line)", verticalAlign: "top" }}>
+            <td style={{ padding: "9px 12px", color: "var(--ink-3)", fontSize: 11, whiteSpace: "nowrap" }}>
+              {p.transcribed_at ? fmtDatetime(p.transcribed_at) : (ev.occurred_at ? fmtDatetime(ev.occurred_at) : "—")}
+            </td>
+            <td style={{ padding: "9px 12px", fontFamily: "var(--font-mono, monospace)", fontSize: 11, color: "var(--ink-3)" }}>
+              {(p.conversation_id ?? ev.conversation_id ?? "—").slice(0, 12)}
+            </td>
+            <td style={{ padding: "9px 12px" }}>
+              <code style={{ fontSize: 11, color: "var(--accent)" }}>{p.model || "—"}</code>
+            </td>
+            <td style={{ padding: "9px 12px", color: "var(--ink)", lineHeight: 1.4 }}>
+              {p.transcription || <span style={{ opacity: 0.4 }}>(vazio)</span>}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 // ── page ──────────────────────────────────────────────────────────────────────
 
-type Tab = "summary" | "breakdown" | "blocked" | "trail";
+type Tab = "summary" | "breakdown" | "blocked" | "trail" | "transcriptions";
 
 const TAB_LABELS: Record<Tab, string> = {
   summary: "Resumo",
   breakdown: "Detalhamento",
   blocked: "Bloqueios",
   trail: "Trilha",
+  transcriptions: "Transcrições",
 };
 
 export function ObservabilityPage() {
@@ -472,7 +539,7 @@ export function ObservabilityPage() {
           borderBottom: "1px solid var(--line)",
           marginBottom: 24,
         }}>
-          {(["summary", "breakdown", "blocked", "trail"] as Tab[]).map((t) => (
+          {(["summary", "breakdown", "blocked", "trail", "transcriptions"] as Tab[]).map((t) => (
             <button
               key={t}
               type="button"
@@ -539,6 +606,16 @@ export function ObservabilityPage() {
               padding: 20,
             }}>
               <TrailSection />
+            </div>
+          )}
+          {tab === "transcriptions" && (
+            <div style={{
+              background: "var(--surface)",
+              border: "1px solid var(--line)",
+              borderRadius: "var(--r-4)",
+              overflow: "hidden",
+            }}>
+              <TranscriptionsSection />
             </div>
           )}
         </div>
