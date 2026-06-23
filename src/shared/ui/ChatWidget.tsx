@@ -11,7 +11,7 @@ const TENANT_SLUG  = "almexa";
 const PROFILE_ID   = "my-almexa";
 const TRIGGER_MSG  = "Olá! Quero conhecer o Archon.";
 const POLL_INTERVAL_MS = 2000;
-const MAX_POLLS        = 60; // 2 min timeout
+const MAX_POLLS        = 150; // 5 min — interim while planner turn latency is reduced
 
 interface Message {
   id: string;
