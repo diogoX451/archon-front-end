@@ -9,7 +9,9 @@ declare global {
 
 const TENANT_SLUG  = "almexa";
 const PROFILE_ID   = "my-almexa";
-const TRIGGER_MSG  = "Olá! Quero conhecer o Archon.";
+// Shown instantly on open — no backend round-trip — so the first message is
+// never slow. The agent only runs once the visitor actually types.
+const GREETING = "Oi! 👋 Sou o Assist da Almexa. O Archon é uma plataforma de agentes de IA que atendem por WhatsApp, web e outros canais. Pra eu te mostrar como encaixa no seu caso: qual o seu maior desafio de atendimento hoje?";
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLLS        = 150; // 5 min — interim while planner turn latency is reduced
 
@@ -142,7 +144,9 @@ export function ChatWidget() {
   useEffect(() => {
     if (open && !started) {
       setStarted(true);
-      void sendMessage(TRIGGER_MSG, true);
+      // Instant static greeting — no turn sent. Pipeline only runs on the
+      // visitor's first real message.
+      setMessages([{ id: genId(), role: "assistant", text: GREETING }]);
     }
     if (open) setTimeout(() => inputRef.current?.focus(), 100);
   // eslint-disable-next-line react-hooks/exhaustive-deps
