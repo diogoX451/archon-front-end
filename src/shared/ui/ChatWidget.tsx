@@ -28,11 +28,72 @@ function genConversationId() {
   return `widget-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-async function postTurn(conversationId: string, message: string): Promise<string> {
+// ── session persistence ───────────────────────────────────────────────────────
+// On-platform funnel: a closed tab must not lose the lead. We persist the
+// conversation id + visible messages so a returning visitor resumes instead
+// of starting over, and remember whether the conversion already fired.
+const LS_PREFIX = `archon_widget_${TENANT_SLUG}_${PROFILE_ID}`;
+const LS_CONV = `${LS_PREFIX}_conv`;
+const LS_MSGS = `${LS_PREFIX}_msgs`;
+const LS_LEAD = `${LS_PREFIX}_lead`;
+const LS_ATTR = `archon_widget_attr`; // first-touch ad attribution (shared)
+
+function lsGet(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function lsSet(key: string, val: string) {
+  try { localStorage.setItem(key, val); } catch { /* private mode / quota — ignore */ }
+}
+
+function loadOrCreateConversationId(): string {
+  const existing = lsGet(LS_CONV);
+  if (existing) return existing;
+  const id = genConversationId();
+  lsSet(LS_CONV, id);
+  return id;
+}
+
+function loadMessages(): Message[] {
+  const raw = lsGet(LS_MSGS);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
+// captureAttribution stores ad-click params (gclid/utm) on first touch so they
+// reach the backend with the turn and get attached to the CRM lead. First-touch
+// wins — a later visit without params doesn't overwrite the original source.
+function captureAttribution(): Record<string, string> | null {
+  const existing = lsGet(LS_ATTR);
+  if (existing) {
+    try { return JSON.parse(existing); } catch { /* fall through to recapture */ }
+  }
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const keys = ["gclid", "gbraid", "wbraid", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"];
+    const attr: Record<string, string> = {};
+    keys.forEach((k) => { const v = p.get(k); if (v) attr[k] = v; });
+    if (Object.keys(attr).length === 0) return null;
+    attr.landing_url = window.location.href;
+    if (document.referrer) attr.referrer = document.referrer;
+    lsSet(LS_ATTR, JSON.stringify(attr));
+    return attr;
+  } catch { return null; }
+}
+
+async function postTurn(
+  conversationId: string,
+  message: string,
+  metadata?: Record<string, string> | null,
+): Promise<string> {
+  const body: Record<string, unknown> = { profile_id: PROFILE_ID, conversation_id: conversationId, message };
+  if (metadata && Object.keys(metadata).length) body.metadata = metadata;
   const res = await fetch(withApiBase(`/api/v1/public/widget/${TENANT_SLUG}/turns`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ profile_id: PROFILE_ID, conversation_id: conversationId, message }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`turn failed: ${res.status}`);
   const data = await res.json();
@@ -51,21 +112,32 @@ async function pollResult(workflowId: string): Promise<string | null> {
 }
 
 export function ChatWidget() {
+  const restored                      = useRef<Message[]>(loadMessages());
   const [open, setOpen]               = useState(false);
-  const [messages, setMessages]       = useState<Message[]>([]);
+  const [messages, setMessages]       = useState<Message[]>(restored.current);
   const [input, setInput]             = useState("");
   const [waiting, setWaiting]         = useState(false);
-  const [started, setStarted]         = useState(false);
-  const conversationIdRef             = useRef<string>(genConversationId());
+  // A restored conversation has already been "started" — don't replay the
+  // auto greeting over the visitor's existing history.
+  const [started, setStarted]         = useState(restored.current.length > 0);
+  const conversationIdRef             = useRef<string>(loadOrCreateConversationId());
+  const attributionRef                = useRef<Record<string, string> | null>(captureAttribution());
   const bottomRef                     = useRef<HTMLDivElement>(null);
   const inputRef                      = useRef<HTMLInputElement>(null);
-  const leadFiredRef                  = useRef(false);
+  const leadFiredRef                  = useRef(lsGet(LS_LEAD) === "1");
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
+
+  // Persist the conversation (settled messages only — never the pending
+  // typing bubble) so a returning visitor resumes where they left off.
+  useEffect(() => {
+    const settled = messages.filter((m) => !m.pending && !(m.role === "user" && m.text === ""));
+    lsSet(LS_MSGS, JSON.stringify(settled));
+  }, [messages]);
 
   useEffect(() => {
     if (open && !started) {
@@ -88,12 +160,13 @@ export function ChatWidget() {
     setWaiting(true);
 
     try {
-      const workflowId = await postTurn(conversationIdRef.current, text);
+      const workflowId = await postTurn(conversationIdRef.current, text, attributionRef.current);
 
       // Dispara conversão GA4 somente na primeira mensagem real do usuário
       // (não no trigger automático) e somente após o backend confirmar recebimento.
       if (!isAuto && !leadFiredRef.current) {
         leadFiredRef.current = true;
+        lsSet(LS_LEAD, "1");
         if (typeof window.gtag_report_conversion === "function") {
           window.gtag_report_conversion();
         }
