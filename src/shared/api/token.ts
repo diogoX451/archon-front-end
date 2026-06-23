@@ -13,8 +13,13 @@ let memoryTenant: string | null = null;
 let memoryCsrf: string | null = null;
 
 function safeStorage(): Storage | null {
+  // localStorage (not sessionStorage) so the bearer token, CSRF token and
+  // active tenant are shared across tabs of the same origin — otherwise a
+  // second tab has no token/CSRF and appears logged out (and mutations fail
+  // the CSRF check the dual-mode backend enforces once it sees the session
+  // cookie). Same XSS surface as sessionStorage in bearer mode.
   try {
-    return typeof window === "undefined" ? null : window.sessionStorage;
+    return typeof window === "undefined" ? null : window.localStorage;
   } catch {
     return null;
   }
