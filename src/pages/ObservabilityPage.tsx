@@ -10,6 +10,17 @@ import {
 } from "@shared/api/observability";
 import { DynamicBreadcrumbs } from "@shared/ui/DynamicBreadcrumbs";
 import { getEventsTimeline } from "@shared/api/events";
+import { withApiBase } from "@shared/api/client";
+import { getToken } from "@shared/api/token";
+
+// Build the authenticated audio-stream URL for an <audio> element. The proxy
+// enforces per-tenant access; the ?token= param lets the element authenticate
+// in bearer mode (cookie mode sends the session cookie automatically).
+function audioSrcFromKey(key: string): string {
+  const base = withApiBase(`/api/v1/transcriptions/audio?key=${encodeURIComponent(key)}`);
+  const tok = getToken();
+  return tok ? `${base}&token=${encodeURIComponent(tok)}` : base;
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -445,7 +456,7 @@ interface TranscribedPayload {
   audio_message_id?: string;
   model?: string;
   transcription?: string;
-  audio_url?: string;
+  audio_key?: string;
 }
 
 // TranscriptionsSection lists recent STT results so the operator can verify
@@ -496,8 +507,8 @@ function TranscriptionsSection() {
               <code style={{ fontSize: 11, color: "var(--accent)" }}>{p.model || "—"}</code>
             </td>
             <td style={{ padding: "9px 12px", minWidth: 200 }}>
-              {p.audio_url
-                ? <audio controls preload="none" src={p.audio_url} style={{ height: 32, maxWidth: 220 }} />
+              {p.audio_key
+                ? <audio controls preload="none" src={audioSrcFromKey(p.audio_key)} style={{ height: 32, maxWidth: 220 }} />
                 : <span style={{ opacity: 0.4, fontSize: 11 }}>—</span>}
             </td>
             <td style={{ padding: "9px 12px", color: "var(--ink)", lineHeight: 1.4 }}>
