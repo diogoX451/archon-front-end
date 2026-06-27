@@ -445,6 +445,7 @@ interface TranscribedPayload {
   audio_message_id?: string;
   model?: string;
   transcription?: string;
+  audio_url?: string;
 }
 
 // TranscriptionsSection lists recent STT results so the operator can verify
@@ -478,6 +479,7 @@ function TranscriptionsSection() {
           <th style={{ textAlign: "left", padding: "6px 12px", fontWeight: 600, color: "var(--ink-2)", fontSize: 12, whiteSpace: "nowrap" }}>Quando</th>
           <th style={{ textAlign: "left", padding: "6px 12px", fontWeight: 600, color: "var(--ink-2)", fontSize: 12 }}>Conversa</th>
           <th style={{ textAlign: "left", padding: "6px 12px", fontWeight: 600, color: "var(--ink-2)", fontSize: 12 }}>Modelo</th>
+          <th style={{ textAlign: "left", padding: "6px 12px", fontWeight: 600, color: "var(--ink-2)", fontSize: 12 }}>Áudio</th>
           <th style={{ textAlign: "left", padding: "6px 12px", fontWeight: 600, color: "var(--ink-2)", fontSize: 12 }}>Transcrição</th>
         </tr>
       </thead>
@@ -492,6 +494,11 @@ function TranscriptionsSection() {
             </td>
             <td style={{ padding: "9px 12px" }}>
               <code style={{ fontSize: 11, color: "var(--accent)" }}>{p.model || "—"}</code>
+            </td>
+            <td style={{ padding: "9px 12px", minWidth: 200 }}>
+              {p.audio_url
+                ? <audio controls preload="none" src={p.audio_url} style={{ height: 32, maxWidth: 220 }} />
+                : <span style={{ opacity: 0.4, fontSize: 11 }}>—</span>}
             </td>
             <td style={{ padding: "9px 12px", color: "var(--ink)", lineHeight: 1.4 }}>
               {p.transcription || <span style={{ opacity: 0.4 }}>(vazio)</span>}
