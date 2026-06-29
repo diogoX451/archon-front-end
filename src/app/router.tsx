@@ -29,6 +29,7 @@ import { PrivacyPolicyPage } from "@pages/legal/PrivacyPolicyPage";
 import { TermsPage } from "@pages/legal/TermsPage";
 import { DpoPage } from "@pages/legal/DpoPage";
 import { HandoffsPage } from "@pages/HandoffsPage";
+import { RiskPage } from "@pages/RiskPage";
 import { CRMContactsPage } from "@pages/CRMContactsPage";
 import { CRMCardsPage } from "@pages/CRMCardsPage";
 import { PublicCardPage } from "@pages/PublicCardPage";
@@ -82,6 +83,7 @@ export function AppRouter() {
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/conversation" element={<ConversationPage />} />
                     <Route path="/handoffs" element={<HandoffsPage />} />
+                    <Route path="/risk" element={<RiskPage />} />
                     <Route path="/crm/contacts" element={<CRMContactsPage />} />
                     <Route path="/crm/cards" element={<CRMCardsPage />} />
                     <Route path="/workflows" element={<WorkflowsPage />} />

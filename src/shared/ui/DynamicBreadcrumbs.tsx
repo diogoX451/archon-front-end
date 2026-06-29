@@ -32,6 +32,7 @@ function buildCrumbKeys(pathname: string, search: string): CrumbKey[] {
     return out;
   }
   if (pathname.startsWith("/handoffs")) return [{ key: "breadcrumbs.handoffs" }];
+  if (pathname.startsWith("/risk")) return [{ key: "breadcrumbs.risk" }];
   if (pathname.startsWith("/crm/contacts")) return [{ key: "breadcrumbs.crm" }, { key: "breadcrumbs.crmContacts" }];
   if (pathname.startsWith("/crm/cards")) return [{ key: "breadcrumbs.crm" }, { key: "breadcrumbs.crmCards" }];
   if (pathname === "/workflows") return [{ key: "breadcrumbs.workflows" }, { key: "breadcrumbs.workflowList" }];
