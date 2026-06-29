@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { IconPlus } from "@shared/ui/icons/Icons";
 import { TimelineDrawer } from "@shared/ui/TimelineDrawer";
-import { useListConversationProfiles, useCreateConversationTurn } from "@shared/hooks/useConversation";
+import { useListConversationProfiles, useCreateConversationTurn, useUploadConversationAudio } from "@shared/hooks/useConversation";
 import { useGetWorkflowResult, useGetWorkflowStatus } from "@shared/hooks/useWorkflows";
 import {
   conversationsKeys,
@@ -21,6 +21,12 @@ import { canAny } from "@shared/authz";
 import { useEventStream } from "@shared/hooks/useEventStream";
 import { useGraphProfile } from "@shared/hooks/useGraphProfile";
 import type { UserGraphProfile, GraphProfileHookEdge } from "@shared/api/graphProfile";
+import { useConversationTimeline } from "@shared/hooks/useTimeline";
+import { useRiskList } from "@shared/hooks/useRisk";
+import { getToken } from "@shared/api/token";
+import { withApiBase } from "@shared/api/client";
+import { buildConversationAudioEntries } from "@shared/lib/conversationAudio";
+import type { RiskSeverity } from "@shared/api/risk";
 
 function extractAssistantText(output: any): string {
   if (output == null) return "";
@@ -380,6 +386,47 @@ function pillStyle(bg: string, color: string): React.CSSProperties {
   };
 }
 
+function fmtDateTime(value?: string): string {
+  if (!value) return "—";
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return "—";
+  return dt.toLocaleString("pt-BR");
+}
+
+function audioSrcFromKey(key: string): string {
+  const base = withApiBase(`/api/v1/transcriptions/audio?key=${encodeURIComponent(key)}`);
+  const token = getToken();
+  return token ? `${base}&token=${encodeURIComponent(token)}` : base;
+}
+
+function severityTone(severity: RiskSeverity): { bg: string; fg: string; label: string } {
+  switch (severity) {
+    case "critical":
+      return { bg: "oklch(0.93 0.08 25)", fg: "oklch(0.45 0.18 25)", label: "crítico" };
+    case "high":
+      return { bg: "oklch(0.94 0.08 40)", fg: "oklch(0.52 0.15 40)", label: "alto" };
+    case "medium":
+      return { bg: "oklch(0.95 0.07 95)", fg: "oklch(0.5 0.12 95)", label: "médio" };
+    case "low":
+      return { bg: "oklch(0.95 0.05 160)", fg: "oklch(0.42 0.1 160)", label: "baixo" };
+    case "none":
+      return { bg: "var(--surface-2)", fg: "var(--ink-3)", label: "sem risco" };
+    default:
+      return { bg: "var(--surface-2)", fg: "var(--ink-3)", label: severity };
+  }
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("Falha ao ler arquivo"));
+    reader.readAsDataURL(file);
+  });
+  const comma = dataUrl.indexOf(",");
+  return comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+}
+
 function hookEdgePillStyle(relation: string): React.CSSProperties {
   let bg = "var(--surface-2)";
   let color = "var(--ink-3)";
@@ -426,10 +473,13 @@ export function ConversationPage() {
   const [profilePanelOpen, setProfilePanelOpen] = useState(false);
   const [convSearch, setConvSearch] = useState("");
   const [optimisticTurnsByConv, setOptimisticTurnsByConv] = useState<Record<string, ConversationTurnRow[]>>({});
+  const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
 
   const { data: profiles, isLoading: profilesLoading, error: profilesError } = useListConversationProfiles();
   const createTurn = useCreateConversationTurn();
+  const uploadAudio = useUploadConversationAudio();
   const sendingRef = useRef(false);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   const { data: convsPage, isLoading: convsLoading } = useConversationsList(undefined, { limit: 50 });
   const allConversations = useMemo(() => {
     const items = convsPage?.items || [];
@@ -475,6 +525,12 @@ export function ConversationPage() {
     { enabled: !!userId && profilePanelOpen }
   );
   const is503 = (profileError as any)?.status === 503;
+  const timelineQuery = useConversationTimeline(activeConvId, { enabled: !!activeConvId, limit: 200, refetchInterval: activeConvId ? 5_000 : false });
+  const riskQuery = useRiskList({ limit: 200 }, { enabled: !!activeConvId, refetchInterval: activeConvId ? 15_000 : false });
+  const audioEntries = useMemo(
+    () => buildConversationAudioEntries(timelineQuery.data ?? [], riskQuery.data?.classifications ?? [], activeConvId),
+    [timelineQuery.data, riskQuery.data?.classifications, activeConvId]
+  );
 
   // SSE: listen for result/conversation_turn events on the active conversation
   // and invalidate turns cache so messages appear without waiting for the next poll.
@@ -492,9 +548,12 @@ export function ConversationPage() {
     if (
       latest.event_type === "result" ||
       latest.event_type === "conversation_turn" ||
+      latest.event_type === "audio" ||
       latest.event_type === "other"
     ) {
       qc.invalidateQueries({ queryKey: conversationsKeys.turns(activeConvId) });
+      qc.invalidateQueries({ queryKey: ["timeline", "conversation", activeConvId] });
+      qc.invalidateQueries({ queryKey: ["risk"] });
     }
   }, [sseEvents, activeConvId, qc]);
 
@@ -557,6 +616,16 @@ export function ConversationPage() {
     qc.setQueryData(conversationsKeys.turns(id), { conversation: null, turns: [] });
   };
 
+  const ensureConversationId = () => {
+    let convId = activeConvId;
+    if (!convId) {
+      convId = `conv_${Date.now().toString(36)}`;
+      setActiveConvId(convId);
+      qc.setQueryData(conversationsKeys.turns(convId), { conversation: null, turns: [] });
+    }
+    return convId;
+  };
+
   const sendMessage = (overrideText?: string) => {
     const text = (overrideText ?? draft).trim();
     if (!text || !selectedProfile) return;
@@ -566,11 +635,7 @@ export function ConversationPage() {
     sendingRef.current = true;
     setTimeout(() => { sendingRef.current = false; }, 1000);
     if (!overrideText) setDraft("");
-    let convId = activeConvId;
-    if (!convId) {
-      convId = `conv_${Date.now().toString(36)}`;
-      setActiveConvId(convId);
-    }
+    const convId = ensureConversationId();
 
     const history = serverTurns
       .filter((t) => t.status === "ok")
@@ -660,6 +725,35 @@ export function ConversationPage() {
     );
   };
 
+  const handleSendAudio = async () => {
+    if (!selectedProfile) {
+      toast.error("Selecione um profile antes.");
+      return;
+    }
+    if (!selectedAudioFile) {
+      toast.error("Selecione um áudio primeiro.");
+      return;
+    }
+    try {
+      const convId = ensureConversationId();
+      const audioBase64 = await fileToBase64(selectedAudioFile);
+      await uploadAudio.mutateAsync({
+        conversationId: convId,
+        data: {
+          profile_id: selectedProfile,
+          audio_base64: audioBase64,
+          mime_type: selectedAudioFile.type || "audio/webm",
+        },
+      });
+      toast.success("Áudio enviado. A transcrição deve aparecer em alguns segundos.");
+      setSelectedAudioFile(null);
+      if (audioInputRef.current) audioInputRef.current.value = "";
+      qc.invalidateQueries({ queryKey: ["timeline", "conversation", convId] });
+    } catch (err) {
+      toast.error(`Erro ao enviar áudio: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
   const handleEditMessage = (turn: ConversationTurnRow) => {
     setEditingTurn(turn);
     setEditDraft(turn.content);
@@ -738,8 +832,16 @@ export function ConversationPage() {
         .chat-msg[data-role="assistant"] { background: var(--surface-2); color: var(--ink); align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid var(--line); }
         .chat-msg[data-status="pending"] { opacity: 0.7; font-style: italic; }
         .chat-msg[data-status="failed"] { background: oklch(0.55 0.18 25 / 0.15); color: var(--err); }
+        .conv-audio-strip { padding: 12px 16px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, color-mix(in oklab, var(--surface-2) 84%, transparent), transparent); display: flex; flex-direction: column; gap: 10px; }
+        .conv-audio-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+        .conv-audio-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+        .conv-audio-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 11px; color: var(--ink-3); }
+        .conv-risk-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+        .conv-risk-box { border-radius: 10px; padding: 10px; border: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
+        .conv-transcript { font-size: 12px; line-height: 1.5; color: var(--ink); background: var(--surface-2); border-radius: 10px; padding: 10px; }
         .chat-input-row { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: flex-end; }
         .chat-input-row textarea { flex: 1; resize: none; min-height: 44px; max-height: 160px; }
+        .chat-audio-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12px; color: var(--ink-2); background: var(--surface-2); }
         .chat-header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .profile-panel { border: 1px solid var(--line); border-radius: var(--r-2); background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
         .profile-panel-header { padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-4); display: flex; align-items: center; justify-content: space-between; }
@@ -872,6 +974,97 @@ export function ConversationPage() {
               )}
             </div>
 
+            {activeConvId && (
+              <div className="conv-audio-strip">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>Audio e risco da conversa</div>
+                    <div style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                      Reproduza os áudios transcritos e acompanhe a classificação de risco sem sair do fluxo da conversa.
+                    </div>
+                  </div>
+                  {timelineQuery.isLoading || riskQuery.isLoading ? (
+                    <span style={{ fontSize: 11, color: "var(--ink-3)" }}>Carregando…</span>
+                  ) : (
+                    <span style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                      {audioEntries.length} áudio{audioEntries.length === 1 ? "" : "s"}
+                    </span>
+                  )}
+                </div>
+
+                {(timelineQuery.error || riskQuery.error) && (
+                  <div style={{ fontSize: 12, color: "var(--err)" }}>
+                    Não foi possível carregar todos os dados multimodais desta conversa.
+                  </div>
+                )}
+
+                {!timelineQuery.isLoading && audioEntries.length === 0 && !timelineQuery.error && (
+                  <div style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                    Nenhum áudio transcrito registrado nesta conversa ainda.
+                  </div>
+                )}
+
+                {audioEntries.length > 0 && (
+                  <div className="conv-audio-cards">
+                    {audioEntries.map((entry) => {
+                      const topRisk = entry.risks[0];
+                      const tone = severityTone(topRisk?.classification.overall_severity ?? "none");
+                      return (
+                        <article key={entry.id} className="conv-audio-card">
+                          <div className="conv-audio-meta">
+                            <span>{fmtDateTime(entry.occurredAt)}</span>
+                            {entry.model && <code>{entry.model}</code>}
+                            <span className="conv-risk-pill" style={{ background: tone.bg, color: tone.fg }}>
+                              {tone.label}
+                            </span>
+                          </div>
+
+                          {entry.audioKey ? (
+                            <audio controls preload="none" src={audioSrcFromKey(entry.audioKey)} style={{ width: "100%" }} />
+                          ) : (
+                            <div style={{ fontSize: 11, color: "var(--ink-3)" }}>Áudio indisponível para reprodução.</div>
+                          )}
+
+                          <div className="conv-transcript">
+                            {entry.transcription?.trim() || "Transcrição vazia."}
+                          </div>
+
+                          {entry.risks.length > 0 ? (
+                            <div className="conv-risk-box">
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                                <strong style={{ fontSize: 12 }}>Classificação de risco</strong>
+                                <span style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                                  {entry.risks.length} registro{entry.risks.length === 1 ? "" : "s"}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 12, color: "var(--ink)", lineHeight: 1.45 }}>
+                                {topRisk?.classification.summary || "Sem resumo."}
+                              </div>
+                              {topRisk?.classification.findings?.length ? (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                  {topRisk.classification.findings.slice(0, 2).map((finding, idx) => (
+                                    <div key={`${entry.id}-finding-${idx}`} style={{ fontSize: 11, color: "var(--ink-3)", lineHeight: 1.45 }}>
+                                      <strong style={{ color: "var(--ink-2)" }}>{finding.category}:</strong> {finding.evidence}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 11, color: "var(--ink-3)" }}>Nenhuma evidência destacada.</div>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                              Nenhuma classificação de risco encontrada para este áudio.
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="chat-msgs" ref={chatMsgsRef}>
               {!activeConvId && (
                 <div style={{ textAlign: "center", margin: "auto", color: "var(--ink-3)", fontSize: 13 }}>
@@ -922,6 +1115,15 @@ export function ConversationPage() {
             </div>
 
             <div className="chat-input-row">
+              <input
+                ref={audioInputRef}
+                type="file"
+                accept="audio/*"
+                capture="user"
+                onChange={(e) => setSelectedAudioFile(e.target.files?.[0] || null)}
+                style={{ display: "none" }}
+                aria-label="Selecionar áudio"
+              />
               <textarea
                 className="search-input"
                 placeholder={selectedProfile ? "Digite sua mensagem… (Enter envia, Shift+Enter quebra linha)" : "Selecione um profile no topo primeiro"}
@@ -938,6 +1140,14 @@ export function ConversationPage() {
               />
               <button
                 type="button"
+                className="btn"
+                onClick={() => audioInputRef.current?.click()}
+                disabled={!selectedProfile || uploadAudio.isPending || !canUseConversation}
+              >
+                Áudio
+              </button>
+              <button
+                type="button"
                 className="btn primary"
                 onClick={() => sendMessage()}
                 disabled={!selectedProfile || !draft.trim() || createTurn.isPending || !canUseConversation}
@@ -945,6 +1155,34 @@ export function ConversationPage() {
                 {createTurn.isPending ? "Enviando…" : "Enviar"}
               </button>
             </div>
+            {selectedAudioFile && (
+              <div style={{ padding: "0 12px 12px" }}>
+                <div className="chat-audio-chip">
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {selectedAudioFile.name}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ padding: 0, border: "none", background: "transparent" }}
+                    onClick={() => {
+                      setSelectedAudioFile(null);
+                      if (audioInputRef.current) audioInputRef.current.value = "";
+                    }}
+                  >
+                    remover
+                  </button>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    onClick={handleSendAudio}
+                    disabled={uploadAudio.isPending || !canUseConversation}
+                  >
+                    {uploadAudio.isPending ? "Transcrevendo…" : "Transcrever e enviar"}
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
 
           {profilePanelOpen && userId && (

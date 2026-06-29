@@ -107,6 +107,20 @@ export interface ConversationTurnResponse {
   created_at: string;
 }
 
+export interface ConversationAudioUploadRequest {
+  profile_id: string;
+  audio_base64: string;
+  mime_type?: string;
+}
+
+export interface ConversationAudioUploadResponse {
+  status: string;
+  event_id: string;
+  conversation_id: string;
+  profile_id: string;
+  received_at: string;
+}
+
 export interface ConversationProfile {
   id: string;
   name?: string;

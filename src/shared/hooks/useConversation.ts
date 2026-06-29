@@ -1,6 +1,12 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import * as api from '../api/conversation';
-import type { ConversationTurnRequest, ConversationProfile, ConversationTurnResponse } from '../api/types';
+import type {
+  ConversationAudioUploadRequest,
+  ConversationAudioUploadResponse,
+  ConversationTurnRequest,
+  ConversationProfile,
+  ConversationTurnResponse,
+} from '../api/types';
 import { getActiveTenantSlug } from "../api/token";
 
 export const conversationKeys = {
@@ -29,6 +35,15 @@ export const useCreateConversationTurn = () => {
       const tenant = (data.tenant_id || getActiveTenantSlug() || "").trim();
       const payload: ConversationTurnRequest = tenant ? { ...data, tenant_id: tenant } : data;
       return api.createConversationTurn(payload) as Promise<ConversationTurnResponse>;
+    },
+  });
+};
+
+export const useUploadConversationAudio = () => {
+  return useMutation({
+    mutationFn: (args: { conversationId: string; data: ConversationAudioUploadRequest }) => {
+      const tenant = (getActiveTenantSlug() || "").trim();
+      return api.uploadConversationAudio(args.conversationId, args.data, tenant) as Promise<ConversationAudioUploadResponse>;
     },
   });
 };
