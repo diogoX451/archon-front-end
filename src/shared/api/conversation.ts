@@ -6,15 +6,19 @@ import type {
   GenericObject,
 } from './types';
 
-export const listConversationProfiles = () => 
-  fetchClient<GenericObject>('/api/v1/conversation/profiles', {
+export const listConversationProfiles = (tenantSlug?: string) => {
+  const qs = tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
+  return fetchClient<GenericObject>(`/api/v1/conversation/profiles${qs}`, {
     method: 'GET',
   });
+};
 
-export const getConversationProfile = (id: string) => 
-  fetchClient<GenericObject>(`/api/v1/conversation/profiles/${id}`, {
+export const getConversationProfile = (id: string, tenantSlug?: string) => {
+  const qs = tenantSlug ? `?tenant=${encodeURIComponent(tenantSlug)}` : "";
+  return fetchClient<GenericObject>(`/api/v1/conversation/profiles/${id}${qs}`, {
     method: 'GET',
   });
+};
 
 export const createConversationTurn = (data: ConversationTurnRequest) => 
   fetchClient<GenericObject>('/api/v1/conversation/turns', {

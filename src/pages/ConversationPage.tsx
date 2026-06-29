@@ -26,6 +26,7 @@ import { useRiskList } from "@shared/hooks/useRisk";
 import { getToken } from "@shared/api/token";
 import { withApiBase } from "@shared/api/client";
 import { buildConversationAudioEntries } from "@shared/lib/conversationAudio";
+import { resolveConversationTenantSlug } from "@shared/lib/conversationTenant";
 import type { RiskSeverity } from "@shared/api/risk";
 
 function extractAssistantText(output: any): string {
@@ -457,7 +458,7 @@ function mergeConversationTurns(serverTurns: ConversationTurnRow[], optimisticTu
 }
 
 export function ConversationPage() {
-  const { isSuper, hasPermission } = useAuth();
+  const { isSuper, hasPermission, activeTenantSlug } = useAuth();
   const canUseConversation = canAny({ isSuper, hasPermission }, ["conversation_turn"]);
   const confirm = useConfirm();
   const toast = useToast();
@@ -465,6 +466,7 @@ export function ConversationPage() {
   const presetProfile = searchParams.get("profile") || "";
   const initialConvId = searchParams.get("conv") || "";
 
+  const conversationTenantSlug = resolveConversationTenantSlug(activeTenantSlug, null);
   const [activeConvId, setActiveConvId] = useState<string>(initialConvId);
   const [draft, setDraft] = useState("");
   const [editingTurn, setEditingTurn] = useState<ConversationTurnRow | null>(null);
@@ -475,12 +477,12 @@ export function ConversationPage() {
   const [optimisticTurnsByConv, setOptimisticTurnsByConv] = useState<Record<string, ConversationTurnRow[]>>({});
   const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
 
-  const { data: profiles, isLoading: profilesLoading, error: profilesError } = useListConversationProfiles();
+  const { data: profiles, isLoading: profilesLoading, error: profilesError } = useListConversationProfiles(conversationTenantSlug);
   const createTurn = useCreateConversationTurn();
   const uploadAudio = useUploadConversationAudio();
   const sendingRef = useRef(false);
   const audioInputRef = useRef<HTMLInputElement>(null);
-  const { data: convsPage, isLoading: convsLoading } = useConversationsList(undefined, { limit: 50 });
+  const { data: convsPage, isLoading: convsLoading } = useConversationsList(conversationTenantSlug, { limit: 50 });
   const allConversations = useMemo(() => {
     const items = convsPage?.items || [];
     const seen = new Map<string, typeof items[0]>();
@@ -510,7 +512,7 @@ export function ConversationPage() {
   const regenerateTurn = useRegenerateConversationTurn();
   const qc = useQueryClient();
 
-  const turnsQuery = useConversationTurns(activeConvId, undefined, { enabled: !!activeConvId, refetchInterval: 5000 });
+  const turnsQuery = useConversationTurns(activeConvId, conversationTenantSlug, { enabled: !!activeConvId, refetchInterval: 5000 });
   const serverTurns = turnsQuery.data?.turns || [];
   const optimisticTurns = activeConvId ? optimisticTurnsByConv[activeConvId] || [] : [];
   const turns = useMemo(
@@ -689,6 +691,7 @@ export function ConversationPage() {
       {
         profile_id: selectedProfile,
         conversation_id: convId,
+        tenant_id: conversationTenantSlug,
         message: text,
         history: history.length > 0 ? history : undefined,
       },
@@ -739,6 +742,7 @@ export function ConversationPage() {
       const audioBase64 = await fileToBase64(selectedAudioFile);
       await uploadAudio.mutateAsync({
         conversationId: convId,
+        tenantSlug: conversationTenantSlug,
         data: {
           profile_id: selectedProfile,
           audio_base64: audioBase64,
@@ -765,6 +769,7 @@ export function ConversationPage() {
       conversationId: activeConvId,
       turnId: editingTurn.id,
       content: editDraft.trim(),
+      tenantSlug: conversationTenantSlug,
     }, {
       onSuccess: () => {
         setEditingTurn(null);
@@ -785,6 +790,7 @@ export function ConversationPage() {
       conversationId: activeConvId,
       turnId: turn.id,
       profileId: activeMeta?.profile_id || selectedProfile,
+      tenantSlug: conversationTenantSlug,
     });
   };
 
@@ -797,7 +803,7 @@ export function ConversationPage() {
     });
     if (!ok) return;
     deleteConv.mutate(
-      { id: convId },
+      { id: convId, tenantSlug: conversationTenantSlug },
       {
         onSuccess: () => {
           if (activeConvId === convId) setActiveConvId("");
