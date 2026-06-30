@@ -28,6 +28,13 @@ export interface RiskRecord {
   classification: RiskClassification;
   review_status: ReviewStatus;
   created_at: string;
+  // PT-BR display labels resolved server-side from the tenant's risk config.
+  // classification_label: the single "Classificação" (top finding category or
+  // "Alarme falso"); severity_label: the "Nível de criticidade"; finding_labels:
+  // per-finding category labels, aligned with classification.findings.
+  classification_label?: string;
+  severity_label?: string;
+  finding_labels?: string[];
 }
 
 export interface RiskListResponse {

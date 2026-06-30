@@ -1021,7 +1021,7 @@ export function ConversationPage() {
                             <span>{fmtDateTime(entry.occurredAt)}</span>
                             {entry.model && <code>{entry.model}</code>}
                             <span className="conv-risk-pill" style={{ background: tone.bg, color: tone.fg }}>
-                              {tone.label}
+                              {topRisk?.severity_label?.trim() || tone.label}
                             </span>
                           </div>
 
@@ -1038,7 +1038,11 @@ export function ConversationPage() {
                           {entry.risks.length > 0 ? (
                             <div className="conv-risk-box">
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                                <strong style={{ fontSize: 12 }}>Classificação de risco</strong>
+                                <strong style={{ fontSize: 12 }}>
+                                  {topRisk?.classification_label?.trim()
+                                    ? `Classificação: ${topRisk.classification_label}`
+                                    : "Classificação de risco"}
+                                </strong>
                                 <span style={{ fontSize: 11, color: "var(--ink-3)" }}>
                                   {entry.risks.length} registro{entry.risks.length === 1 ? "" : "s"}
                                 </span>
@@ -1050,7 +1054,7 @@ export function ConversationPage() {
                                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                                   {topRisk.classification.findings.slice(0, 2).map((finding, idx) => (
                                     <div key={`${entry.id}-finding-${idx}`} style={{ fontSize: 11, color: "var(--ink-3)", lineHeight: 1.45 }}>
-                                      <strong style={{ color: "var(--ink-2)" }}>{finding.category}:</strong> {finding.evidence}
+                                      <strong style={{ color: "var(--ink-2)" }}>{topRisk.finding_labels?.[idx] || finding.category}:</strong> {finding.evidence}
                                     </div>
                                   ))}
                                 </div>

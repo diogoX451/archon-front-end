@@ -28,8 +28,9 @@ function sevMeta(s: RiskSeverity): SevMeta {
   return SEV_META[s] ?? SEV_META.unknown;
 }
 
-function SeverityBadge({ severity }: { severity: RiskSeverity }) {
+function SeverityBadge({ severity, label }: { severity: RiskSeverity; label?: string }) {
   const meta = sevMeta(severity);
+  const text = label?.trim() || meta.label;
   return (
     <span style={{
       display: "inline-flex",
@@ -44,7 +45,7 @@ function SeverityBadge({ severity }: { severity: RiskSeverity }) {
       border: "1px solid color-mix(in srgb, currentColor 16%, transparent)",
     }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: meta.color, display: "inline-block" }} />
-      {meta.label}
+      {text}
     </span>
   );
 }
@@ -64,8 +65,11 @@ function RiskDetail({ record, onClose }: { record: RiskRecord; onClose: () => vo
           <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {record.conversation_id}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
-            <SeverityBadge severity={c.overall_severity} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+            {record.classification_label && (
+              <span style={{ fontSize: 12, fontWeight: 600 }}>{record.classification_label}</span>
+            )}
+            <SeverityBadge severity={c.overall_severity} label={record.severity_label} />
             <span style={{ fontSize: 11, opacity: 0.6 }}>{fmtDate(record.created_at)}</span>
           </div>
         </div>
@@ -98,7 +102,7 @@ function RiskDetail({ record, onClose }: { record: RiskRecord; onClose: () => vo
             {c.findings.map((f, i) => (
               <div key={i} style={{ border: "1px solid var(--border, #e5e7eb)", borderRadius: 8, padding: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <strong style={{ fontSize: 13 }}>{f.category}</strong>
+                  <strong style={{ fontSize: 13 }}>{record.finding_labels?.[i] || f.category}</strong>
                   <SeverityBadge severity={f.severity} />
                 </div>
                 <blockquote style={{ margin: "6px 0", padding: "6px 10px", borderLeft: "3px solid var(--color-accent, #2563eb)", background: "var(--bg-secondary, #f9fafb)", fontSize: 13, fontStyle: "italic" }}>
@@ -133,7 +137,7 @@ export function RiskPage() {
     const q = query.trim().toLowerCase();
     if (!q) return all;
     return all.filter((r) => {
-      const hay = `${r.conversation_id} ${r.classification.summary} ${r.classification.findings.map((f) => f.category).join(" ")}`.toLowerCase();
+      const hay = `${r.conversation_id} ${r.classification.summary} ${r.classification_label ?? ""} ${r.severity_label ?? ""} ${(r.finding_labels ?? []).join(" ")} ${r.classification.findings.map((f) => f.category).join(" ")}`.toLowerCase();
       return hay.includes(q);
     });
   }, [all, query]);
@@ -195,7 +199,9 @@ export function RiskPage() {
               )}
               {records.map((r) => {
                 const isSelected = selected?.id === r.id;
-                const cats = r.classification.findings.map((f) => f.category);
+                const cats = r.classification.findings.map(
+                  (f, i) => r.finding_labels?.[i] || f.category
+                );
                 return (
                   <button
                     key={r.id}
@@ -207,12 +213,12 @@ export function RiskPage() {
                       <span style={{ fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                         {r.conversation_id}
                       </span>
-                      <SeverityBadge severity={r.classification.overall_severity} />
+                      <SeverityBadge severity={r.classification.overall_severity} label={r.severity_label} />
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, opacity: 0.6, flexWrap: "wrap" }}>
                       {cats.length > 0 ? cats.map((cat, i) => (
                         <span key={i} style={{ padding: "1px 7px", borderRadius: 99, background: "var(--bg-secondary, #f3f4f6)" }}>{cat}</span>
-                      )) : <span>sem indícios</span>}
+                      )) : <span>{r.classification_label || "sem indícios"}</span>}
                       <span style={{ marginLeft: "auto" }}>{fmtDate(r.created_at)}</span>
                       {r.review_status === "pending" && r.classification.overall_severity !== "none" && (
                         <span style={{ color: "#b45309", fontWeight: 600 }}>• pendente</span>
