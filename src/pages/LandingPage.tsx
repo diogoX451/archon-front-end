@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import { createPortal } from "react-dom";
 import type { CSSProperties, MouseEvent, PropsWithChildren } from "react";
@@ -76,6 +76,7 @@ export function LandingPage() {
       <Benefits />
       <HowItWorks />
       <PlatformShowcase />
+      <CaseStudy />
       <UseCases />
       <Comparison />
       <Faq />
@@ -209,14 +210,14 @@ function Hero() {
       <div style={heroInner}>
         <div className="lp-hero-left" style={heroLeft}>
           <span style={pill}>
-            <span style={pillPulse} /> Um agente. Todos os seus canais.
+            <span style={pillPulse} /> Orquestrador de agentes
           </span>
           <h1 style={h1}>
-            Um agente personalizado que atende clientes em <em style={emAccent}>todos os canais.</em>
+            Agentes que executam o seu processo em <em style={emAccent}>todos os canais.</em>
           </h1>
           <p style={lead}>
-            Centralize WhatsApp, site e outros canais. O Archon aprende as regras do seu negócio,
-            responde com rapidez e chama sua equipe quando o atendimento precisa de uma pessoa.
+            O Archon orquestra agentes que conversam, decidem e acionam o que seu negócio precisa.
+            Eles aprendem as suas regras, respondem com rapidez e chamam sua equipe quando precisa de uma pessoa.
           </p>
           <div style={ctaRow}>
             {SIGNUP_ENABLED ? (
@@ -238,7 +239,7 @@ function Hero() {
           </div>
           <div style={miniProof}>
             <span style={miniDot} />
-            <span>Não é um chatbot pronto · é configurado para o seu negócio</span>
+            <span>Não é um chatbot pronto · é uma orquestração configurada para o seu negócio</span>
           </div>
         </div>
         <div className="lp-hero-right" style={heroRight} aria-hidden>
@@ -445,6 +446,47 @@ const USES = [
   { tag: "Educação e infoprodutos", title: "Para atender alunos, orientar próximos passos e organizar demandas recorrentes." },
   { tag: "Vendas B2B", title: "Para qualificar oportunidades e entregar ao comercial conversas com contexto." },
 ];
+
+const CASE_STEPS = ["Áudio da ligação", "Transcrição", "Classificação de risco", "Revisão humana"];
+
+function CaseStudy() {
+  return (
+    <section id="caso-real" className="lp-section" style={sectionAlt}>
+      <div style={sectionInner}>
+        <Eyebrow>Caso real</Eyebrow>
+        <h2 style={h2}>
+          O mesmo motor que atende também <em style={emAccent}>vigia risco em ligações.</em>
+        </h2>
+        <p style={sub}>
+          Uma clínica subiu, no motor do Archon, um agente que ouve ligações e sinaliza risco — com revisão humana.
+          Mesmo orquestrador, outro processo.
+        </p>
+
+        <div style={casePipeline}>
+          {CASE_STEPS.map((label, i) => (
+            <Fragment key={label}>
+              <div style={caseStep}>{label}</div>
+              {i < CASE_STEPS.length - 1 && <span style={caseArrow} aria-hidden>→</span>}
+            </Fragment>
+          ))}
+        </div>
+
+        <div style={caseResult}>
+          <span style={caseResultLabel}>Resultado do agente</span>
+          <span style={caseBadge}>Classificação: Fuga</span>
+          <span style={{ ...caseBadge, borderColor: "var(--accent)" }}>Nível: ALTO</span>
+          <span style={caseResultHint}>classificada em segundos, com revisão humana</span>
+        </div>
+
+        <div style={caseAgentsRow}>
+          <span style={{ color: "var(--ink-3)", fontSize: 15 }}>Mesmo orquestrador:</span>
+          <span style={useTag}>Agente de atendimento</span>
+          <span style={useTag}>Agente de risco</span>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function UseCases() {
   return (
@@ -749,6 +791,15 @@ const stepLine: CSSProperties = { flex: 1, height: 1, background: "linear-gradie
 
 const useCard: CSSProperties = { background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 16, padding: "22px 22px 24px", boxShadow: "var(--shadow-1)" };
 const useTag: CSSProperties = { display: "inline-block", fontSize: 12, fontWeight: 600, color: "var(--accent-ink)", background: "var(--accent-soft)", padding: "4px 10px", borderRadius: 999, marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em" };
+
+const casePipeline: CSSProperties = { display: "flex", alignItems: "stretch", flexWrap: "wrap", gap: 10, marginTop: 8 };
+const caseStep: CSSProperties = { flex: "1 1 160px", minWidth: 0, background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 12, padding: "16px 14px", fontSize: 15, fontWeight: 600, color: "var(--ink)", textAlign: "center", boxShadow: "var(--shadow-1)" };
+const caseArrow: CSSProperties = { display: "flex", alignItems: "center", color: "var(--ink-4)", fontSize: 18 };
+const caseResult: CSSProperties = { display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, marginTop: 18, padding: "14px 16px", background: "var(--accent-soft)", borderRadius: 12 };
+const caseResultLabel: CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(--accent-ink)" };
+const caseBadge: CSSProperties = { fontSize: 14, fontWeight: 600, color: "var(--ink)", background: "var(--surface-2)", border: "1px solid var(--line-strong)", padding: "4px 12px", borderRadius: 999 };
+const caseResultHint: CSSProperties = { fontSize: 13, color: "var(--ink-3)", marginLeft: "auto" };
+const caseAgentsRow: CSSProperties = { display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, marginTop: 18 };
 
 const compareBefore: CSSProperties = { background: "var(--surface-2)", border: "1px dashed var(--line-strong)", borderRadius: 16, padding: 26 };
 const compareAfter: CSSProperties = { background: "linear-gradient(180deg, var(--accent-soft), color-mix(in oklab, var(--accent-soft) 60%, var(--surface)))", border: "1px solid color-mix(in oklab, var(--accent) 40%, transparent)", borderRadius: 16, padding: 26 };
