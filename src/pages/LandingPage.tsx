@@ -413,8 +413,8 @@ function PlatformShowcase() {
     <section id="plataforma" className="lp-section" style={section}>
       <div style={sectionInner}>
         <Eyebrow>Por dentro da plataforma</Eyebrow>
-        <h2 style={h2}>A operação inteira visível, sem transformar sua equipe em especialista técnico.</h2>
-        <p style={sub}>Acompanhe conversas, contatos e atendimentos. Para começar um novo caso, escolha um cenário pronto e conecte apenas o que ele precisa.</p>
+        <h2 style={h2}>Cada agente e cada atendimento numa só visão {"—"} sem transformar sua equipe em especialista técnico.</h2>
+        <p style={sub}>Acompanhe conversas, contatos e atendimentos. Para colocar um novo agente no ar, escolha um cenário pronto e conecte apenas o que ele precisa.</p>
         <div className="lp-product-grid" style={productGrid}>
           <figure style={productFigure}>
             <div style={productImageFrame}>
@@ -473,9 +473,9 @@ function CaseStudy() {
 
         <div style={caseResult}>
           <span style={caseResultLabel}>Resultado do agente</span>
-          <span style={caseBadge}>Classificação: Fuga</span>
-          <span style={{ ...caseBadge, borderColor: "var(--accent)" }}>Nível: ALTO</span>
-          <span style={caseResultHint}>classificada em segundos, com revisão humana</span>
+          <span style={caseBadge}>Classificação: Suicídio</span>
+          <span style={{ ...caseBadge, borderColor: "var(--accent)" }}>Nível: CRÍTICO</span>
+          <span style={caseResultHint}>da ligação ao alerta em segundos — e filtra alarme falso quando não há risco</span>
         </div>
 
         <div style={caseAgentsRow}>
@@ -493,8 +493,8 @@ function UseCases() {
     <section id="casos" className="lp-section" style={section}>
       <div style={sectionInner}>
         <Eyebrow>Pra quem é</Eyebrow>
-        <h2 style={h2}>Feito para empresas pequenas e médias que precisam atender melhor sem ampliar o operacional.</h2>
-        <p style={sub}>A experiência é configurada para cada segmento; sua equipe usa o processo do negócio, não termos como LLM ou MCP.</p>
+        <h2 style={h2}>Agentes configurados para cada operação {"—"} para atender melhor sem ampliar o time.</h2>
+        <p style={sub}>Cada agente é configurado para o seu segmento e executa o processo do negócio; sua equipe usa o fluxo de sempre, não termos como LLM ou MCP.</p>
         <div className="lp-grid2" style={grid2}>
           {USES.map((u) => (
             <article key={u.tag} style={useCard}>
