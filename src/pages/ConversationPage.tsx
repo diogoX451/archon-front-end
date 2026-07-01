@@ -839,12 +839,13 @@ export function ConversationPage() {
         .chat-msg[data-status="pending"] { opacity: 0.7; font-style: italic; }
         .chat-msg[data-status="failed"] { background: oklch(0.55 0.18 25 / 0.15); color: var(--err); }
         .conv-audio-strip { padding: 12px 16px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, color-mix(in oklab, var(--surface-2) 84%, transparent), transparent); display: flex; flex-direction: column; gap: 10px; }
-        .conv-audio-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
-        .conv-audio-card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+        .conv-audio-cards { display: flex; flex-direction: column; gap: 10px; }
+        .conv-audio-card { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
         .conv-audio-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 11px; color: var(--ink-3); }
         .conv-risk-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-        .conv-risk-box { border-radius: 10px; padding: 10px; border: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
-        .conv-transcript { font-size: 12px; line-height: 1.5; color: var(--ink); background: var(--surface-2); border-radius: 10px; padding: 10px; }
+        .conv-risk-box { border-radius: 8px; padding: 10px; border: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
+        .conv-transcript { font-size: 12px; line-height: 1.6; color: var(--ink); background: var(--surface-2); border-radius: 8px; padding: 10px; max-height: 96px; overflow-y: auto; }
+        .conv-audio-player { width: 100%; height: 36px; display: block; }
         .chat-input-row { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: flex-end; }
         .chat-input-row textarea { flex: 1; resize: none; min-height: 44px; max-height: 160px; }
         .chat-audio-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12px; color: var(--ink-2); background: var(--surface-2); }
@@ -983,19 +984,21 @@ export function ConversationPage() {
             {activeConvId && (
               <div className="conv-audio-strip">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>Audio e risco da conversa</div>
-                    <div style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                      Reproduza os áudios transcritos e acompanhe a classificação de risco sem sair do fluxo da conversa.
-                    </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>Áudio e risco</span>
+                    {!(timelineQuery.isLoading || riskQuery.isLoading) && (
+                      <span style={{
+                        fontSize: 11, padding: "1px 7px", borderRadius: 99,
+                        background: "var(--surface-2)", border: "1px solid var(--line)",
+                        color: "var(--ink-3)",
+                      }}>
+                        {audioEntries.length} áudio{audioEntries.length === 1 ? "" : "s"}
+                      </span>
+                    )}
+                    {(timelineQuery.isLoading || riskQuery.isLoading) && (
+                      <span style={{ fontSize: 11, color: "var(--ink-3)" }}>Carregando…</span>
+                    )}
                   </div>
-                  {timelineQuery.isLoading || riskQuery.isLoading ? (
-                    <span style={{ fontSize: 11, color: "var(--ink-3)" }}>Carregando…</span>
-                  ) : (
-                    <span style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                      {audioEntries.length} áudio{audioEntries.length === 1 ? "" : "s"}
-                    </span>
-                  )}
                 </div>
 
                 {(timelineQuery.error || riskQuery.error) && (
@@ -1026,7 +1029,7 @@ export function ConversationPage() {
                           </div>
 
                           {entry.audioKey ? (
-                            <audio controls preload="none" src={audioSrcFromKey(entry.audioKey)} style={{ width: "100%" }} />
+                            <audio controls preload="none" src={audioSrcFromKey(entry.audioKey)} className="conv-audio-player" />
                           ) : (
                             <div style={{ fontSize: 11, color: "var(--ink-3)" }}>Áudio indisponível para reprodução.</div>
                           )}
