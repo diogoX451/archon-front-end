@@ -814,6 +814,13 @@ export function ConversationPage() {
 
   const activePending = turns.some((t) => t.status === "pending");
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [expandedTranscripts, setExpandedTranscripts] = useState<Set<string>>(new Set());
+  const toggleTranscript = (id: string) =>
+    setExpandedTranscripts((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const gridCols = profilePanelOpen && userId
     ? "280px 1fr 260px"
@@ -839,13 +846,18 @@ export function ConversationPage() {
         .chat-msg[data-status="pending"] { opacity: 0.7; font-style: italic; }
         .chat-msg[data-status="failed"] { background: oklch(0.55 0.18 25 / 0.15); color: var(--err); }
         .conv-audio-strip { padding: 12px 16px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, color-mix(in oklab, var(--surface-2) 84%, transparent), transparent); display: flex; flex-direction: column; gap: 10px; }
-        .conv-audio-cards { display: flex; flex-direction: column; gap: 10px; }
-        .conv-audio-card { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-        .conv-audio-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 11px; color: var(--ink-3); }
-        .conv-risk-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-        .conv-risk-box { border-radius: 8px; padding: 10px; border: 1px solid var(--line); background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
-        .conv-transcript { font-size: 12px; line-height: 1.6; color: var(--ink); background: var(--surface-2); border-radius: 8px; padding: 10px; max-height: 96px; overflow-y: auto; }
-        .conv-audio-player { width: 100%; height: 36px; display: block; }
+        .conv-audio-cards { display: flex; flex-direction: column; gap: 12px; }
+        .conv-audio-card { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+        .conv-audio-card-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px 8px; flex-wrap: wrap; }
+        .conv-audio-meta { display: flex; gap: 6px; align-items: center; flex: 1; flex-wrap: wrap; font-size: 11px; color: var(--ink-3); min-width: 0; }
+        .conv-risk-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
+        .conv-audio-player { width: 100%; display: block; }
+        .conv-transcript-wrap { position: relative; }
+        .conv-transcript { font-size: 12px; line-height: 1.6; color: var(--ink); padding: 0 12px 4px; overflow: hidden; }
+        .conv-transcript-fade { position: absolute; bottom: 0; left: 0; right: 0; height: 36px; background: linear-gradient(transparent, var(--surface)); pointer-events: none; }
+        .conv-transcript-toggle { font-size: 11px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 4px 12px 10px; text-align: left; width: 100%; }
+        .conv-transcript-toggle:hover { text-decoration: underline; }
+        .conv-risk-box { border-top: 1px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: var(--surface-2); }
         .chat-input-row { padding: 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: flex-end; }
         .chat-input-row textarea { flex: 1; resize: none; min-height: 44px; max-height: 160px; }
         .chat-audio-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12px; color: var(--ink-2); background: var(--surface-2); }
@@ -1018,28 +1030,54 @@ export function ConversationPage() {
                     {audioEntries.map((entry) => {
                       const topRisk = entry.risks[0];
                       const tone = severityTone(topRisk?.classification.overall_severity ?? "none");
+                      const transcriptExpanded = expandedTranscripts.has(entry.id);
+                      const transcript = entry.transcription?.trim() || "";
+                      const transcriptLong = transcript.length > 180;
                       return (
                         <article key={entry.id} className="conv-audio-card">
-                          <div className="conv-audio-meta">
-                            <span>{fmtDateTime(entry.occurredAt)}</span>
-                            {entry.model && <code>{entry.model}</code>}
+                          {/* header: meta + severity */}
+                          <div className="conv-audio-card-header">
+                            <div className="conv-audio-meta">
+                              <span>{fmtDateTime(entry.occurredAt)}</span>
+                              {entry.model && <code style={{ fontSize: 10 }}>{entry.model}</code>}
+                            </div>
                             <span className="conv-risk-pill" style={{ background: tone.bg, color: tone.fg }}>
                               {topRisk?.severity_label?.trim() || tone.label}
                             </span>
                           </div>
 
+                          {/* player */}
                           {entry.audioKey ? (
                             <audio controls preload="none" src={audioSrcFromKey(entry.audioKey)} className="conv-audio-player" />
                           ) : (
-                            <div style={{ fontSize: 11, color: "var(--ink-3)" }}>Áudio indisponível para reprodução.</div>
+                            <div style={{ fontSize: 11, color: "var(--ink-3)", padding: "4px 12px 8px" }}>Áudio indisponível.</div>
                           )}
 
-                          <div className="conv-transcript">
-                            {entry.transcription?.trim() || "Transcrição vazia."}
-                          </div>
+                          {/* transcript colapsável */}
+                          {transcript ? (
+                            <div className="conv-transcript-wrap">
+                              <div
+                                className="conv-transcript"
+                                style={{ maxHeight: transcriptExpanded ? "none" : 60 }}
+                              >
+                                {transcript}
+                              </div>
+                              {!transcriptExpanded && transcriptLong && (
+                                <div className="conv-transcript-fade" />
+                              )}
+                              {transcriptLong && (
+                                <button className="conv-transcript-toggle" onClick={() => toggleTranscript(entry.id)}>
+                                  {transcriptExpanded ? "▲ Ver menos" : "▼ Ver transcrição completa"}
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 11, color: "var(--ink-3)", padding: "4px 12px 8px" }}>Transcrição vazia.</div>
+                          )}
 
+                          {/* risco */}
                           {entry.risks.length > 0 ? (
-                            <div className="conv-risk-box">
+                            <div className="conv-risk-box" style={{ borderLeft: `3px solid ${tone.bg}` }}>
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                                 <strong style={{ fontSize: 12 }}>
                                   {topRisk?.classification_label?.trim()
@@ -1054,22 +1092,17 @@ export function ConversationPage() {
                                 {topRisk?.classification.summary || "Sem resumo."}
                               </div>
                               {topRisk?.classification.findings?.length ? (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                   {topRisk.classification.findings.slice(0, 2).map((finding, idx) => (
                                     <div key={`${entry.id}-finding-${idx}`} style={{ fontSize: 11, color: "var(--ink-3)", lineHeight: 1.45 }}>
-                                      <strong style={{ color: "var(--ink-2)" }}>{topRisk.finding_labels?.[idx] || finding.category}:</strong> {finding.evidence}
+                                      <strong style={{ color: "var(--ink-2)" }}>{topRisk.finding_labels?.[idx] || finding.category}:</strong>{" "}
+                                      {finding.evidence}
                                     </div>
                                   ))}
                                 </div>
-                              ) : (
-                                <div style={{ fontSize: 11, color: "var(--ink-3)" }}>Nenhuma evidência destacada.</div>
-                              )}
+                              ) : null}
                             </div>
-                          ) : (
-                            <div style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                              Nenhuma classificação de risco encontrada para este áudio.
-                            </div>
-                          )}
+                          ) : null}
                         </article>
                       );
                     })}
